@@ -1,0 +1,47 @@
+contract: sdd-workflow-v1
+version: 0.1.0
+phase: 1.4
+name: verify
+command: commands/sdd-verify.md
+lifecycle_gate:
+  position: command_entry
+  contract: schemas/contracts/lifecycle-decision-contract.md
+  execution_phase: "1.7"
+  note: "Phase 1.4 declares the gate placeholder only."
+inputs:
+  artifacts:
+    - specs/<branch>/spec.md
+    - specs/<branch>/plan.md
+    - specs/<branch>/tasks.md
+    - review_result
+    - diff_summary
+    - adapters/generic.yml
+    - schemas/contracts/sdd-result-contract.md
+outputs:
+  artifacts:
+    - artifacts/validation-<task>.md
+    - validation_checkpoint
+phase_gates:
+  entry:
+    requires:
+      - acceptance criteria
+      - validation strategy or declared validation command
+    blocks_on:
+      - missing acceptance mapping target
+  exit:
+    requires:
+      - status PASS | PASS_WITH_GAPS | FAIL | BLOCKED
+      - acceptance mapping
+      - evidence summary
+    checkpoint_required: true
+forbidden_auto_transitions:
+  - validation_pass_to_sync_back_without_checkpoint
+  - auto_fix_on_failure
+allowed_agents:
+  - validator
+  - reviewer
+doctor_checks:
+  required_assets:
+    - commands/sdd-verify.md
+    - agents/validator.md
+    - schemas/contracts/sdd-result-contract.md

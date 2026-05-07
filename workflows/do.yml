@@ -1,0 +1,66 @@
+contract: sdd-workflow-v1
+version: 0.1.0
+phase: 1.4
+name: do
+command: commands/sdd-do.md
+lifecycle_gate:
+  position: command_entry
+  contract: schemas/contracts/lifecycle-decision-contract.md
+  execution_phase: "1.7"
+  note: "Phase 1.4 declares the gate placeholder only."
+inputs:
+  artifacts:
+    - specs/<branch>/spec.md
+    - specs/<branch>/plan.md
+    - specs/<branch>/tasks.md
+    - selected_task
+    - schemas/contracts/sdd-result-contract.md
+    - templates/sync-back-proposal-template.md
+outputs:
+  artifacts:
+    - artifacts/implement-<task>.md
+    - artifacts/review-<task>.md
+    - artifacts/debug-<task>.md
+    - artifacts/validation-<task>.md
+    - sync-back-proposal-input
+phase_gates:
+  entry:
+    requires:
+      - selected task with clear boundary and acceptance
+      - user or orchestrator approval to start implementation
+    blocks_on:
+      - blocking Task Gap
+      - missing affected_files
+      - missing validation declaration
+  exit:
+    requires:
+      - implementation evidence
+      - review decision
+      - validation or validation gap
+      - sync-back proposal readiness
+    checkpoint_required: true
+execution_boundaries:
+  write_mode: foreground_only
+  background_write: false
+  debugger_max_attempts: 1
+forbidden_auto_transitions:
+  - automatic_commit
+  - automatic_push
+  - automatic_merge
+  - automatic_worktree_create
+  - background_write
+  - loop_execution
+allowed_agents:
+  - scout
+  - implementer
+  - reviewer
+  - debugger
+  - validator
+doctor_checks:
+  required_assets:
+    - commands/sdd-do.md
+    - agents/implementer.md
+    - agents/reviewer.md
+    - agents/debugger.md
+    - agents/validator.md
+    - schemas/contracts/sdd-result-contract.md

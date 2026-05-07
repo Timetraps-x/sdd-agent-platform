@@ -1,0 +1,75 @@
+contract: sdd-project-adapter-v1
+version: 1.3.0
+adapter:
+  id: java-maven
+  name: Java Maven Project Adapter
+  owner: platform-assets/adapters
+  project_type: backend
+  language: java
+  framework: spring-boot-or-generic-maven
+
+project_defaults:
+  spec_dir: specs/<branch>
+  docs_language: zh-CN
+  compatible_with: spec-kit
+
+key_directories:
+  source:
+    - src/main/java
+    - src/main/resources
+  tests:
+    - src/test/java
+    - src/test/resources
+  build:
+    - pom.xml
+  sdd:
+    - specs
+    - .sdd
+
+validation:
+  default:
+    - mvn compile
+  test:
+    - mvn test
+  package:
+    - mvn package -DskipTests
+  notes:
+    - Commands are declarations for future validator/command use and are not executed by the adapter.
+    - Project-specific modules or profiles should override these commands in .sdd/project.yml.
+    - Default validation is minimal compile; `mvn test` is optional and should be selected when task risk or project policy requires tests.
+
+editing:
+  prefer_hashline: true
+  native_edit_fallback: true
+
+runtime:
+  background_write: false
+  worktree_isolation: false
+  sync_back_mode: proposal
+
+lifecycle:
+  decision_required: true
+  profiles:
+    - direct
+    - compact
+    - full
+    - research
+
+risk:
+  confirm_required:
+    - git_push
+    - git_commit
+    - git_reset
+    - delete_files
+    - dependency_install
+    - worktree_create
+    - worktree_remove
+    - ci_cd_change
+    - external_publish
+    - database_schema_change
+    - database_data_change
+
+extension_points:
+  validation_profiles: true
+  tool_capabilities: false
+  plugin_loader: false

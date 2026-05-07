@@ -1,0 +1,50 @@
+contract: sdd-workflow-v1
+version: 0.1.0
+phase: 1.4
+name: tasks
+command: commands/sdd-tasks.md
+lifecycle_gate:
+  position: command_entry
+  contract: schemas/contracts/lifecycle-decision-contract.md
+  execution_phase: "1.7"
+  note: "Phase 1.4 declares the gate placeholder only."
+inputs:
+  artifacts:
+    - specs/<branch>/spec.md
+    - specs/<branch>/plan.md
+    - specs/<branch>/tasks.md
+    - templates/tasks-template.md
+    - schemas/contracts/sdd-task-contract.md
+outputs:
+  artifacts:
+    - specs/<branch>/tasks.md
+    - tasks_checkpoint
+phase_gates:
+  entry:
+    requires:
+      - usable spec and plan artifacts
+    blocks_on:
+      - blocking Spec Gap
+      - blocking Plan Gap
+  exit:
+    requires:
+      - task ids
+      - task boundaries
+      - dependencies
+      - affected files
+      - validation declarations
+    checkpoint_required: true
+forbidden_auto_transitions:
+  - tasks_to_do_without_checkpoint
+  - dependency_wave_execution
+  - overlap_gate_execution
+allowed_agents:
+  - planner
+  - scout
+  - spec-reviewer
+doctor_checks:
+  required_assets:
+    - commands/sdd-tasks.md
+    - agents/planner.md
+    - templates/tasks-template.md
+    - schemas/contracts/sdd-task-contract.md

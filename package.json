@@ -1,0 +1,29 @@
+{
+  "name": "sdd-agent-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local SDD + subagent workflow platform for Claude Code.",
+  "bin": {
+    "sdd": "./dist/packages/cli/src/main.js"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "tsconfig.build.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --import tsx \"packages/**/*.test.ts\"",
+    "sdd": "tsx packages/cli/src/main.ts"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.0"
+  }
+}

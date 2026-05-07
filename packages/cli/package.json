@@ -1,0 +1,12 @@
+{
+  "name": "@sdd-agent-platform/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "sdd": "./dist/main.js"
+  },
+  "dependencies": {
+    "@sdd-agent-platform/core": "0.1.0"
+  }
+}

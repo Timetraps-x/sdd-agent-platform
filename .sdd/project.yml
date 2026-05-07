@@ -1,0 +1,34 @@
+contract: phase-1.2-project-contract
+project:
+  name: sdd-agent-platform
+  language: typescript
+  framework: typescript-node
+detection:
+  confidence: high
+  mixed_stack: false
+  primary: typescript-node
+  candidates:
+    - id: typescript-node
+      confidence: high
+      score: 14
+sdd:
+  spec_dir: specs/<branch>
+  docs_language: zh-CN
+  compatible_with: spec-kit
+validation:
+  default:
+    - npm run typecheck
+editing:
+  prefer_hashline: true
+  native_edit_fallback: true
+runtime:
+  background_write: false
+  worktree_isolation: false
+  sync_back_mode: proposal
+lifecycle:
+  decision_required: true
+  profiles:
+    - direct
+    - compact
+    - full
+    - research

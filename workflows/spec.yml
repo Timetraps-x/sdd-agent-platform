@@ -1,0 +1,43 @@
+contract: sdd-workflow-v1
+version: 0.1.0
+phase: 1.4
+name: spec
+command: commands/sdd-spec.md
+lifecycle_gate:
+  position: command_entry
+  contract: schemas/contracts/lifecycle-decision-contract.md
+  execution_phase: "1.7"
+  note: "Phase 1.4 declares the gate placeholder only."
+inputs:
+  artifacts:
+    - user_request
+    - specs/<branch>/spec.md
+    - templates/spec-template.md
+outputs:
+  artifacts:
+    - specs/<branch>/spec.md
+    - spec_checkpoint
+phase_gates:
+  entry:
+    requires:
+      - user intent or revision request
+    blocks_on:
+      - unresolved external unknown requiring research profile
+  exit:
+    requires:
+      - explicit scope
+      - verifiable acceptance
+      - open questions listed
+    checkpoint_required: true
+forbidden_auto_transitions:
+  - spec_to_plan_without_checkpoint
+  - spec_to_implementation
+allowed_agents:
+  - spec-reviewer
+  - scout
+doctor_checks:
+  required_assets:
+    - commands/sdd-spec.md
+    - agents/spec-reviewer.md
+    - templates/spec-template.md
+    - schemas/contracts/lifecycle-decision-contract.md

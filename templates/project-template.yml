@@ -1,0 +1,45 @@
+contract: sdd-project-yml-v1
+version: 1.3.0
+template: sdd-project-template-v1
+
+project:
+  name: example-project
+  language: generic
+  framework: generic
+
+sdd:
+  spec_dir: specs/<branch>
+  docs_language: zh-CN
+  compatible_with: spec-kit
+
+validation:
+  default: []
+
+editing:
+  prefer_hashline: true
+  native_edit_fallback: true
+
+runtime:
+  background_write: false
+  worktree_isolation: false
+  sync_back_mode: proposal
+
+lifecycle:
+  decision_required: true
+  profiles:
+    - direct
+    - compact
+    - full
+    - research
+
+risk:
+  confirm_required:
+    - git_push
+    - git_commit
+    - git_reset
+    - delete_files
+    - dependency_install
+    - worktree_create
+    - worktree_remove
+    - ci_cd_change
+    - external_publish

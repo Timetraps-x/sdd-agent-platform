@@ -1,0 +1,46 @@
+contract: sdd-workflow-v1
+version: 0.1.0
+phase: 1.4
+name: plan
+command: commands/sdd-plan.md
+lifecycle_gate:
+  position: command_entry
+  contract: schemas/contracts/lifecycle-decision-contract.md
+  execution_phase: "1.7"
+  note: "Phase 1.4 declares the gate placeholder only."
+inputs:
+  artifacts:
+    - specs/<branch>/spec.md
+    - specs/<branch>/plan.md
+    - templates/plan-template.md
+    - adapters/generic.yml
+outputs:
+  artifacts:
+    - specs/<branch>/plan.md
+    - plan_checkpoint
+phase_gates:
+  entry:
+    requires:
+      - approved or usable spec artifact
+    blocks_on:
+      - blocking Spec Gap
+  exit:
+    requires:
+      - chosen technical approach
+      - impact surface
+      - validation strategy
+      - blocking plan gaps resolved or escalated
+    checkpoint_required: true
+forbidden_auto_transitions:
+  - plan_to_tasks_without_checkpoint
+  - plan_to_implementation
+allowed_agents:
+  - scout
+  - planner
+  - spec-reviewer
+doctor_checks:
+  required_assets:
+    - commands/sdd-plan.md
+    - agents/scout.md
+    - agents/planner.md
+    - templates/plan-template.md
