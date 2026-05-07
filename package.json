@@ -1,19 +1,42 @@
 {
   "name": "sdd-agent-platform",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Local SDD + subagent workflow platform for Claude Code.",
+  "license": "MIT",
+  "homepage": "https://github.com/Timetraps-x/sdd-agent-platform#readme",
+  "bugs": {
+    "url": "https://github.com/Timetraps-x/sdd-agent-platform/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Timetraps-x/sdd-agent-platform.git"
+  },
+  "keywords": [
+    "sdd",
+    "spec-driven-development",
+    "claude-code",
+    "agent-workflow",
+    "cli"
+  ],
   "bin": {
-    "sdd": "./dist/packages/cli/src/main.js"
+    "sdd": "dist/packages/cli/src/main.js"
   },
   "files": [
     "dist",
+    "README.md",
     "package.json",
     "tsconfig.build.json"
   ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "node --test --import tsx \"packages/**/*.test.ts\"",
     "sdd": "tsx packages/cli/src/main.ts"

@@ -463,11 +463,26 @@ Phase 3 的目标是在 Phase 1 闭环和 Phase 2 入口投影稳定后，把工
 - runtime 差异不污染 `spec.md / plan.md / tasks.md`。
 - 高成本 agent 调用有清晰 gate、预算和 artifact。
 
-### 3.4 Phase 4：项目代码知识图谱阶段
+### 3.4 Phase 4：NPM Package Distribution / Public Install Baseline
 
-Phase 4 方向暂不拆分小阶段，只作为长期架构目标保留。它的目标是在 SDD workflow、入口投影和 agent runtime 稳定后，建设项目代码知识图谱，让平台从“按任务执行”进一步演进为“理解项目结构、依赖、变更影响和历史决策”的持续迭代系统。
+Phase 4 从原“代码知识图谱”前移出一个发布分发阶段：先把当前 GitHub direct install 能力升级为标准 npm published package，让普通用户最终可以像 OpenSpec 一样使用 `npm install -g <package>@latest` 安装 CLI。
 
 Phase 4 关注：
+
+- npm package identity：包名、scope、registry、public access。
+- public package metadata：license、repository、homepage、bugs、keywords、engines、files、bin、publishConfig。
+- package contents audit：只发布运行所需资产，排除 `.sdd/runs`、本地 smoke、私有 settings、日志和临时包。
+- publish readiness validation：`npm pack --dry-run`、本地 tarball install smoke、`npm publish --dry-run`。
+- human-operated publish guide：npm account、2FA、`npm login`、`npm whoami`、真实 publish 确认和 post-publish smoke。
+- docs install path：真实 npm publish 成功前继续以 GitHub direct install 为可用默认路径；成功后再切换到 npm package。
+
+Phase 4 不做自动发布 CI/CD，不配置 npm token/secret，不静默执行真实 `npm publish`，也不改变 SDD runtime 主路径。
+
+### 3.5 Phase 5：项目代码知识图谱阶段
+
+原 Phase 4 代码知识图谱方向顺延为 Phase 5。该方向暂不拆分小阶段，只作为长期架构目标保留。它的目标是在 SDD workflow、入口投影、agent runtime 和 npm 分发基线稳定后，建设项目代码知识图谱，让平台从“按任务执行”进一步演进为“理解项目结构、依赖、变更影响和历史决策”的持续迭代系统。
+
+Phase 5 关注：
 
 - 代码结构图谱：module / package / class / function / API / table / mapper / config 的关系。
 - 依赖与影响图谱：调用关系、数据流、配置依赖、任务 affected_files 与真实影响面的映射。
@@ -475,14 +490,14 @@ Phase 4 关注：
 - 运行历史图谱：run、agent、version、task result、debug attempt、validation result 的演进。
 - 检索与推理能力：支持 impact analysis、相似任务召回、风险提示、测试建议和架构漂移识别。
 
-Phase 4 可参考开源图谱和代码智能方向，但不直接照搬实现：
+Phase 5 可参考开源图谱和代码智能方向，但不直接照搬实现：
 
 - GSD 的 dependency wave / files overlap / gap closure 可转译为任务依赖与影响图谱。
 - Oh My OpenCode / Oh My OpenAgent 的 Explore / Librarian / Oracle 编排可转译为图谱采集、外部知识补充和高成本架构咨询。
 - Spec Kit 的 spec / plan / tasks 产物链可转译为 SDD 语义节点与阶段边。
 - 代码索引、AST、LSP、调用图、数据库 schema 和运行 artifact 应逐步汇入统一知识层。
 
-Phase 4 不作为 Phase 1、Phase 2 或 Phase 3 的前置条件。Phase 1/2/3 的架构必须为 Phase 4 预留稳定 contract：task metadata、artifact schema、event log、agent version 和 validation evidence 都不能只服务当前命令，而要能被后续图谱长期消费。
+Phase 5 不作为 Phase 1、Phase 2、Phase 3 或 Phase 4 的前置条件。Phase 1/2/3/4 的架构必须为 Phase 5 预留稳定 contract：task metadata、artifact schema、event log、agent version、validation evidence 和 package distribution evidence 都不能只服务当前命令，而要能被后续图谱长期消费。
 
 ## 4. Phase 1 完成定义
 

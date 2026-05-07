@@ -15,7 +15,7 @@ Phase 1.10 只执行真实/合成项目试跑，用当前 `sdd-agent-platform` T
 
 - 不自动 commit / push / PR。
 - 不调用外部 agent API。
-- 不引入 Phase 2 入口投影、Phase 3 worktree/tool registry/dashboard/run database 或 Phase 4 代码知识图谱。
+- 不引入 Phase 2 入口投影、Phase 3 worktree/tool registry/dashboard/run database、Phase 4 npm distribution 或 Phase 5 代码知识图谱。
 - 不把试跑结果静默同步回上游 spec/plan/tasks。
 - 不做超出 trial blocker 的实现修复。
 

@@ -57,3 +57,17 @@
 | 3.13 | [phase3.13-validation.md](phase3.13-validation.md) |
 | 3.14 | [phase3.14-validation.md](phase3.14-validation.md) |
 | 3.15 | [phase3.15-validation.md](phase3.15-validation.md) |
+
+## Phase 4
+
+| Phase | Validation |
+|---|---|
+| 4.0 | [phase4.0-validation.md](phase4.0-validation.md) |
+| 4.1 | [phase4.1-validation.md](phase4.1-validation.md) |
+| 4.2 | [phase4.2-validation.md](phase4.2-validation.md) |
+| 4.3 | [phase4.3-validation.md](phase4.3-validation.md) |
+| 4.4 | [phase4.4-validation.md](phase4.4-validation.md) |
+
+## Phase 5
+
+Phase 5 validation index will be added when the code knowledge graph baseline is split into executable phases.

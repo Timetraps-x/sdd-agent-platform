@@ -45,5 +45,5 @@ Phase 3.15 收束真实全链路验证中暴露的主路径断点：用户自然
 
 ## 下游引用
 
-- 后续用户指南、Claude Code workflow command 和 Phase 4 平台化能力应把 `sdd do task` 视为用户主入口。
+- 后续用户指南、Claude Code workflow command、Phase 4 distribution 和 Phase 5 平台化能力应把 `sdd do task` 视为用户主入口。
 - `sdd background run` 应作为 executor-level 能力保留给高级调试、队列/波次执行和内部编排。

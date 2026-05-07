@@ -64,6 +64,22 @@
 | 3.14 | completed | [phase-3.14-governance-policy.md](phase-3.14-governance-policy.md) | `../phase3.14-spec.md`; `../phase3.14-plan.md`; `../phase3.14-tasks.md`; `../phase3.14-validation.md`; governance policy core/CLI/doctor visibility; confirmation/concurrency gate tests, executor blocking event evidence, built CLI governance smoke PASS | Phase 3.15 workflow entrypoint unification may start |
 | 3.15 | completed | [phase-3.15-workflow-entrypoint-unification.md](phase-3.15-workflow-entrypoint-unification.md) | `../phase3.15-spec.md`; `../phase3.15-plan.md`; `../phase3.15-tasks.md`; `../phase3.15-validation.md`; ingestion-aware `sdd do task` facade; artifact ingestion records for implementer/reviewer/validator; typecheck/tests/build and full install-to-uninstall smoke PASS | Phase 3 user-facing workflow main path is aligned with executor ingestion evidence |
 
+## Phase 4
+
+| Phase | Status | Artifact | Completion evidence | Next gate |
+|---|---|---|---|---|
+| 4.0 | completed | [phase-4.0-npm-package-distribution.md](phase-4.0-npm-package-distribution.md) | `../phase4.0-spec.md`; `../phase4.0-plan.md`; `../phase4.0-tasks.md`; `../phase4.0-validation.md`; npm official docs and comparable tools reviewed; package identity candidates checked; Phase 4 split into 4.0~4.4; SDD status/tasks gaps PASS | Phase 4.1 package metadata hardening may start after package identity/license/version are confirmed |
+| 4.1 | completed | [phase-4.1-package-metadata-hardening.md](phase-4.1-package-metadata-hardening.md) | `../phase4.1-spec.md`; `../phase4.1-plan.md`; `../phase4.1-tasks.md`; `../phase4.1-validation.md`; package identity confirmed as `sdd-agent-platform` / MIT / `0.1.0`; `package.json` public npm metadata updated; `npm install --package-lock-only`, typecheck, tests and build PASS | Phase 4.2 package contents smoke may start after metadata build/test validation passes |
+| 4.2 | completed | [phase-4.2-package-contents-install-smoke.md](phase-4.2-package-contents-install-smoke.md) | `../phase4.2-spec.md`; `../phase4.2-plan.md`; `../phase4.2-tasks.md`; `../phase4.2-validation.md`; `npm pack --dry-run`, package contents audit, `npm pack`, global tarball install, `sdd --version`, clean repo init/status/doctor smoke, and global uninstall PASS | Publish dry-run in Phase 4.3 may start after local tarball install smoke passes |
+| 4.3 | completed | [phase-4.3-npm-publish-dry-run-runbook.md](phase-4.3-npm-publish-dry-run-runbook.md) | `../phase4.3-spec.md`; `../phase4.3-plan.md`; `../phase4.3-tasks.md`; `../phase4.3-validation.md`; human npm login runbook written; `npm whoami` confirmed account `timetraps`; initial dry-run bin warning fixed by normalizing `bin.sdd`; final `npm publish --dry-run` PASS with no warnings | Public publish in Phase 4.4 requires explicit human approval for exact command |
+| 4.4 | completed | [phase-4.4-public-publish-adoption.md](phase-4.4-public-publish-adoption.md) | `../phase4.4-spec.md`; `../phase4.4-plan.md`; `../phase4.4-tasks.md`; `../phase4.4-validation.md`; explicit user approval received; npm security-key/browser authentication completed; public registry shows `sdd-agent-platform@0.1.0`; public install, `sdd --version`, clean repo init/status/doctor smoke, and README/user-guide npm default install docs PASS | Phase 5 graph baseline can be split after public install/adoption is complete or deliberately deferred |
+
+## Phase 5
+
+| Phase | Status | Artifact | Completion evidence | Next gate |
+|---|---|---|---|---|
+| 5.0 | planned | TBD: code knowledge graph baseline | Original Phase 4 graph direction shifted to Phase 5 after npm package distribution baseline | Split Phase 5 after Phase 4.0 publish readiness is complete |
+
 ## 更新规则
 
 - 进入 phase 时，将该 phase 状态改为 `in_progress`。

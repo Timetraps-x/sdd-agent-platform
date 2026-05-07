@@ -1,0 +1,1282 @@
+{
+  "contract": "phase-3.13-local-run-index-v1",
+  "generatedAt": "2026-05-07T06:41:08.472Z",
+  "runs": [
+    {
+      "runId": "20260507-001",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "createdAt": "2026-05-07T05:19:07.461Z",
+      "updatedAt": "2026-05-07T05:19:07.461Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260506-001",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "DEMO-T1",
+      "createdAt": "2026-05-06T08:50:22.481Z",
+      "updatedAt": "2026-05-06T08:55:18.806Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "DEMO-T1"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "smoke-p18-block",
+      "status": "blocked",
+      "phase": "do",
+      "currentTask": "P18-SMOKE",
+      "createdAt": "2026-05-01T00:03:30.000Z",
+      "updatedAt": "2026-05-01T00:03:30.000Z",
+      "validationStatus": "blocked",
+      "syncBackStatus": "not_created",
+      "taskIds": [
+        "P18-SMOKE"
+      ],
+      "artifactCount": 0
+    },
+    {
+      "runId": "smoke-p18-pass",
+      "status": "completed",
+      "phase": "do",
+      "currentTask": "P18-SMOKE",
+      "createdAt": "2026-05-01T00:03:00.000Z",
+      "updatedAt": "2026-05-01T00:03:00.000Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "not_created",
+      "taskIds": [
+        "P18-SMOKE"
+      ],
+      "artifactCount": 2
+    },
+    {
+      "runId": "20260501-016",
+      "status": "failed",
+      "phase": "verify",
+      "currentTask": "P1.9-T2",
+      "createdAt": "2026-04-30T18:19:40.003Z",
+      "updatedAt": "2026-05-01T00:02:00.000Z",
+      "validationStatus": "blocked",
+      "syncBackStatus": "not_created",
+      "taskIds": [
+        "P1.9-T2"
+      ],
+      "artifactCount": 1
+    },
+    {
+      "runId": "20260501-020",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "P1.10-T1",
+      "createdAt": "2026-04-30T18:26:26.641Z",
+      "updatedAt": "2026-04-30T18:30:08.940Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.10-T1"
+      ],
+      "artifactCount": 3
+    },
+    {
+      "runId": "20260501-019",
+      "status": "blocked",
+      "phase": "do",
+      "currentTask": "P1.10-T1",
+      "createdAt": "2026-04-30T18:25:09.980Z",
+      "updatedAt": "2026-04-30T18:25:41.839Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.10-T1"
+      ],
+      "artifactCount": 1
+    },
+    {
+      "runId": "20260501-018",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "createdAt": "2026-04-30T18:22:10.614Z",
+      "updatedAt": "2026-04-30T18:22:10.615Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260501-017",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "createdAt": "2026-04-30T18:21:57.580Z",
+      "updatedAt": "2026-04-30T18:21:57.580Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260501-015",
+      "status": "blocked",
+      "phase": "verify",
+      "currentTask": "P1.9-T1",
+      "createdAt": "2026-04-30T18:19:28.654Z",
+      "updatedAt": "2026-04-30T18:19:35.985Z",
+      "validationStatus": "blocked",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.9-T1"
+      ],
+      "artifactCount": 3
+    },
+    {
+      "runId": "20260501-014",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "P1.9-T1",
+      "createdAt": "2026-04-30T18:19:12.704Z",
+      "updatedAt": "2026-04-30T18:19:24.243Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.9-T1"
+      ],
+      "artifactCount": 3
+    },
+    {
+      "runId": "20260501-012",
+      "status": "blocked",
+      "phase": "do",
+      "currentTask": "P1.8-T1",
+      "createdAt": "2026-04-30T18:09:36.419Z",
+      "updatedAt": "2026-04-30T18:12:18.782Z",
+      "validationStatus": "pass_with_gaps",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.8-T1"
+      ],
+      "artifactCount": 3
+    },
+    {
+      "runId": "20260501-011",
+      "status": "completed",
+      "phase": "do",
+      "currentTask": "P1.8-T1",
+      "createdAt": "2026-04-30T18:09:16.167Z",
+      "updatedAt": "2026-04-30T18:12:17.419Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.8-T1"
+      ],
+      "artifactCount": 2
+    },
+    {
+      "runId": "20260501-013",
+      "status": "blocked",
+      "phase": "do",
+      "currentTask": "P1.8-T1",
+      "createdAt": "2026-04-30T18:09:56.483Z",
+      "updatedAt": "2026-04-30T18:09:56.567Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.8-T1"
+      ],
+      "artifactCount": 1
+    },
+    {
+      "runId": "20260501-010",
+      "status": "blocked",
+      "phase": "do",
+      "currentTask": "P1.8-T1",
+      "createdAt": "2026-04-30T18:04:50.171Z",
+      "updatedAt": "2026-04-30T18:04:54.900Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.8-T1"
+      ],
+      "artifactCount": 1
+    },
+    {
+      "runId": "20260501-009",
+      "status": "completed",
+      "phase": "do",
+      "currentTask": "P1.8-T1",
+      "createdAt": "2026-04-30T18:04:41.240Z",
+      "updatedAt": "2026-04-30T18:04:46.999Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.8-T1"
+      ],
+      "artifactCount": 2
+    },
+    {
+      "runId": "20260501-008",
+      "status": "blocked",
+      "phase": "do",
+      "currentTask": "P1.8-T1",
+      "createdAt": "2026-04-30T18:02:20.886Z",
+      "updatedAt": "2026-04-30T18:02:20.954Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.8-T1"
+      ],
+      "artifactCount": 1
+    },
+    {
+      "runId": "20260501-007",
+      "status": "completed",
+      "phase": "do",
+      "currentTask": "P1.8-T1",
+      "createdAt": "2026-04-30T18:01:53.592Z",
+      "updatedAt": "2026-04-30T18:02:14.451Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.8-T1"
+      ],
+      "artifactCount": 2
+    },
+    {
+      "runId": "20260501-006",
+      "status": "completed",
+      "phase": "do",
+      "currentTask": "P1.8-T1",
+      "createdAt": "2026-04-30T18:00:55.837Z",
+      "updatedAt": "2026-04-30T18:01:10.647Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "P1.8-T1"
+      ],
+      "artifactCount": 2
+    },
+    {
+      "runId": "20260501-005",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "createdAt": "2026-04-30T17:46:45.796Z",
+      "updatedAt": "2026-04-30T17:46:49.369Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260501-004",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "createdAt": "2026-04-30T17:46:28.973Z",
+      "updatedAt": "2026-04-30T17:46:28.973Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260501-003",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "createdAt": "2026-04-30T17:41:53.585Z",
+      "updatedAt": "2026-04-30T17:41:57.912Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260501-002",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "createdAt": "2026-04-30T17:35:12.588Z",
+      "updatedAt": "2026-04-30T17:35:12.588Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260501-001",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "createdAt": "2026-04-30T16:50:06.248Z",
+      "updatedAt": "2026-04-30T16:50:06.249Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    }
+  ],
+  "tasks": [
+    {
+      "taskId": "DEMO-T1",
+      "status": "PASS",
+      "runId": "20260506-001",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-06T08:55:18.806Z"
+    },
+    {
+      "taskId": "P1.10-T1",
+      "status": "blocked",
+      "runId": "20260501-019",
+      "runStatus": "blocked",
+      "updatedAt": "2026-04-30T18:25:41.839Z"
+    },
+    {
+      "taskId": "P1.10-T1",
+      "status": "PASS",
+      "runId": "20260501-020",
+      "runStatus": "completed",
+      "updatedAt": "2026-04-30T18:30:08.940Z"
+    },
+    {
+      "taskId": "P1.8-T1",
+      "status": "completed",
+      "runId": "20260501-006",
+      "runStatus": "completed",
+      "updatedAt": "2026-04-30T18:01:10.647Z"
+    },
+    {
+      "taskId": "P1.8-T1",
+      "status": "completed",
+      "runId": "20260501-007",
+      "runStatus": "completed",
+      "updatedAt": "2026-04-30T18:02:14.451Z"
+    },
+    {
+      "taskId": "P1.8-T1",
+      "status": "blocked",
+      "runId": "20260501-008",
+      "runStatus": "blocked",
+      "updatedAt": "2026-04-30T18:02:20.954Z"
+    },
+    {
+      "taskId": "P1.8-T1",
+      "status": "completed",
+      "runId": "20260501-009",
+      "runStatus": "completed",
+      "updatedAt": "2026-04-30T18:04:46.999Z"
+    },
+    {
+      "taskId": "P1.8-T1",
+      "status": "blocked",
+      "runId": "20260501-010",
+      "runStatus": "blocked",
+      "updatedAt": "2026-04-30T18:04:54.900Z"
+    },
+    {
+      "taskId": "P1.8-T1",
+      "status": "completed",
+      "runId": "20260501-011",
+      "runStatus": "completed",
+      "updatedAt": "2026-04-30T18:12:17.419Z"
+    },
+    {
+      "taskId": "P1.8-T1",
+      "status": "blocked",
+      "runId": "20260501-012",
+      "runStatus": "blocked",
+      "updatedAt": "2026-04-30T18:12:18.782Z"
+    },
+    {
+      "taskId": "P1.8-T1",
+      "status": "blocked",
+      "runId": "20260501-013",
+      "runStatus": "blocked",
+      "updatedAt": "2026-04-30T18:09:56.567Z"
+    },
+    {
+      "taskId": "P1.9-T1",
+      "status": "PASS",
+      "runId": "20260501-014",
+      "runStatus": "completed",
+      "updatedAt": "2026-04-30T18:19:24.243Z"
+    },
+    {
+      "taskId": "P1.9-T1",
+      "status": "BLOCKED",
+      "runId": "20260501-015",
+      "runStatus": "blocked",
+      "updatedAt": "2026-04-30T18:19:35.985Z"
+    },
+    {
+      "taskId": "P1.9-T2",
+      "status": "blocked",
+      "runId": "20260501-016",
+      "runStatus": "failed",
+      "updatedAt": "2026-05-01T00:02:00.000Z"
+    },
+    {
+      "taskId": "P18-SMOKE",
+      "status": "blocked",
+      "runId": "smoke-p18-block",
+      "runStatus": "blocked",
+      "updatedAt": "2026-05-01T00:03:30.000Z"
+    },
+    {
+      "taskId": "P18-SMOKE",
+      "status": "completed",
+      "runId": "smoke-p18-pass",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-01T00:03:00.000Z"
+    }
+  ],
+  "delegations": [
+    {
+      "id": "20260501-006:D-P1.8-T1-implementer-001",
+      "runId": "20260501-006",
+      "delegationId": "D-P1.8-T1-implementer-001",
+      "taskId": "P1.8-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-006:P1.8-T1:implementer",
+      "status": "FAILED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.8-T1.md",
+        ".sdd\\runs\\20260501-006\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:01:10.526Z",
+      "updatedAt": "2026-04-30T18:01:10.528Z"
+    },
+    {
+      "id": "20260501-006:D-P1.8-T1-reviewer-001",
+      "runId": "20260501-006",
+      "delegationId": "D-P1.8-T1-reviewer-001",
+      "taskId": "P1.8-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-006:P1.8-T1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.8-T1.md",
+        ".sdd\\runs\\20260501-006\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:01:10.546Z",
+      "updatedAt": "2026-04-30T18:01:10.567Z"
+    },
+    {
+      "id": "20260501-006:D-P1.8-T1-validator-001",
+      "runId": "20260501-006",
+      "delegationId": "D-P1.8-T1-validator-001",
+      "taskId": "P1.8-T1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-006:P1.8-T1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/validation-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/validation-P1.8-T1.md",
+        ".sdd\\runs\\20260501-006\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:01:10.585Z",
+      "updatedAt": "2026-04-30T18:01:10.607Z"
+    },
+    {
+      "id": "20260501-007:D-P1.8-T1-implementer-001",
+      "runId": "20260501-007",
+      "delegationId": "D-P1.8-T1-implementer-001",
+      "taskId": "P1.8-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-007:P1.8-T1:implementer",
+      "status": "CANCELLED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.8-T1.md",
+        ".sdd\\runs\\20260501-007\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:02:14.334Z",
+      "updatedAt": "2026-04-30T18:02:14.335Z"
+    },
+    {
+      "id": "20260501-007:D-P1.8-T1-reviewer-001",
+      "runId": "20260501-007",
+      "delegationId": "D-P1.8-T1-reviewer-001",
+      "taskId": "P1.8-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-007:P1.8-T1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.8-T1.md",
+        ".sdd\\runs\\20260501-007\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:02:14.354Z",
+      "updatedAt": "2026-04-30T18:02:14.375Z"
+    },
+    {
+      "id": "20260501-007:D-P1.8-T1-validator-001",
+      "runId": "20260501-007",
+      "delegationId": "D-P1.8-T1-validator-001",
+      "taskId": "P1.8-T1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-007:P1.8-T1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/validation-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/validation-P1.8-T1.md",
+        ".sdd\\runs\\20260501-007\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:02:14.395Z",
+      "updatedAt": "2026-04-30T18:02:14.416Z"
+    },
+    {
+      "id": "20260501-008:D-P1.8-T1-implementer-001",
+      "runId": "20260501-008",
+      "delegationId": "D-P1.8-T1-implementer-001",
+      "taskId": "P1.8-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-008:P1.8-T1:implementer",
+      "status": "CANCELLED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.8-T1.md",
+        ".sdd\\runs\\20260501-008\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:02:20.889Z",
+      "updatedAt": "2026-04-30T18:02:20.903Z"
+    },
+    {
+      "id": "20260501-008:D-P1.8-T1-reviewer-001",
+      "runId": "20260501-008",
+      "delegationId": "D-P1.8-T1-reviewer-001",
+      "taskId": "P1.8-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-008:P1.8-T1:reviewer",
+      "status": "FAILED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.8-T1.md",
+        ".sdd\\runs\\20260501-008\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:02:20.912Z",
+      "updatedAt": "2026-04-30T18:02:20.928Z"
+    },
+    {
+      "id": "20260501-009:D-P1.8-T1-implementer-001",
+      "runId": "20260501-009",
+      "delegationId": "D-P1.8-T1-implementer-001",
+      "taskId": "P1.8-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-009:P1.8-T1:implementer",
+      "status": "CANCELLED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.8-T1.md",
+        ".sdd\\runs\\20260501-009\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:04:46.873Z",
+      "updatedAt": "2026-04-30T18:04:46.875Z"
+    },
+    {
+      "id": "20260501-009:D-P1.8-T1-reviewer-001",
+      "runId": "20260501-009",
+      "delegationId": "D-P1.8-T1-reviewer-001",
+      "taskId": "P1.8-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-009:P1.8-T1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.8-T1.md",
+        ".sdd\\runs\\20260501-009\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:04:46.892Z",
+      "updatedAt": "2026-04-30T18:04:46.931Z"
+    },
+    {
+      "id": "20260501-009:D-P1.8-T1-validator-001",
+      "runId": "20260501-009",
+      "delegationId": "D-P1.8-T1-validator-001",
+      "taskId": "P1.8-T1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-009:P1.8-T1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/validation-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/validation-P1.8-T1.md",
+        ".sdd\\runs\\20260501-009\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:04:46.936Z",
+      "updatedAt": "2026-04-30T18:04:46.980Z"
+    },
+    {
+      "id": "20260501-010:D-P1.8-T1-implementer-001",
+      "runId": "20260501-010",
+      "delegationId": "D-P1.8-T1-implementer-001",
+      "taskId": "P1.8-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-010:P1.8-T1:implementer",
+      "status": "CANCELLED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.8-T1.md",
+        ".sdd\\runs\\20260501-010\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:04:54.823Z",
+      "updatedAt": "2026-04-30T18:04:54.825Z"
+    },
+    {
+      "id": "20260501-010:D-P1.8-T1-reviewer-001",
+      "runId": "20260501-010",
+      "delegationId": "D-P1.8-T1-reviewer-001",
+      "taskId": "P1.8-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-010:P1.8-T1:reviewer",
+      "status": "FAILED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.8-T1.md",
+        ".sdd\\runs\\20260501-010\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:04:54.843Z",
+      "updatedAt": "2026-04-30T18:04:54.863Z"
+    },
+    {
+      "id": "20260501-011:D-P1.8-T1-implementer-001",
+      "runId": "20260501-011",
+      "delegationId": "D-P1.8-T1-implementer-001",
+      "taskId": "P1.8-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-011:P1.8-T1:implementer",
+      "status": "CANCELLED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.8-T1.md",
+        ".sdd\\runs\\20260501-011\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:12:17.310Z",
+      "updatedAt": "2026-04-30T18:12:17.312Z"
+    },
+    {
+      "id": "20260501-011:D-P1.8-T1-reviewer-001",
+      "runId": "20260501-011",
+      "delegationId": "D-P1.8-T1-reviewer-001",
+      "taskId": "P1.8-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-011:P1.8-T1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.8-T1.md",
+        ".sdd\\runs\\20260501-011\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:12:17.331Z",
+      "updatedAt": "2026-04-30T18:12:17.352Z"
+    },
+    {
+      "id": "20260501-011:D-P1.8-T1-validator-001",
+      "runId": "20260501-011",
+      "delegationId": "D-P1.8-T1-validator-001",
+      "taskId": "P1.8-T1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-011:P1.8-T1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/validation-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/validation-P1.8-T1.md",
+        ".sdd\\runs\\20260501-011\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:12:17.369Z",
+      "updatedAt": "2026-04-30T18:12:17.383Z"
+    },
+    {
+      "id": "20260501-012:D-P1.8-T1-implementer-001",
+      "runId": "20260501-012",
+      "delegationId": "D-P1.8-T1-implementer-001",
+      "taskId": "P1.8-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-012:P1.8-T1:implementer",
+      "status": "CANCELLED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.8-T1.md",
+        ".sdd\\runs\\20260501-012\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:12:18.683Z",
+      "updatedAt": "2026-04-30T18:12:18.688Z"
+    },
+    {
+      "id": "20260501-012:D-P1.8-T1-reviewer-001",
+      "runId": "20260501-012",
+      "delegationId": "D-P1.8-T1-reviewer-001",
+      "taskId": "P1.8-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-012:P1.8-T1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.8-T1.md",
+        ".sdd\\runs\\20260501-012\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:12:18.705Z",
+      "updatedAt": "2026-04-30T18:12:18.722Z"
+    },
+    {
+      "id": "20260501-012:D-P1.8-T1-validator-001",
+      "runId": "20260501-012",
+      "delegationId": "D-P1.8-T1-validator-001",
+      "taskId": "P1.8-T1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-012:P1.8-T1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/validation-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/validation-P1.8-T1.md",
+        ".sdd\\runs\\20260501-012\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:12:18.734Z",
+      "updatedAt": "2026-04-30T18:12:18.753Z"
+    },
+    {
+      "id": "20260501-013:D-P1.8-T1-implementer-001",
+      "runId": "20260501-013",
+      "delegationId": "D-P1.8-T1-implementer-001",
+      "taskId": "P1.8-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-013:P1.8-T1:implementer",
+      "status": "CANCELLED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.8-T1.md",
+        ".sdd\\runs\\20260501-013\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:09:56.487Z",
+      "updatedAt": "2026-04-30T18:09:56.495Z"
+    },
+    {
+      "id": "20260501-013:D-P1.8-T1-reviewer-001",
+      "runId": "20260501-013",
+      "delegationId": "D-P1.8-T1-reviewer-001",
+      "taskId": "P1.8-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-013:P1.8-T1:reviewer",
+      "status": "FAILED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.8-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.8-T1.md",
+        ".sdd\\runs\\20260501-013\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:09:56.509Z",
+      "updatedAt": "2026-04-30T18:09:56.529Z"
+    },
+    {
+      "id": "20260501-016:D-P1.9-T2-reviewer-001",
+      "runId": "20260501-016",
+      "delegationId": "D-P1.9-T2-reviewer-001",
+      "taskId": "P1.9-T2",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-016:P1.9-T2:reviewer",
+      "status": "TIMED_OUT",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-P1.9-T2.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.9-T2.md",
+        ".sdd\\runs\\20260501-016\\events.jsonl"
+      ],
+      "createdAt": "2020-01-01T00:00:00.000Z",
+      "updatedAt": "2026-05-01T00:02:00.000Z"
+    },
+    {
+      "id": "20260501-016:D-P1.9-T2-validator-001",
+      "runId": "20260501-016",
+      "delegationId": "D-P1.9-T2-validator-001",
+      "taskId": "P1.9-T2",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-016:P1.9-T2:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-P1.9-T2.md",
+      "requiredEvidence": [
+        "artifacts/validation-P1.9-T2.md",
+        ".sdd\\runs\\20260501-016\\events.jsonl"
+      ],
+      "createdAt": "2026-05-01T00:00:00.000Z",
+      "updatedAt": "2026-05-01T00:01:00.000Z"
+    },
+    {
+      "id": "20260501-019:D-P1.10-T1-implementer-001",
+      "runId": "20260501-019",
+      "delegationId": "D-P1.10-T1-implementer-001",
+      "taskId": "P1.10-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-019:P1.10-T1:implementer",
+      "status": "CANCELLED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.10-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.10-T1.md",
+        ".sdd\\runs\\20260501-019\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:25:41.753Z",
+      "updatedAt": "2026-04-30T18:25:41.754Z"
+    },
+    {
+      "id": "20260501-019:D-P1.10-T1-reviewer-001",
+      "runId": "20260501-019",
+      "delegationId": "D-P1.10-T1-reviewer-001",
+      "taskId": "P1.10-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-019:P1.10-T1:reviewer",
+      "status": "RECOVERABLE",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.10-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.10-T1.md",
+        ".sdd\\runs\\20260501-019\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:25:41.776Z",
+      "updatedAt": "2026-04-30T18:25:41.798Z"
+    },
+    {
+      "id": "20260501-020:D-P1.10-T1-implementer-001",
+      "runId": "20260501-020",
+      "delegationId": "D-P1.10-T1-implementer-001",
+      "taskId": "P1.10-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-020:P1.10-T1:implementer",
+      "status": "CANCELLED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-P1.10-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-P1.10-T1.md",
+        ".sdd\\runs\\20260501-020\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:30:07.507Z",
+      "updatedAt": "2026-04-30T18:30:07.509Z"
+    },
+    {
+      "id": "20260501-020:D-P1.10-T1-reviewer-001",
+      "runId": "20260501-020",
+      "delegationId": "D-P1.10-T1-reviewer-001",
+      "taskId": "P1.10-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-020:P1.10-T1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-P1.10-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-P1.10-T1.md",
+        ".sdd\\runs\\20260501-020\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:30:07.531Z",
+      "updatedAt": "2026-04-30T18:30:07.546Z"
+    },
+    {
+      "id": "20260501-020:D-P1.10-T1-validator-001",
+      "runId": "20260501-020",
+      "delegationId": "D-P1.10-T1-validator-001",
+      "taskId": "P1.10-T1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260501-020:P1.10-T1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/validation-P1.10-T1.md",
+      "requiredEvidence": [
+        "artifacts/validation-P1.10-T1.md",
+        ".sdd\\runs\\20260501-020\\events.jsonl"
+      ],
+      "createdAt": "2026-04-30T18:30:07.569Z",
+      "updatedAt": "2026-04-30T18:30:07.590Z"
+    },
+    {
+      "id": "20260506-001:D-DEMO-T1-implementer-001",
+      "runId": "20260506-001",
+      "delegationId": "D-DEMO-T1-implementer-001",
+      "taskId": "DEMO-T1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260506-001:DEMO-T1:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/implement-DEMO-T1.md",
+      "requiredEvidence": [
+        "artifacts/implement-DEMO-T1.md",
+        ".sdd\\runs\\20260506-001\\events.jsonl"
+      ],
+      "createdAt": "2026-05-06T08:51:38.407Z",
+      "updatedAt": "2026-05-06T08:51:38.411Z"
+    },
+    {
+      "id": "20260506-001:D-DEMO-T1-reviewer-001",
+      "runId": "20260506-001",
+      "delegationId": "D-DEMO-T1-reviewer-001",
+      "taskId": "DEMO-T1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260506-001:DEMO-T1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/review-DEMO-T1.md",
+      "requiredEvidence": [
+        "artifacts/review-DEMO-T1.md",
+        ".sdd\\runs\\20260506-001\\events.jsonl"
+      ],
+      "createdAt": "2026-05-06T08:51:38.428Z",
+      "updatedAt": "2026-05-06T08:51:38.436Z"
+    },
+    {
+      "id": "20260506-001:D-DEMO-T1-validator-001",
+      "runId": "20260506-001",
+      "delegationId": "D-DEMO-T1-validator-001",
+      "taskId": "DEMO-T1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260506-001:DEMO-T1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "foreground",
+      "expectedArtifact": "artifacts/validation-DEMO-T1.md",
+      "requiredEvidence": [
+        "artifacts/validation-DEMO-T1.md",
+        ".sdd\\runs\\20260506-001\\events.jsonl"
+      ],
+      "createdAt": "2026-05-06T08:51:38.453Z",
+      "updatedAt": "2026-05-06T08:51:38.462Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "artifacts/acceptance-coverage-DEMO-T1.md",
+      "kind": "artifact",
+      "task": "DEMO-T1",
+      "agent": "unknown",
+      "createdAt": "2026-05-06T08:52:00.550Z",
+      "runId": "20260506-001"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-P1.10-T1.md",
+      "kind": "artifact",
+      "task": "P1.10-T1",
+      "agent": "unknown",
+      "createdAt": "2026-04-30T18:26:54.907Z",
+      "runId": "20260501-020"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-P1.9-T1.md",
+      "kind": "artifact",
+      "task": "P1.9-T1",
+      "agent": "unknown",
+      "createdAt": "2026-04-30T18:19:24.243Z",
+      "runId": "20260501-014"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-P1.9-T1.md",
+      "kind": "artifact",
+      "task": "P1.9-T1",
+      "agent": "unknown",
+      "createdAt": "2026-04-30T18:19:35.985Z",
+      "runId": "20260501-015"
+    },
+    {
+      "path": "artifacts/gap-report-P1.10-T1.md",
+      "kind": "gap-report",
+      "task": "P1.10-T1",
+      "agent": "runtime",
+      "createdAt": "2026-04-30T18:25:41.839Z",
+      "runId": "20260501-019"
+    },
+    {
+      "path": "artifacts/gap-report-P1.8-T1.md",
+      "kind": "gap-report",
+      "task": "P1.8-T1",
+      "agent": "runtime",
+      "createdAt": "2026-04-30T18:02:20.954Z",
+      "runId": "20260501-008"
+    },
+    {
+      "path": "artifacts/gap-report-P1.8-T1.md",
+      "kind": "gap-report",
+      "task": "P1.8-T1",
+      "agent": "runtime",
+      "createdAt": "2026-04-30T18:04:54.900Z",
+      "runId": "20260501-010"
+    },
+    {
+      "path": "artifacts/gap-report-P1.8-T1.md",
+      "kind": "gap-report",
+      "task": "P1.8-T1",
+      "agent": "runtime",
+      "createdAt": "2026-04-30T18:09:53.371Z",
+      "runId": "20260501-012"
+    },
+    {
+      "path": "artifacts/gap-report-P1.8-T1.md",
+      "kind": "gap-report",
+      "task": "P1.8-T1",
+      "agent": "runtime",
+      "createdAt": "2026-04-30T18:09:56.567Z",
+      "runId": "20260501-013"
+    },
+    {
+      "path": "artifacts/implement-DEMO-T1.md",
+      "kind": "implement",
+      "task": "DEMO-T1",
+      "agent": "implementer",
+      "createdAt": "2026-05-06T08:51:38.499Z",
+      "runId": "20260506-001"
+    },
+    {
+      "path": "artifacts/review-DEMO-T1.md",
+      "kind": "review",
+      "task": "DEMO-T1",
+      "agent": "reviewer",
+      "createdAt": "2026-05-06T08:51:38.499Z",
+      "runId": "20260506-001"
+    },
+    {
+      "path": "artifacts/review-P1.10-T1.md",
+      "kind": "review",
+      "task": "P1.10-T1",
+      "agent": "reviewer",
+      "createdAt": "2026-04-30T18:26:50.802Z",
+      "runId": "20260501-020"
+    },
+    {
+      "path": "artifacts/review-P1.8-T1.md",
+      "kind": "review",
+      "task": "P1.8-T1",
+      "agent": "reviewer",
+      "createdAt": "2026-04-30T18:01:10.647Z",
+      "runId": "20260501-006"
+    },
+    {
+      "path": "artifacts/review-P1.8-T1.md",
+      "kind": "review",
+      "task": "P1.8-T1",
+      "agent": "reviewer",
+      "createdAt": "2026-04-30T18:02:14.451Z",
+      "runId": "20260501-007"
+    },
+    {
+      "path": "artifacts/review-P1.8-T1.md",
+      "kind": "review",
+      "task": "P1.8-T1",
+      "agent": "reviewer",
+      "createdAt": "2026-04-30T18:04:46.999Z",
+      "runId": "20260501-009"
+    },
+    {
+      "path": "artifacts/review-P1.8-T1.md",
+      "kind": "review",
+      "task": "P1.8-T1",
+      "agent": "reviewer",
+      "createdAt": "2026-04-30T18:09:29.586Z",
+      "runId": "20260501-011"
+    },
+    {
+      "path": "artifacts/review-P1.8-T1.md",
+      "kind": "review",
+      "task": "P1.8-T1",
+      "agent": "reviewer",
+      "createdAt": "2026-04-30T18:09:53.371Z",
+      "runId": "20260501-012"
+    },
+    {
+      "path": "artifacts/review-P1.9-T1.md",
+      "kind": "review",
+      "task": "P1.9-T1",
+      "agent": "reviewer",
+      "createdAt": "2026-04-30T18:19:24.243Z",
+      "runId": "20260501-014"
+    },
+    {
+      "path": "artifacts/review-P1.9-T1.md",
+      "kind": "review",
+      "task": "P1.9-T1",
+      "agent": "reviewer",
+      "createdAt": "2026-04-30T18:19:35.985Z",
+      "runId": "20260501-015"
+    },
+    {
+      "path": "artifacts/review-P18-SMOKE.md",
+      "kind": "review",
+      "task": "P18-SMOKE",
+      "agent": "reviewer",
+      "createdAt": "2026-05-01T00:03:00.000Z",
+      "runId": "smoke-p18-pass"
+    },
+    {
+      "path": "artifacts/validation-DEMO-T1.md",
+      "kind": "validation",
+      "task": "DEMO-T1",
+      "agent": "validator",
+      "createdAt": "2026-05-06T08:51:38.499Z",
+      "runId": "20260506-001"
+    },
+    {
+      "path": "artifacts/validation-P1.10-T1.md",
+      "kind": "validation",
+      "task": "P1.10-T1",
+      "agent": "validator",
+      "createdAt": "2026-04-30T18:26:50.802Z",
+      "runId": "20260501-020"
+    },
+    {
+      "path": "artifacts/validation-P1.8-T1.md",
+      "kind": "validation",
+      "task": "P1.8-T1",
+      "agent": "validator",
+      "createdAt": "2026-04-30T18:01:10.647Z",
+      "runId": "20260501-006"
+    },
+    {
+      "path": "artifacts/validation-P1.8-T1.md",
+      "kind": "validation",
+      "task": "P1.8-T1",
+      "agent": "validator",
+      "createdAt": "2026-04-30T18:02:14.451Z",
+      "runId": "20260501-007"
+    },
+    {
+      "path": "artifacts/validation-P1.8-T1.md",
+      "kind": "validation",
+      "task": "P1.8-T1",
+      "agent": "validator",
+      "createdAt": "2026-04-30T18:04:46.999Z",
+      "runId": "20260501-009"
+    },
+    {
+      "path": "artifacts/validation-P1.8-T1.md",
+      "kind": "validation",
+      "task": "P1.8-T1",
+      "agent": "validator",
+      "createdAt": "2026-04-30T18:09:29.586Z",
+      "runId": "20260501-011"
+    },
+    {
+      "path": "artifacts/validation-P1.8-T1.md",
+      "kind": "validation",
+      "task": "P1.8-T1",
+      "agent": "validator",
+      "createdAt": "2026-04-30T18:09:53.371Z",
+      "runId": "20260501-012"
+    },
+    {
+      "path": "artifacts/validation-P1.9-T1.md",
+      "kind": "validation",
+      "task": "P1.9-T1",
+      "agent": "validator",
+      "createdAt": "2026-04-30T18:19:24.243Z",
+      "runId": "20260501-014"
+    },
+    {
+      "path": "artifacts/validation-P1.9-T1.md",
+      "kind": "validation",
+      "task": "P1.9-T1",
+      "agent": "validator",
+      "createdAt": "2026-04-30T18:19:35.985Z",
+      "runId": "20260501-015"
+    },
+    {
+      "path": "artifacts/validation-P1.9-T2.md",
+      "kind": "validation",
+      "task": "P1.9-T2",
+      "agent": "validator",
+      "createdAt": "2026-05-01T00:01:00.000Z",
+      "runId": "20260501-016"
+    },
+    {
+      "path": "artifacts/validation-P18-SMOKE.md",
+      "kind": "validation",
+      "task": "P18-SMOKE",
+      "agent": "validator",
+      "createdAt": "2026-05-01T00:03:00.000Z",
+      "runId": "smoke-p18-pass"
+    }
+  ],
+  "waves": []
+}

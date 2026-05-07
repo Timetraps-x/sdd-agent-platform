@@ -41,4 +41,4 @@ Phase 3.14 固化长期运行治理策略：并发限制、清理策略、用户
 
 ## 下游引用
 
-- Phase 4 知识图谱或更长期平台能力必须复用本 governance policy，不能绕开 runtime gate。
+- Phase 5 知识图谱或更长期平台能力必须复用本 governance policy，不能绕开 runtime gate。

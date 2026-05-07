@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.langchain.com)",
+      "WebFetch(domain:docs.all-hands.dev)",
+      "WebFetch(domain:docs.dagger.io)",
+      "WebFetch(domain:microsoft.github.io)",
+      "WebFetch(domain:docs.llamaindex.ai)",
+      "WebFetch(domain:sourcegraph.com)",
+      "WebFetch(domain:docs.continue.dev)",
+      "WebFetch(domain:developers.llamaindex.ai)",
+      "WebFetch(domain:aider.chat)",
+      "mcp__hashline-edit__hashline_search",
+      "WebFetch(domain:www.openpolicyagent.org)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:mindra.co)",
+      "WebFetch(domain:tianpan.co)",
+      "WebFetch(domain:www.testlio.com)",
+      "WebFetch(domain:en.wikipedia.org)"
+    ]
+  }
+}

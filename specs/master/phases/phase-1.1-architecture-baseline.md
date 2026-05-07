@@ -34,7 +34,7 @@ blocks:
 - 定义 phase gate、checkpoint、gap 回流、liveness、artifact validation 的平台机制。
 - 定义 Phase 2 AI 工具入口投影接入点。
 - 定义 Phase 3 tool/plugin/worktree/concurrency 接入点。
-- 定义 Phase 4 代码知识图谱需要提前保留的 graph-ready metadata。
+- 定义 Phase 5 代码知识图谱需要提前保留的 graph-ready metadata。
 
 ## 4. 非目标
 
@@ -71,7 +71,7 @@ blocks:
 - 后续 Phase 1.2~1.10 都能映射到清晰架构层。
 - 每个核心 contract 都明确所有者、写入方、读取方、存储位置和演进方式。
 - 明确哪些逻辑必须在 TypeScript runtime，哪些只属于 Claude Code command/agent prompt。
-- 明确 Phase 4 代码知识图谱如何消费 Phase 1/2/3 的 metadata。
+- 明确 Phase 5 代码知识图谱如何消费 Phase 1/2/3/4 的 metadata。
 
 ## 7. 可被下游引用的产物
 

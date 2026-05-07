@@ -109,7 +109,7 @@ validation:
 risk:
   - Phase 2 入口投影能力提前污染 Phase 1
   - Phase 3 平台化扩展能力提前污染 Phase 1/2
-  - Phase 4 metadata 未提前结构化
+  - Phase 5 metadata 未提前结构化
 ```
 
 #### Boundary
@@ -120,7 +120,7 @@ risk:
 
 - Phase 2 AI 工具入口投影接入点明确。
 - Phase 3 tool/plugin/worktree/concurrency/run DB/dashboard 的接入点明确。
-- Phase 4 graph-ready metadata 来源明确。
+- Phase 5 graph-ready metadata 来源明确。
 - 明确 Phase 2/3/4 不能推翻 Phase 1 contract。
 
 ---

@@ -1,0 +1,594 @@
+TAP version 13
+# Subtest: initProject creates readable project config
+ok 1 - initProject creates readable project config
+  ---
+  duration_ms: 367.4852
+  type: 'test'
+  ...
+# Subtest: initProject creates starter semantic documents by default
+ok 2 - initProject creates starter semantic documents by default
+  ---
+  duration_ms: 155.8659
+  type: 'test'
+  ...
+# Subtest: initProject preserves existing semantic documents by default
+ok 3 - initProject preserves existing semantic documents by default
+  ---
+  duration_ms: 213.7166
+  type: 'test'
+  ...
+# Subtest: initProject force overwrites semantic documents
+ok 4 - initProject force overwrites semantic documents
+  ---
+  duration_ms: 368.1454
+  type: 'test'
+  ...
+# Subtest: initProject scaffolds custom branch documents
+ok 5 - initProject scaffolds custom branch documents
+  ---
+  duration_ms: 136.7967
+  type: 'test'
+  ...
+# Subtest: initProject can skip semantic document scaffold
+ok 6 - initProject can skip semantic document scaffold
+  ---
+  duration_ms: 109.8006
+  type: 'test'
+  ...
+# Subtest: initProject projects managed Claude Code entries by default
+ok 7 - initProject projects managed Claude Code entries by default
+  ---
+  duration_ms: 1784.3409
+  type: 'test'
+  ...
+# Subtest: AI entry drift check detects body edits and update refreshes managed entries
+ok 8 - AI entry drift check detects body edits and update refreshes managed entries
+  ---
+  duration_ms: 2830.0725
+  type: 'test'
+  ...
+# Subtest: AI entry projection refuses foreign files
+ok 9 - AI entry projection refuses foreign files
+  ---
+  duration_ms: 812.5277
+  type: 'test'
+  ...
+# Subtest: CLI help lists Phase 2 workflow commands and init scaffold options
+ok 10 - CLI help lists Phase 2 workflow commands and init scaffold options
+  ---
+  duration_ms: 1076.5745
+  type: 'test'
+  ...
+# Subtest: tool capability registry lists sorted baseline capabilities and supports inspect
+ok 11 - tool capability registry lists sorted baseline capabilities and supports inspect
+  ---
+  duration_ms: 4351.4664
+  type: 'test'
+  ...
+# Subtest: doctor reports capability registry visibility
+ok 12 - doctor reports capability registry visibility
+  ---
+  duration_ms: 493.6261
+  type: 'test'
+  ...
+# Subtest: CLI capabilities list and inspect registry declarations
+ok 13 - CLI capabilities list and inspect registry declarations
+  ---
+  duration_ms: 3244.3675
+  type: 'test'
+  ...
+# Subtest: tool plugin contracts list sorted baseline mappings and support inspect
+ok 14 - tool plugin contracts list sorted baseline mappings and support inspect
+  ---
+  duration_ms: 203.4581
+  type: 'test'
+  ...
+# Subtest: doctor reports plugin loading contract visibility
+ok 15 - doctor reports plugin loading contract visibility
+  ---
+  duration_ms: 841.1991
+  type: 'test'
+  ...
+# Subtest: CLI plugins list and inspect loading contract declarations
+ok 16 - CLI plugins list and inspect loading contract declarations
+  ---
+  duration_ms: 2295.8476
+  type: 'test'
+  ...
+# Subtest: delegation queue contract derives stable items from run-state delegations
+ok 17 - delegation queue contract derives stable items from run-state delegations
+  ---
+  duration_ms: 209.2174
+  type: 'test'
+  ...
+# Subtest: doctor reports delegation queue contract visibility
+ok 18 - doctor reports delegation queue contract visibility
+  ---
+  duration_ms: 188.2743
+  type: 'test'
+  ...
+# Subtest: CLI queue list and inspect derived delegation items
+ok 19 - CLI queue list and inspect derived delegation items
+  ---
+  duration_ms: 2662.5146
+  type: 'test'
+  ...
+# Subtest: delegation state machine exposes allowed transitions and blocks terminal reopen
+ok 20 - delegation state machine exposes allowed transitions and blocks terminal reopen
+  ---
+  duration_ms: 0.7608
+  type: 'test'
+  ...
+# Subtest: doctor reports delegation state machine visibility
+ok 21 - doctor reports delegation state machine visibility
+  ---
+  duration_ms: 106.6812
+  type: 'test'
+  ...
+# Subtest: doctor reports illegal delegation event transitions
+ok 22 - doctor reports illegal delegation event transitions
+  ---
+  duration_ms: 209.8324
+  type: 'test'
+  ...
+# Subtest: CLI state-machine inspect prints transition contract
+ok 23 - CLI state-machine inspect prints transition contract
+  ---
+  duration_ms: 877.8199
+  type: 'test'
+  ...
+# Subtest: worker adapter contracts list sorted baseline manifests and support inspect
+ok 24 - worker adapter contracts list sorted baseline manifests and support inspect
+  ---
+  duration_ms: 53.9693
+  type: 'test'
+  ...
+# Subtest: doctor reports worker adapter contract compatibility
+ok 25 - doctor reports worker adapter contract compatibility
+  ---
+  duration_ms: 107.8957
+  type: 'test'
+  ...
+# Subtest: CLI workers list and inspect adapter manifests
+ok 26 - CLI workers list and inspect adapter manifests
+  ---
+  duration_ms: 1684.793
+  type: 'test'
+  ...
+# Subtest: worktree isolation blocks writable overlapping tasks and allows read-only
+ok 27 - worktree isolation blocks writable overlapping tasks and allows read-only
+  ---
+  duration_ms: 57.0945
+  type: 'test'
+  ...
+# Subtest: worktree isolation marks high-risk writable task as manual or required
+ok 28 - worktree isolation marks high-risk writable task as manual or required
+  ---
+  duration_ms: 72.8624
+  type: 'test'
+  ...
+# Subtest: doctor reports worktree isolation contract visibility
+ok 29 - doctor reports worktree isolation contract visibility
+  ---
+  duration_ms: 116.7281
+  type: 'test'
+  ...
+# Subtest: CLI isolation inspect renders dry-run decision
+ok 30 - CLI isolation inspect renders dry-run decision
+  ---
+  duration_ms: 857.9687
+  type: 'test'
+  ...
+# Subtest: worktree lifecycle creates and removes clean tracked worktree
+ok 31 - worktree lifecycle creates and removes clean tracked worktree
+  ---
+  duration_ms: 1925.3891
+  type: 'test'
+  ...
+# Subtest: worktree lifecycle refuses dirty remove and can keep for inspection
+ok 32 - worktree lifecycle refuses dirty remove and can keep for inspection
+  ---
+  duration_ms: 1625.0491
+  type: 'test'
+  ...
+# Subtest: doctor reports worktree lifecycle contract visibility
+ok 33 - doctor reports worktree lifecycle contract visibility
+  ---
+  duration_ms: 163.5305
+  type: 'test'
+  ...
+# Subtest: CLI worktree lifecycle create inspect and remove
+ok 34 - CLI worktree lifecycle create inspect and remove
+  ---
+  duration_ms: 2564.511
+  type: 'test'
+  ...
+# Subtest: task graph planner builds dependency and file overlap graph
+ok 35 - task graph planner builds dependency and file overlap graph
+  ---
+  duration_ms: 130.1701
+  type: 'test'
+  ...
+# Subtest: task graph planner blocks missing dependency and cycle diagnostics
+ok 36 - task graph planner blocks missing dependency and cycle diagnostics
+  ---
+  duration_ms: 70.9987
+  type: 'test'
+  ...
+# Subtest: doctor reports task graph planner contract visibility
+ok 37 - doctor reports task graph planner contract visibility
+  ---
+  duration_ms: 185.736
+  type: 'test'
+  ...
+# Subtest: CLI graph inspect renders graph plan
+ok 38 - CLI graph inspect renders graph plan
+  ---
+  duration_ms: 1082.4843
+  type: 'test'
+  ...
+# Subtest: wave planner builds dependency waves and separates file overlaps
+ok 39 - wave planner builds dependency waves and separates file overlaps
+  ---
+  duration_ms: 154.5158
+  type: 'test'
+  ...
+# Subtest: wave planner routes manual gates and downstream blocked tasks
+ok 40 - wave planner routes manual gates and downstream blocked tasks
+  ---
+  duration_ms: 105.54
+  type: 'test'
+  ...
+# Subtest: wave planner blocks graph diagnostics
+ok 41 - wave planner blocks graph diagnostics
+  ---
+  duration_ms: 115.2081
+  type: 'test'
+  ...
+# Subtest: doctor reports wave planner contract visibility
+ok 42 - doctor reports wave planner contract visibility
+  ---
+  duration_ms: 185.7457
+  type: 'test'
+  ...
+# Subtest: CLI wave inspect renders wave plan
+ok 43 - CLI wave inspect renders wave plan
+  ---
+  duration_ms: 951.028
+  type: 'test'
+  ...
+# Subtest: background executor claims one delegation and persists background run state
+ok 44 - background executor claims one delegation and persists background run state
+  ---
+  duration_ms: 186.172
+  type: 'test'
+  ...
+# Subtest: background executor ingests supplied artifact and reaches terminal state
+ok 45 - background executor ingests supplied artifact and reaches terminal state
+  ---
+  duration_ms: 309.4968
+  type: 'test'
+  ...
+# Subtest: background executor blocks invalid artifact evidence instead of completing silently
+ok 46 - background executor blocks invalid artifact evidence instead of completing silently
+  ---
+  duration_ms: 332.0166
+  type: 'test'
+  ...
+# Subtest: background executor blocks manual handoff worker adapters
+ok 47 - background executor blocks manual handoff worker adapters
+  ---
+  duration_ms: 102.5033
+  type: 'test'
+  ...
+# Subtest: doctor reports background executor contract visibility
+ok 48 - doctor reports background executor contract visibility
+  ---
+  duration_ms: 155.7998
+  type: 'test'
+  ...
+# Subtest: CLI background run and inspect render executor evidence
+ok 49 - CLI background run and inspect render executor evidence
+  ---
+  duration_ms: 1874.9171
+  type: 'test'
+  ...
+# Subtest: wave executor completes planner-safe waves from supplied artifacts
+ok 50 - wave executor completes planner-safe waves from supplied artifacts
+  ---
+  duration_ms: 472.7018
+  type: 'test'
+  ...
+# Subtest: wave executor blocks manual and blocked planner gates before execution
+ok 51 - wave executor blocks manual and blocked planner gates before execution
+  ---
+  duration_ms: 174.9006
+  type: 'test'
+  ...
+# Subtest: wave executor safe-continue finishes current safe wave but does not cross dependency boundary
+ok 52 - wave executor safe-continue finishes current safe wave but does not cross dependency boundary
+  ---
+  duration_ms: 443.635
+  type: 'test'
+  ...
+# Subtest: doctor reports wave executor contract visibility
+ok 53 - doctor reports wave executor contract visibility
+  ---
+  duration_ms: 168.4597
+  type: 'test'
+  ...
+# Subtest: CLI wave run and executor inspect render wave execution evidence
+not ok 54 - CLI wave run and executor inspect render wave execution evidence
+  ---
+  duration_ms: 1171.484
+  type: 'test'
+  location: 'D:\\project\\sdd-agent-platform\\packages\\core\\src\\index.test.ts:49:1317'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: D:\nodejs\node.exe --import file:///D:/project/sdd-agent-platform/node_modules/tsx/dist/loader.mjs D:\project\sdd-agent-platform\packages\cli\src\main.ts wave run --run run-json --artifact WX1:artifacts/implementer-WX1.md --json
+    ENOENT: no such file or directory, open 'C:\Users\inshn\AppData\Local\Temp\sdd-wave-executor-cli-BjYQNv\.sdd\runs\run-json\state.json'
+    
+  code: 1
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    ChildProcess.exithandler (node:child_process:417:12)
+    ChildProcess.emit (node:events:519:28)
+    maybeClose (node:internal/child_process:1101:16)
+    ChildProcess._handle.onexit (node:internal/child_process:304:5)
+  ...
+# Subtest: instructions API returns stable JSON contract payloads
+ok 55 - instructions API returns stable JSON contract payloads
+  ---
+  duration_ms: 15.0489
+  type: 'test'
+  ...
+# Subtest: initProject detects Maven multi-module Java projects
+ok 56 - initProject detects Maven multi-module Java projects
+  ---
+  duration_ms: 188.8832
+  type: 'test'
+  ...
+# Subtest: initProject classifies mixed Java and Node repos by source evidence
+ok 57 - initProject classifies mixed Java and Node repos by source evidence
+  ---
+  duration_ms: 94.2631
+  type: 'test'
+  ...
+# Subtest: createRun writes state and append-only events
+ok 58 - createRun writes state and append-only events
+  ---
+  duration_ms: 123.4752
+  type: 'test'
+  ...
+# Subtest: doctor reports AI entry drift after init
+ok 59 - doctor reports AI entry drift after init
+  ---
+  duration_ms: 159.0632
+  type: 'test'
+  ...
+# Subtest: artifact path cannot escape artifacts directory
+ok 60 - artifact path cannot escape artifacts directory
+  ---
+  duration_ms: 3.1328
+  type: 'test'
+  ...
+# Subtest: doctor reports missing git repo as fail in temp directory
+ok 61 - doctor reports missing git repo as fail in temp directory
+  ---
+  duration_ms: 158.9052
+  type: 'test'
+  ...
+# Subtest: parseSddTasksMarkdown extracts task metadata and companion sections
+ok 62 - parseSddTasksMarkdown extracts task metadata and companion sections
+  ---
+  duration_ms: 1.4154
+  type: 'test'
+  ...
+# Subtest: parseSddTasksMarkdown reports task metadata and dependency gaps
+ok 63 - parseSddTasksMarkdown reports task metadata and dependency gaps
+  ---
+  duration_ms: 1.3147
+  type: 'test'
+  ...
+# Subtest: parseSddBranch reads branch docs and inspectSddTask filters gaps
+ok 64 - parseSddBranch reads branch docs and inspectSddTask filters gaps
+  ---
+  duration_ms: 39.7335
+  type: 'test'
+  ...
+# Subtest: safe path segments reject dot-dot branch and run id while allowing dotted names
+ok 65 - safe path segments reject dot-dot branch and run id while allowing dotted names
+  ---
+  duration_ms: 2.775
+  type: 'test'
+  ...
+# Subtest: retained phase fallback detects aggregate duplicate task ids and inspect ambiguity
+ok 66 - retained phase fallback detects aggregate duplicate task ids and inspect ambiguity
+  ---
+  duration_ms: 35.6313
+  type: 'test'
+  ...
+# Subtest: retained phase fallback validates cross-file dependencies over aggregate tasks
+ok 67 - retained phase fallback validates cross-file dependencies over aggregate tasks
+  ---
+  duration_ms: 28.164
+  type: 'test'
+  ...
+# Subtest: retained phase fallback still reports unknown dependencies
+ok 68 - retained phase fallback still reports unknown dependencies
+  ---
+  duration_ms: 31.1954
+  type: 'test'
+  ...
+# Subtest: parseSddResultMarkdown validates a legal sdd-result block
+ok 69 - parseSddResultMarkdown validates a legal sdd-result block
+  ---
+  duration_ms: 0.7274
+  type: 'test'
+  ...
+# Subtest: validateSddResultArtifact catches missing, empty, and task mismatch artifacts
+ok 70 - validateSddResultArtifact catches missing, empty, and task mismatch artifacts
+  ---
+  duration_ms: 111.606
+  type: 'test'
+  ...
+# Subtest: ingestArtifactResult accepts valid artifact and is idempotent
+ok 71 - ingestArtifactResult accepts valid artifact and is idempotent
+  ---
+  duration_ms: 261.5417
+  type: 'test'
+  ...
+# Subtest: ingestArtifactResult rejects invalid artifact without accepted evidence
+ok 72 - ingestArtifactResult rejects invalid artifact without accepted evidence
+  ---
+  duration_ms: 184.6197
+  type: 'test'
+  ...
+# Subtest: renderSddResultArtifactTemplate renders self-referencing reviewer artifact
+ok 73 - renderSddResultArtifactTemplate renders self-referencing reviewer artifact
+  ---
+  duration_ms: 101.0297
+  type: 'test'
+  ...
+# Subtest: renderSddResultArtifactTemplate copies validator acceptance mapping
+ok 74 - renderSddResultArtifactTemplate copies validator acceptance mapping
+  ---
+  duration_ms: 174.6826
+  type: 'test'
+  ...
+# Subtest: artifact path helpers canonicalize root-relative and run-relative forms
+ok 75 - artifact path helpers canonicalize root-relative and run-relative forms
+  ---
+  duration_ms: 0.8188
+  type: 'test'
+  ...
+# Subtest: delegation terminal and stale contract checks are explicit
+ok 76 - delegation terminal and stale contract checks are explicit
+  ---
+  duration_ms: 190.9776
+  type: 'test'
+  ...
+# Subtest: lifecycle decision gate allows direct only through conservative whitelist
+ok 77 - lifecycle decision gate allows direct only through conservative whitelist
+  ---
+  duration_ms: 2.8698
+  type: 'test'
+  ...
+# Subtest: lifecycle hard gates force full profile for contract and state risks
+ok 78 - lifecycle hard gates force full profile for contract and state risks
+  ---
+  duration_ms: 1.8954
+  type: 'test'
+  ...
+# Subtest: lifecycle database risk forces full hard gate and human checkpoint
+ok 79 - lifecycle database risk forces full hard gate and human checkpoint
+  ---
+  duration_ms: 0.3575
+  type: 'test'
+  ...
+# Subtest: lifecycle checkpoint triggers are recorded without executing workflow
+ok 80 - lifecycle checkpoint triggers are recorded without executing workflow
+  ---
+  duration_ms: 0.4484
+  type: 'test'
+  ...
+# Subtest: lifecycle research gate handles unscoutable unknown impact
+ok 81 - lifecycle research gate handles unscoutable unknown impact
+  ---
+  duration_ms: 0.2496
+  type: 'test'
+  ...
+# Subtest: lifecycle decision gate emits canonical Phase 1.3 contract id for new records
+ok 82 - lifecycle decision gate emits canonical Phase 1.3 contract id for new records
+  ---
+  duration_ms: 0.2252
+  type: 'test'
+  ...
+# Subtest: recordLifecycleDecision persists command gate output to run state and events
+ok 83 - recordLifecycleDecision persists command gate output to run state and events
+  ---
+  duration_ms: 204.0049
+  type: 'test'
+  ...
+# Subtest: runSingleTaskLoop completes from supplied review and validation artifacts without modifying tasks markdown
+ok 84 - runSingleTaskLoop completes from supplied review and validation artifacts without modifying tasks markdown
+  ---
+  duration_ms: 330.3638
+  type: 'test'
+  ...
+# Subtest: runSingleTaskLoop blocks on missing reviewer artifact and creates gap proposal
+ok 85 - runSingleTaskLoop blocks on missing reviewer artifact and creates gap proposal
+  ---
+  duration_ms: 376.4743
+  type: 'test'
+  ...
+# Subtest: runSingleTaskLoop blocks PASS_WITH_GAPS validation with gap report and blocked sync-back proposal
+ok 86 - runSingleTaskLoop blocks PASS_WITH_GAPS validation with gap report and blocked sync-back proposal
+  ---
+  duration_ms: 424.8115
+  type: 'test'
+  ...
+# Subtest: listRuns sorts run summaries by updated time descending
+ok 87 - listRuns sorts run summaries by updated time descending
+  ---
+  duration_ms: 128.1172
+  type: 'test'
+  ...
+# Subtest: runGoalVerify maps validation evidence to acceptance and writes sync-back proposal
+ok 88 - runGoalVerify maps validation evidence to acceptance and writes sync-back proposal
+  ---
+  duration_ms: 252.6495
+  type: 'test'
+  ...
+# Subtest: sync-back apply rejects blocked runs and reports inspect reasons
+ok 89 - sync-back apply rejects blocked runs and reports inspect reasons
+  ---
+  duration_ms: 369.0479
+  type: 'test'
+  ...
+# Subtest: runGoalVerify blocks when acceptance evidence is missing
+ok 90 - runGoalVerify blocks when acceptance evidence is missing
+  ---
+  duration_ms: 431.7723
+  type: 'test'
+  ...
+# Subtest: runGoalVerify passes when validator artifact includes generated acceptance mapping
+ok 91 - runGoalVerify passes when validator artifact includes generated acceptance mapping
+  ---
+  duration_ms: 175.2883
+  type: 'test'
+  ...
+# Subtest: doctor reports stale delegation and terminal event gaps without auto-fix
+ok 92 - doctor reports stale delegation and terminal event gaps without auto-fix
+  ---
+  duration_ms: 244.9213
+  type: 'test'
+  ...
+# Subtest: archiveRun cancels running delegations and normal doctor skips archived evidence
+ok 93 - archiveRun cancels running delegations and normal doctor skips archived evidence
+  ---
+  duration_ms: 551.4431
+  type: 'test'
+  ...
+# Subtest: doctor latestOnly ignores older failed run evidence
+ok 94 - doctor latestOnly ignores older failed run evidence
+  ---
+  duration_ms: 448.3121
+  type: 'test'
+  ...
+# Subtest: doctor reports artifact ingestion state mismatch
+ok 95 - doctor reports artifact ingestion state mismatch
+  ---
+  duration_ms: 387.6014
+  type: 'test'
+  ...
+1..95
+# tests 95
+# suites 0
+# pass 94
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 49447.7152

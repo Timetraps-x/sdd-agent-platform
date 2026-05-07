@@ -34,7 +34,7 @@ Phase 1.1 完成后，`docs/architecture/sdd-agent-platform-architecture.md` 必
 - 定义 contract 总览，包括 lifecycle decision、project config、run state、event log、artifact path、sdd-task、sdd-result、delegation、gap、sync-back。
 - 定义 Phase 2 AI 工具入口投影接入点。
 - 定义 Phase 3 tool/plugin/worktree/concurrency 接入点。
-- 定义 Phase 4 graph-ready metadata 接入点。
+- 定义 Phase 5 graph-ready metadata 接入点。
 - 定义 Phase 1.2+ 的依赖前置条件。
 - 留存 Phase 1.1 spec / plan / tasks / validation 短命名执行文档。
 - 更新 phase status 和必要索引。
@@ -80,7 +80,7 @@ Phase 1.1 完成后，`docs/architecture/sdd-agent-platform-architecture.md` 必
 
 - Phase 2 入口投影必须声明依赖 Phase 1 哪些 contract，不得推翻 Phase 1 文件型 runtime。
 - Phase 3 平台化扩展必须声明 tool/plugin/worktree/concurrency 对 Phase 1/2 contract 的依赖。
-- Phase 4 代码知识图谱必须能消费 task metadata、event、artifact、validation mapping、decision record 等结构化 metadata。
+- Phase 5 代码知识图谱必须能消费 task metadata、event、artifact、validation mapping、decision record 等结构化 metadata。
 
 ### FR-5 Phase 1.2+ 前置条件
 

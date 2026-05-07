@@ -4,7 +4,7 @@
 
 这份指南面向**人类用户**：你想把一个项目接入 SDD，并在 Claude Code 里用 `/sdd` 系列入口推进需求。AI / Claude Code 操作者的内部规则见 [`docs/ai-readme.md`](ai-readme.md)。
 
-如果 `sdd` 已经可用，最快路径是：
+如果 `sdd` 已经可用，最快接入目标项目的路径是：
 
 ```bash
 # 在目标 Git 仓库中执行
@@ -33,7 +33,7 @@ specs/<branch>/tasks.md
 .claude/skills/sdd/...
 ```
 
-如果还没有安装 CLI，先看 [场景 A：安装、验证、卸载 CLI](#2-场景-a安装验证卸载-cli)。如果项目已经有自己的 spec/plan/tasks，直接看 [场景 C：在已有项目中接入 SDD](#4-场景-c在已有项目中接入-sdd)。
+如果还没有安装 CLI，先看 [场景 A：从 npm 安装 CLI](#2-场景-a从-npm-安装-cli)。标准 npm published package 已发布并通过 public install smoke；GitHub direct install 只作为开发/排障备用路径。如果项目已经有自己的 spec/plan/tasks，直接看 [场景 C：在已有项目中接入 SDD](#4-场景-c在已有项目中接入-sdd)。
 
 ---
 
@@ -100,32 +100,44 @@ sdd sync-back apply <run_id> --task <task_id> --approved
 
 ---
 
-## 2. 场景 A：安装、验证、卸载 CLI
+## 2. 场景 A：从 npm 安装 CLI
 
-### 2.1 本地开发态使用
+### 2.1 默认安装方式
 
-在平台仓库中：
+普通用户不需要 clone 平台仓库。默认直接安装公开 npm 包：
 
 ```bash
-npm install
-npm run build
-node ./dist/packages/cli/src/main.js --help
+npm install -g sdd-agent-platform@latest
+sdd --version
+sdd --help
 ```
 
-如果只是开发调试，可以直接使用 dist CLI：
+如果需要验证 GitHub 源码安装路径，也可以使用：
+
+```bash
+npm install -g git+ssh://git@github.com/Timetraps-x/sdd-agent-platform.git
+sdd --version
+sdd --help
+```
+
+平台开发者才需要 clone 仓库并直接运行 dist CLI：
 
 ```bash
 node ./dist/packages/cli/src/main.js status
 ```
 
-### 2.2 打包并全局安装
+### 2.2 更新已安装 CLI
 
 ```bash
-npm run build
-npm pack
-npm install -g ./sdd-agent-platform-0.1.0.tgz
+npm install -g sdd-agent-platform@latest
 sdd --version
-sdd --help
+```
+
+SSH 安装方式同理：
+
+```bash
+npm install -g git+ssh://git@github.com/Timetraps-x/sdd-agent-platform.git
+sdd --version
 ```
 
 ### 2.3 卸载
@@ -139,8 +151,8 @@ npm uninstall -g sdd-agent-platform
 | 场景 | 推荐方式 |
 |---|---|
 | 平台开发者本地调试 | `node ./dist/packages/cli/src/main.js ...` |
-| 真实业务仓库试用 | `npm pack` 后 `npm install -g` |
-| CI 或脚本验证 | 使用构建后的 dist CLI 或全局 `sdd` |
+| 真实业务仓库试用 | `npm install -g sdd-agent-platform@latest` |
+| CI 或脚本验证 | 使用 npm 安装后的全局 `sdd`，或平台仓库构建后的 dist CLI |
 
 ---
 
@@ -1003,7 +1015,7 @@ spec -> plan -> tasks(multiple waves) -> graph inspect -> wave inspect -> task-b
 推荐用临时仓库跑 full-chain smoke：
 
 ```text
-npm pack -> npm install -g -> target git init -> sdd init -> write specs -> run workflow -> doctor -> npm uninstall -g
+npm install -g sdd-agent-platform@latest -> target git init -> sdd init -> write specs -> run workflow -> doctor -> npm uninstall -g
 ```
 
 ---

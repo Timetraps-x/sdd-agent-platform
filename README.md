@@ -129,10 +129,15 @@ research  research -> options -> decision -> architecture artifact -> implementa
 - [Phase 1.10 tasks](specs/master/phase1.10-tasks.md)
 - [Phase 1.10 validation](specs/master/phase1.10-validation.md)
 - [Phase 2.0 AI 工具入口投影与全局安装接入](specs/master/phases/phase-2.0-ai-tool-entry-projection.md)
+- [Phase 4.0 NPM Package Distribution Baseline](specs/master/phases/phase-4.0-npm-package-distribution.md)
+- [Phase 4.1 Package Metadata Hardening](specs/master/phases/phase-4.1-package-metadata-hardening.md)
+- [Phase 4.2 Package Contents and Install Smoke](specs/master/phases/phase-4.2-package-contents-install-smoke.md)
+- [Phase 4.3 NPM Publish Dry-run and Human Runbook](specs/master/phases/phase-4.3-npm-publish-dry-run-runbook.md)
+- [Phase 4.4 Public Publish and Adoption](specs/master/phases/phase-4.4-public-publish-adoption.md)
 
 ## CLI 命令
 
-> Phase 2 已完成 AI 工具入口投影与全局安装接入：`sdd` 可通过 dist/tarball 安装运行，`sdd init` 可一次性生成 `.sdd`、starter `specs/<branch>/spec.md|plan.md|tasks.md` 与 Claude Code managed entries，`sdd update` 可检查/修复漂移，`sdd instructions` 提供动态薄入口指令，`sdd artifact template/validate` 和 `sdd run archive` 降低真实工作流摩擦。
+> Phase 2 已完成 AI 工具入口投影与全局安装接入，Phase 4 已完成 npm published package 分发主路径：`sdd` 可直接从 npm 安装，`sdd init` 可一次性生成 `.sdd`、starter `specs/<branch>/spec.md|plan.md|tasks.md` 与 Claude Code managed entries，`sdd update` 可检查/修复漂移，`sdd instructions` 提供动态薄入口指令，`sdd artifact template/validate` 和 `sdd run archive` 降低真实工作流摩擦。
 
 ```text
 sdd --version
@@ -155,18 +160,23 @@ CLI 是本地 runtime 入口；长期状态和执行事实源由 `.sdd/runs/<run
 
 ## 安装态全链路使用示例
 
-下面流程对应 Phase 2 已验证的端到端路径。推荐使用 tarball 或 isolated prefix 做本机验证；未来公网 npm 发布不属于当前阶段。
+下面流程对应公开 npm 包安装后的端到端路径。普通用户不需要先 clone 平台仓库，直接安装 `sdd-agent-platform` 即可。
 
-### 1. 构建和安装 CLI
+### 1. 从 npm 安装 CLI
 
 ```bash
-npm run build
-npm pack
-npm install -g ./sdd-agent-platform-0.1.0.tgz
+npm install -g sdd-agent-platform@latest
 sdd --version
 ```
 
-开发态也可以直接运行 dist CLI：
+如果你需要验证 GitHub 源码安装路径，也可以使用：
+
+```bash
+npm install -g git+ssh://git@github.com/Timetraps-x/sdd-agent-platform.git
+sdd --version
+```
+
+平台开发时才需要 clone 仓库并直接运行 dist CLI：
 
 ```bash
 node ./dist/packages/cli/src/main.js --help
@@ -240,10 +250,10 @@ Note: `#### Boundary`, `#### Acceptance`, and `#### Implementation Notes` are co
 ### 4. 创建 run 并记录 lifecycle decision
 
 ```bash
-npx sdd run create > run-create.json
+sdd run create > run-create.json
 RUN_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('run-create.json','utf8')).runId)")
 
-npx sdd lifecycle decide \
+sdd lifecycle decide \
   --run "$RUN_ID" \
   --intent high \
   --acceptance high \
@@ -268,9 +278,9 @@ npx sdd lifecycle decide \
 ### 5. 检查 task parser
 
 ```bash
-npx sdd tasks list --branch case
-npx sdd tasks inspect CASE-T1 --branch case
-npx sdd tasks gaps --branch case
+sdd tasks list --branch case
+sdd tasks inspect CASE-T1 --branch case
+sdd tasks gaps --branch case
 ```
 
 期望：`gaps=0`，`tasks gaps` 输出 `PASS`。
@@ -282,9 +292,9 @@ npx sdd tasks gaps --branch case
 ```bash
 mkdir -p ".sdd/runs/$RUN_ID/artifacts"
 
-npx sdd artifact template artifacts/review-CASE-T1.md --task CASE-T1 --agent reviewer --branch case \
+sdd artifact template artifacts/review-CASE-T1.md --task CASE-T1 --agent reviewer --branch case \
   > ".sdd/runs/$RUN_ID/artifacts/review-CASE-T1.md"
-npx sdd artifact template artifacts/validation-CASE-T1.md --task CASE-T1 --agent validator --branch case \
+sdd artifact template artifacts/validation-CASE-T1.md --task CASE-T1 --agent validator --branch case \
   > ".sdd/runs/$RUN_ID/artifacts/validation-CASE-T1.md"
 ```
 
@@ -304,28 +314,28 @@ validator template 会生成 `## Acceptance Mapping` 并复制 exact Acceptance 
 先单独校验 artifact contract：
 
 ```bash
-npx sdd artifact validate "$RUN_ID" artifacts/review-CASE-T1.md --task CASE-T1 --agent reviewer
-npx sdd artifact validate "$RUN_ID" artifacts/validation-CASE-T1.md --task CASE-T1 --agent validator
+sdd artifact validate "$RUN_ID" artifacts/review-CASE-T1.md --task CASE-T1 --agent reviewer
+sdd artifact validate "$RUN_ID" artifacts/validation-CASE-T1.md --task CASE-T1 --agent validator
 ```
 
 ### 7. 执行 single-task loop 和 goal-level verify
 
 ```bash
-npx sdd do task CASE-T1 \
+sdd do task CASE-T1 \
   --branch case \
   --run "$RUN_ID" \
   --review-artifact artifacts/review-CASE-T1.md \
   --validation-artifact artifacts/validation-CASE-T1.md
 
-npx sdd verify task CASE-T1 \
+sdd verify task CASE-T1 \
   --branch case \
   --run "$RUN_ID" \
   --review-artifact artifacts/review-CASE-T1.md \
   --validation-artifact artifacts/validation-CASE-T1.md
 
-npx sdd run status "$RUN_ID"
-npx sdd doctor --latest-only
-npx sdd doctor
+sdd run status "$RUN_ID"
+sdd doctor --latest-only
+sdd doctor
 ```
 
 期望：
@@ -392,4 +402,4 @@ npm run build
 - fuzzy acceptance matching
 - 自动 `sync-back apply`
 
-Phase 2 优先解决全局安装、目标仓库 init、AI 工具入口投影、update/doctor 漂移检查、instruction API、artifact UX 和 run hygiene；平台化扩展顺延到 Phase 3，代码知识图谱顺延到 Phase 4。
+Phase 2 优先解决全局安装、目标仓库 init、AI 工具入口投影、update/doctor 漂移检查、instruction API、artifact UX 和 run hygiene；平台化扩展顺延到 Phase 3；npm published package 分发主路径已在 Phase 4 完成；代码知识图谱顺延到 Phase 5。

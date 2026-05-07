@@ -48,7 +48,7 @@ Phase 1.0 canonical lifecycle model
 4. 扩展 contract 总览，补齐 owner、writer、reader、storage、phase、下游消费者。
 5. 明确 Phase 2 AI 工具入口投影 extension points 的前置 contract 和禁止提前实现项。
 6. 明确 Phase 3 平台化扩展 extension points。
-7. 明确 Phase 4 graph-ready metadata 的来源和不得只写自然语言的规则。
+7. 明确 Phase 5 graph-ready metadata 的来源和不得只写自然语言的规则。
 8. 增加 Phase 1.2+ dependency prerequisites。
 9. 调整 ADR，使 lifecycle decision 已从“待调研验证”变为“Phase 1.0 已定稿，Phase 1.1 吸收”。
 

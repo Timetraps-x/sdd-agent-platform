@@ -58,6 +58,20 @@
 | 3.14 | [phase-3.14-governance-policy.md](phase-3.14-governance-policy.md) | [status](PHASE_STATUS.md) | Governance Policy |
 | 3.15 | [phase-3.15-workflow-entrypoint-unification.md](phase-3.15-workflow-entrypoint-unification.md) | [status](PHASE_STATUS.md) | Workflow Entrypoint Unification |
 
+## Phase 4
+
+| Phase | Artifact | Status | 定位 |
+|---|---|---|---|
+| 4.0 | [phase-4.0-npm-package-distribution.md](phase-4.0-npm-package-distribution.md) | [status](PHASE_STATUS.md) | NPM Package Distribution / Public Install Baseline |
+| 4.1 | [phase-4.1-package-metadata-hardening.md](phase-4.1-package-metadata-hardening.md) | [status](PHASE_STATUS.md) | Package Metadata Hardening |
+| 4.2 | [phase-4.2-package-contents-install-smoke.md](phase-4.2-package-contents-install-smoke.md) | [status](PHASE_STATUS.md) | Package Contents and Install Smoke |
+| 4.3 | [phase-4.3-npm-publish-dry-run-runbook.md](phase-4.3-npm-publish-dry-run-runbook.md) | [status](PHASE_STATUS.md) | NPM Publish Dry-run and Human Runbook |
+| 4.4 | [phase-4.4-public-publish-adoption.md](phase-4.4-public-publish-adoption.md) | [status](PHASE_STATUS.md) | Public Publish and Adoption |
+
+## Phase 5
+
+Phase 5 保留给原 Phase 4 的代码知识图谱方向；该方向在 npm published package 分发基线稳定后再拆分小阶段。
+
 ## 引用规则
 
 - phase 的可执行边界以本目录下对应文件为准。

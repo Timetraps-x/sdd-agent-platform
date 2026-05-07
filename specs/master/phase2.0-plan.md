@@ -26,7 +26,7 @@ Phase 1 SDD closed loop
 - generated Claude Code files 只能是薄入口。
 - 不覆盖 foreign files。
 - 不把 Phase 3 的 worktree/concurrency/plugin loader 提前做进 Phase 2。
-- 不把 Phase 4 代码知识图谱提前做进 Phase 2。
+- 不把 Phase 4 npm distribution 或 Phase 5 代码知识图谱提前做进 Phase 2。
 
 ## 2. 输入文档
 

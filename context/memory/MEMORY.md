@@ -1,6 +1,6 @@
 # SDD Agent Platform Memory Index
 
-- [SDD subagent 平台分阶段方向](project_sdd_subagent_platform_two_phase.md) — Phase 1 SDD 闭环，Phase 2 入口投影，Phase 3 平台化，Phase 4 知识图谱。
+- [SDD subagent 平台分阶段方向](project_sdd_subagent_platform_two_phase.md) — Phase 1 SDD 闭环，Phase 2 入口投影，Phase 3 平台化，Phase 4 npm 发布，Phase 5 知识图谱。
 - [GitHub access strategy](feedback_github_access_strategy.md) — 研究 GitHub 仓库时优先 raw files / gh metadata / HTML fallback。
 - [中文文档与统一目录偏好](feedback_doc_output_and_folder_unification.md) — 文档默认中文，skill/plugin 产物尽量统一到一个顶层目录。
 - [头脑风暴文档属于交付产物](feedback_brainstorm_docs_are_deliverables.md) — 最终脑暴结论文档应进入项目交付目录。
