@@ -417,7 +417,7 @@ BMAD 只借多角色思路
 最终沉淀成本地轻量 SDD + subagent 工作流
 ```
 
-一句话：**当前项目应走“Spec Kit + 本地 `/sdd-do`”路线，而不是让 cc-sdd、GSD、BMAD 或 Oh My OpenAgent 全量接管。**
+一句话：**当前项目应走“Claude Code 等 AI tool harness 之上的 SDD Harness Engineering”路线：Spec Kit、cc-sdd、GSD、BMAD、Oh My OpenAgent/OpenCode 只提供机制证据，最终沉淀为本项目的 context/risk/workflow/agent/evidence/query/eval/learning contracts，而不是让任何外部项目全量接管。**
 
 ## 11. 参考来源
 

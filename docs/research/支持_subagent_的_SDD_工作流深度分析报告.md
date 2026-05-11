@@ -11,7 +11,7 @@
 3. 它们的执行模型是否适合 Java/Spring/MyBatis 旧系统里的最小改动、最小 Maven 验证？
 4. 哪些机制值得借鉴，哪些机制会带来流程污染、权限风险、自动化失控或维护成本？
 
-结论先行：**前一版判断成立，但优先级更明确：Spec Kit 继续做规格底座；cc-sdd 的 `/kiro-impl` 是最值得直接本地化的 task 级实现闭环；GSD 的 wave / overlap / verifier 适合作为高级形态参考；BMAD 可借 step-file 与定制分层；Oh My OpenAgent 主要借 harness 思想，不宜直接接入。**
+结论先行：**前一版判断成立，但 Phase 5 的目标已从“源码机制本地化”升级为 SDD Harness Engineering：Spec Kit、cc-sdd、GSD、BMAD、Oh My OpenAgent/OpenCode 都是机制证据，真正要落地的是依托 Claude Code 等 AI tool harness 的 context、risk gate、workflow gate、agent registry、task evidence、query/status、eval 和 learning contract。cc-sdd 的 `/kiro-impl`、GSD 的 verifier/gap closure、BMAD 的角色/step discipline、OpenAgent/OpenCode 的 harness/doctor/eval 都应被转译成本项目 contract，而不是直接接入或复制。**
 
 ## 2. 横向结论更新
 

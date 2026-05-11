@@ -70,4 +70,32 @@
 
 ## Phase 5
 
-Phase 5 validation index will be added when the code knowledge graph baseline is split into executable phases.
+| Phase | Validation |
+|---|---|
+| 5.0 | [phase5.0-validation.md](phase5.0-validation.md) |
+| 5.1 | [phase5.1-validation.md](phase5.1-validation.md) |
+| 5.2 | [phase5.2-validation.md](phase5.2-validation.md) |
+| 5.3 | [phase5.3-validation.md](phase5.3-validation.md) |
+| 5.4 | [phase5.4-validation.md](phase5.4-validation.md) |
+| 5.5 | [phase5.5-validation.md](phase5.5-validation.md) |
+| 5.6 | [phase5.6-validation.md](phase5.6-validation.md) |
+
+## Phase 6
+
+| Phase | Validation |
+|---|---|
+| 6.0 | [phase6.0-validation.md](phase6.0-validation.md) |
+| 6.1 | [phase6.1-validation.md](phase6.1-validation.md) |
+| 6.2 | [phase6.2-validation.md](phase6.2-validation.md) |
+| 6.3 | [phase6.3-validation.md](phase6.3-validation.md) |
+| 6.4 | [phase6.4-validation.md](phase6.4-validation.md) |
+| 6.5 | [phase6.5-validation.md](phase6.5-validation.md) |
+| 6.6 | [phase6.6-validation.md](phase6.6-validation.md) |
+| 6.7 | [phase6.7-validation.md](phase6.7-validation.md) |
+| 6.8 | [phase6.8-validation.md](phase6.8-validation.md) |
+
+## Phase 7
+
+| Phase | Validation |
+|---|---|
+| 7.0 | Phase 7 validation index will be added when the code knowledge graph baseline is split into executable phase documents. |

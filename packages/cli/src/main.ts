@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+import { readFile } from 'node:fs/promises';
 import {
+  writeArtifact,
   archiveRun,
   applyAiToolEntries,
   applySyncBack,
@@ -7,12 +9,15 @@ import {
   createRun,
   doctor,
   evaluateLifecycleDecisionGate,
+  extractLifecycleRiskSignalsFromText,
   evaluateGovernancePolicy,
   getProjectStatus,
   getDelegationStateMachine,
   getSddInstructions,
   initProject,
   inspectRun,
+  claimResidentWorkerRuntime,
+  heartbeatResidentWorkerRuntime,
   inspectSddTask,
   inspectToolPluginContract,
   inspectToolCapability,
@@ -22,11 +27,23 @@ import {
   inspectWavePlan,
   inspectWaveExecutor,
   inspectBackgroundExecutor,
+  inspectResidentWorkerRuntime,
   inspectArtifactResultIngestions,
   inspectWorktreeLifecycle,
   inspectWorkerAdapterContract,
   inspectWorktreeIsolation,
   inspectGovernancePolicy,
+  inspectWorkflowGate,
+  inspectAgentRegistryEntry,
+  inspectQueryStatusContract,
+  inspectSkillAgentEvalContract,
+  inspectHarnessLearningContract,
+  inspectProjectContextPackContract,
+  inspectAgentSkillTeamRuntime,
+  inspectSkillCapability,
+  inspectCapabilitySource,
+  inspectExternalAgentPackImport,
+  inspectTeamModePolicy,
   keepWorktreeLifecycle,
   removeWorktreeLifecycle,
   listRuns,
@@ -37,9 +54,15 @@ import {
   listToolCapabilities,
   listDelegationQueueItems,
   listWorkerAdapterContracts,
+  listResidentWorkerRuntimes,
+  listWorkflowGates,
+  listAgentRegistry,
+  listSkillCapabilities,
+  listCapabilitySources,
   ingestArtifactResult,
   parseSddBranch,
   readRunState,
+  resolveSddContext,
   recordLifecycleDecision,
   renderDoctorReport,
   renderGoalVerifyResult,
@@ -57,9 +80,21 @@ import {
   SDD_VERSION,
   summarizeAiProjectionStatus,
   validateSddResultArtifact,
+  validateWorkflowGates,
+  validateAgentRegistry,
+  validateQueryStatusContract,
+  validateSkillAgentEvalContract,
+  validateHarnessLearningContract,
+  validateProjectContextPackContract,
+  routeSddTask,
+  validateAgentSkillTeamRuntime,
+  toArtifactRootRelativePath,
   type SddResultStatus,
   type AiToolSelection,
+  type ContextBranchSource,
   type ProjectStatus,
+  type LifecycleDecisionSignals,
+  type LifecycleRiskGateExtraction,
   type RunInspection,
   type RunSummary,
   type RunStatus,
@@ -75,6 +110,27 @@ import {
   type DelegationQueueItem,
   type DelegationStateMachine,
   type WorkerAdapterContract,
+  type WorkflowGateContract,
+  type WorkflowGateValidation,
+  type AgentRegistryEntry,
+  type AgentRegistryValidation,
+  type QueryStatusContract,
+  type QueryStatusValidation,
+  type SkillAgentEvalContract,
+  type SkillAgentEvalValidation,
+  type HarnessLearningContract,
+  type HarnessLearningValidation,
+  type ProjectContextPackContract,
+  type ProjectContextPackValidation,
+  type AgentRouterDecision,
+  type AgentSkillTeamRuntimeInspection,
+  type AgentSkillTeamRuntimeValidation,
+  type CapabilitySourceCatalogEntry,
+  type ExternalAgentPackImportInspection,
+  type RuntimeRegistryEntrySource,
+  type SkillCapabilityContract,
+  type TeamModePolicy,
+  type TeamModeActivation,
   type ArtifactResultIngestionInspection,
   type ArtifactResultIngestionResult,
   type WorktreeIsolationDecision,
@@ -87,7 +143,13 @@ import {
   type WaveExecutorStrategy,
   type BackgroundExecutorInspection,
   type BackgroundExecutorResult,
+  type ResidentWorkerRuntimeClaimResult,
+  type ResidentWorkerRuntimeHeartbeatResult,
+  type ResidentWorkerRuntimeInspection,
+  type ResidentWorkerRuntimeList,
+  type InitProjectResult
 } from '../../core/src/index.js';
+import { readOption, readPositiveIntegerOption, readRepeatedOption, readRepeatedOptions } from './options.js';
 
 interface CliResult {
   exitCode: number;
@@ -106,6 +168,13 @@ async function main(args: string[]): Promise<CliResult> {
     };
   }
 
+  if (command === 'help') {
+    return {
+      exitCode: 0,
+      output: helpText(subcommand)
+    };
+  }
+
   if (command === '--version' || command === '-v') {
     return {
       exitCode: 0,
@@ -117,12 +186,13 @@ async function main(args: string[]): Promise<CliResult> {
     const initArgs = [subcommand, ...rest].filter(Boolean);
     const force = initArgs.includes('--force');
     const aiTool = readAiToolSelection(initArgs, true);
-    const branch = readOption(initArgs, '--branch') ?? 'master';
-    const scaffoldDocuments = !initArgs.includes('--no-scaffold-docs');
+    const branch = readOption(initArgs, '--branch') ?? undefined;
+    const scaffoldDocuments = initArgs.includes('--no-scaffold-docs') ? false : initArgs.includes('--scaffold-docs') || branch !== undefined;
     const result = await initProject(projectRoot, { force, aiTool, branch, scaffoldDocuments });
+    const json = wantsJson(initArgs);
     return {
       exitCode: 0,
-      output: JSON.stringify({ command: 'init', ...result }, null, 2)
+      output: json ? jsonOutput({ command: 'init', ...result }, initArgs) : renderInitResult(result)
     };
   }
 
@@ -142,10 +212,9 @@ async function main(args: string[]): Promise<CliResult> {
     const instructionArgs = [subcommand, ...rest].filter(Boolean);
     const action = instructionArgs.find((item) => !item.startsWith('--')) ?? 'overview';
     const payload = getSddInstructions(action);
-    const json = instructionArgs.includes('--json');
     return {
       exitCode: 0,
-      output: json ? JSON.stringify(payload, null, 2) : renderSddInstructions(payload)
+      output: renderTextOrJson(instructionArgs, payload, renderSddInstructions)
     };
   }
 
@@ -161,19 +230,20 @@ async function main(args: string[]): Promise<CliResult> {
       latestOnly: doctorArgs.includes('--latest-only'),
       allRuns: doctorArgs.includes('--all-runs')
     });
+    const json = wantsJson(doctorArgs);
     return {
       exitCode: report.status === 'FAIL' ? 1 : 0,
-      output: renderDoctorReport(report)
+      output: json ? jsonOutput(report, doctorArgs) : renderDoctorReport(report)
     };
   }
 
   if (command === 'status') {
     const statusArgs = [subcommand, ...rest].filter(Boolean);
-    const result = await getProjectStatus(projectRoot, { branch: readOption(statusArgs, '--branch') ?? 'master' });
-    const json = statusArgs.includes('--json');
+    const result = await getProjectStatus(projectRoot, readBranchContext(statusArgs));
+    const json = wantsJson(statusArgs);
     return {
       exitCode: result.gaps.some((gap) => gap.severity === 'blocking') ? 1 : 0,
-      output: json ? JSON.stringify(result, null, 2) : renderProjectStatus(result)
+      output: json ? jsonOutput(result, statusArgs) : renderProjectStatus(result)
     };
   }
 
@@ -211,19 +281,19 @@ async function main(args: string[]): Promise<CliResult> {
 
   if (command === 'run' && subcommand === 'index') {
     const action = rest[0];
-    const json = rest.includes('--json');
+    const json = wantsJson(rest);
     if (action === 'rebuild') {
       const index = await rebuildLocalRunIndex(projectRoot);
       return {
         exitCode: 0,
-        output: json ? JSON.stringify(index, null, 2) : renderLocalRunIndex(index)
+        output: json ? jsonOutput(index, rest) : renderLocalRunIndex(index)
       };
     }
     if (action === 'inspect') {
       const inspection = await inspectLocalRunIndex(projectRoot);
       return {
         exitCode: inspection.valid ? 0 : 1,
-        output: json ? JSON.stringify(inspection, null, 2) : renderLocalRunIndexInspection(inspection)
+        output: json ? jsonOutput(inspection, rest) : renderLocalRunIndexInspection(inspection)
       };
     }
     if (action === 'query') {
@@ -231,7 +301,7 @@ async function main(args: string[]): Promise<CliResult> {
       if (readOption(rest, '--status') && !status) {
         return {
           exitCode: 2,
-          error: 'Usage: sdd run index query [--run <run_id>] [--task <task_id>] [--status created|running|completed|blocked|failed|archived] [--artifact <path>] [--json]'
+          error: 'Usage: sdd run index query [--run <run_id>] [--task <task_id>] [--status created|running|completed|blocked|failed|archived] [--artifact <path>] [--json|--compact-json]'
         };
       }
       const index = await queryLocalRunIndex(projectRoot, {
@@ -242,7 +312,7 @@ async function main(args: string[]): Promise<CliResult> {
       });
       return {
         exitCode: 0,
-        output: json ? JSON.stringify(index, null, 2) : renderLocalRunIndex(index)
+        output: json ? jsonOutput(index, rest) : renderLocalRunIndex(index)
       };
     }
     return {
@@ -260,10 +330,10 @@ async function main(args: string[]): Promise<CliResult> {
       };
     }
     const result = await inspectRun(projectRoot, runId);
-    const json = rest.includes('--json');
+    const json = wantsJson(rest);
     return {
       exitCode: 0,
-      output: json ? JSON.stringify(result, null, 2) : renderRunInspection(result)
+      output: json ? jsonOutput(result, rest) : renderRunInspection(result)
     };
   }
 
@@ -283,43 +353,45 @@ async function main(args: string[]): Promise<CliResult> {
   }
 
   if (command === 'sync-back' && subcommand === 'inspect') {
-    const runId = rest[0];
-    if (!runId) {
+    const runId = readOptionalPositionalArgument(rest);
+    const taskId = readOption(rest, '--task') ?? undefined;
+    if (!runId && !taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd sync-back inspect <run_id> [--branch <branch>] [--task <task_id>] [--json]'
+        error: 'Usage: sdd sync-back inspect [<run_id>] [--branch <branch>] --task <task_id> [--json|--compact-json]'
       };
     }
     const result = await inspectSyncBack(projectRoot, {
       runId,
-      branch: readOption(rest, '--branch') ?? 'master',
-      taskId: readOption(rest, '--task') ?? undefined
+      branch: readBranchOption(rest),
+      taskId
     });
-    const json = rest.includes('--json');
+    const json = wantsJson(rest);
     return {
       exitCode: result.status === 'blocked' ? 1 : 0,
-      output: json ? JSON.stringify(result, null, 2) : renderSyncBackInspection(result)
+      output: json ? jsonOutput(result, rest) : renderSyncBackInspection(result)
     };
   }
 
   if (command === 'sync-back' && subcommand === 'apply') {
-    const runId = rest[0];
-    if (!runId) {
+    const runId = readOptionalPositionalArgument(rest);
+    const taskId = readOption(rest, '--task') ?? undefined;
+    if (!runId && !taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd sync-back apply <run_id> [--branch <branch>] [--task <task_id>] [--approved] [--json]'
+        error: 'Usage: sdd sync-back apply [<run_id>] [--branch <branch>] --task <task_id> [--approved] [--json|--compact-json]'
       };
     }
     const result = await applySyncBack(projectRoot, {
       runId,
-      branch: readOption(rest, '--branch') ?? 'master',
-      taskId: readOption(rest, '--task') ?? undefined,
+      branch: readBranchOption(rest),
+      taskId,
       approved: rest.includes('--approved')
     });
-    const json = rest.includes('--json');
+    const json = wantsJson(rest);
     return {
       exitCode: 0,
-      output: json ? JSON.stringify(result, null, 2) : renderSyncBackApplyResult(result)
+      output: json ? jsonOutput(result, rest) : renderSyncBackApplyResult(result)
     };
   }
 
@@ -331,7 +403,7 @@ async function main(args: string[]): Promise<CliResult> {
   }
 
   if (command === 'tasks' && subcommand === 'list') {
-    const model = await parseSddBranch(projectRoot, readOption(rest, '--branch') ?? 'master');
+    const model = await parseSddBranch(projectRoot, await readResolvedBranch(projectRoot, rest));
     return {
       exitCode: model.gaps.some((gap) => gap.severity === 'blocking') ? 1 : 0,
       output: renderTaskList(model)
@@ -343,10 +415,10 @@ async function main(args: string[]): Promise<CliResult> {
     if (!taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd tasks inspect <task_id> [--branch <branch>]'
+        error: 'Usage: sdd tasks inspect <task_id> [--branch <branch>] [--json]'
       };
     }
-    const model = await parseSddBranch(projectRoot, readOption(rest, '--branch') ?? 'master');
+    const model = await parseSddBranch(projectRoot, await readResolvedBranch(projectRoot, rest));
     const result = inspectSddTask(model, taskId);
     if (!result.task && result.gaps.length === 0) {
       return {
@@ -354,14 +426,34 @@ async function main(args: string[]): Promise<CliResult> {
         error: `Task not found: ${taskId}`
       };
     }
+    const json = wantsJson(rest);
     return {
       exitCode: result.task === null || result.gaps.some((gap) => gap.severity === 'blocking') ? 1 : 0,
-      output: renderTaskInspect(result.task, result.gaps)
+      output: json ? jsonOutput(result, rest) : renderTaskInspect(result.task, result.gaps)
+    };
+  }
+
+  if (command === 'tasks' && subcommand === 'route') {
+    const taskId = rest.find((item) => !item.startsWith('--'));
+    if (!taskId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd tasks route <task_id> [--branch <branch>] [--team-mode [auto|force|off]] [--no-team-mode] [--json]'
+      };
+    }
+    const decision = await routeSddTask(projectRoot, {
+      taskId,
+      branch: readBranchOption(rest),
+      teamModeActivation: readTeamModeActivation(rest)
+    });
+    return {
+      exitCode: decision.blockedReason ? 1 : 0,
+      output: wantsJson(rest) ? jsonOutput(decision, rest) : renderAgentRouterDecision(decision)
     };
   }
 
   if (command === 'tasks' && subcommand === 'gaps') {
-    const model = await parseSddBranch(projectRoot, readOption(rest, '--branch') ?? 'master');
+    const model = await parseSddBranch(projectRoot, await readResolvedBranch(projectRoot, rest));
     return {
       exitCode: model.gaps.some((gap) => gap.severity === 'blocking') ? 1 : 0,
       output: renderTaskGapReport(model)
@@ -369,7 +461,14 @@ async function main(args: string[]): Promise<CliResult> {
   }
 
   if (command === 'lifecycle' && subcommand === 'decide') {
-    const result = evaluateLifecycleDecisionGate(readLifecycleSignalOptions(rest));
+    const lifecycleInput = await readLifecycleSignalOptions(rest);
+    if (lifecycleInput.error) {
+      return {
+        exitCode: 2,
+        error: lifecycleInput.error
+      };
+    }
+    const result = evaluateLifecycleDecisionGate(lifecycleInput.signals);
     const runId = readOption(rest, '--run');
     if (runId) {
       await recordLifecycleDecision(projectRoot, runId, result.record);
@@ -377,7 +476,9 @@ async function main(args: string[]): Promise<CliResult> {
     const json = rest.includes('--json');
     return {
       exitCode: 0,
-      output: json ? JSON.stringify({ ...result, recordedRunId: runId ?? null }, null, 2) : `${renderLifecycleDecisionGate(result)}${runId ? `\nrecorded_run=${runId}` : ''}`
+      output: json
+        ? JSON.stringify({ riskExtraction: lifecycleInput.riskExtraction, ...result, recordedRunId: runId ?? null }, null, 2)
+        : `${renderLifecycleRiskExtraction(lifecycleInput.riskExtraction)}${renderLifecycleDecisionGate(result)}${runId ? `\nrecorded_run=${runId}` : ''}`
     };
   }
 
@@ -386,44 +487,47 @@ async function main(args: string[]): Promise<CliResult> {
     if (!taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd do task <task_id> [--branch <branch>] [--run <run_id>] [--implement-artifact artifacts/path.md] [--review-artifact artifacts/path.md] [--debug-artifact artifacts/path.md] [--validation-artifact artifacts/path.md]'
+        error: 'Usage: sdd do task <task_id> [--branch <branch>] [--run <run_id>] [--team-mode [auto|force|off]] [--no-team-mode] [--implement-artifact artifacts/path.md] [--review-artifact artifacts/path.md] [--debug-artifact artifacts/path.md] [--validation-artifact artifacts/path.md]'
       };
     }
     const result = await runSingleTaskLoop(projectRoot, {
       taskId,
-      branch: readOption(rest, '--branch') ?? 'master',
+      branch: readBranchOption(rest),
       runId: readOption(rest, '--run') ?? undefined,
       implementArtifact: readOption(rest, '--implement-artifact') ?? undefined,
       reviewArtifact: readOption(rest, '--review-artifact') ?? undefined,
       debugArtifact: readOption(rest, '--debug-artifact') ?? undefined,
-      validationArtifact: readOption(rest, '--validation-artifact') ?? undefined
+      validationArtifact: readOption(rest, '--validation-artifact') ?? undefined,
+      teamModeActivation: readTeamModeActivation(rest)
     });
+    const json = wantsJson(rest);
     return {
       exitCode: result.status === 'completed' ? 0 : 1,
-      output: renderSingleTaskLoopResult(result)
+      output: json ? jsonOutput(result, rest) : renderSingleTaskLoopResult(result)
     };
   }
 
 
   if (command === 'verify' && subcommand === 'task') {
-    const taskId = rest.find((item) => !item.startsWith('--'));
+    const taskId = readOptionalPositionalArgument(rest);
     const runId = readOption(rest, '--run');
-    if (!taskId || !runId) {
+    if (!taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd verify task <task_id> --run <run_id> [--branch <branch>] [--review-artifact artifacts/path.md] [--validation-artifact artifacts/path.md]'
+        error: 'Usage: sdd verify task <task_id> [--run <run_id>] [--branch <branch>] [--review-artifact artifacts/path.md] [--validation-artifact artifacts/path.md] [--json]'
       };
     }
     const result = await runGoalVerify(projectRoot, {
       taskId,
-      runId,
-      branch: readOption(rest, '--branch') ?? 'master',
+      runId: runId ?? undefined,
+      branch: readBranchOption(rest),
       reviewArtifact: readOption(rest, '--review-artifact') ?? undefined,
       validationArtifact: readOption(rest, '--validation-artifact') ?? undefined
     });
+    const json = wantsJson(rest);
     return {
       exitCode: result.status === 'PASS' ? 0 : 1,
-      output: renderGoalVerifyResult(result)
+      output: json ? jsonOutput(result, rest) : renderGoalVerifyResult(result)
     };
   }
 
@@ -452,6 +556,239 @@ async function main(args: string[]): Promise<CliResult> {
     return {
       exitCode: decision.allowed ? 0 : 1,
       output: rest.includes('--json') ? JSON.stringify(decision, null, 2) : renderGovernancePolicyDecision(decision)
+    };
+  }
+
+  if (command === 'workflow' && subcommand === 'list') {
+    const registry = await listWorkflowGates(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(registry, null, 2) : renderWorkflowGateList(registry.workflows)
+    };
+  }
+
+  if (command === 'workflow' && subcommand === 'inspect') {
+    const workflowId = rest.find((item) => !item.startsWith('--'));
+    if (!workflowId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd workflow inspect <workflow_id> [--json]'
+      };
+    }
+    const workflow = await inspectWorkflowGate(projectRoot, workflowId);
+    if (!workflow) {
+      return {
+        exitCode: 1,
+        error: `Unknown workflow: ${workflowId}`
+      };
+    }
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(workflow, null, 2) : renderWorkflowGateInspect(workflow)
+    };
+  }
+
+  if (command === 'workflow' && subcommand === 'validate') {
+    const result = await validateWorkflowGates(projectRoot);
+    return {
+      exitCode: result.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderWorkflowGateValidation(result)
+    };
+  }
+
+  if (command === 'agents' && subcommand === 'list') {
+    const registry = await listAgentRegistry(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(registry, null, 2) : renderAgentRegistryList(registry.agents)
+    };
+  }
+
+  if (command === 'agents' && subcommand === 'inspect') {
+    const agentId = rest.find((item) => !item.startsWith('--'));
+    if (!agentId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd agents inspect <agent_id> [--json]'
+      };
+    }
+    const agent = await inspectAgentRegistryEntry(projectRoot, agentId);
+    if (!agent) {
+      return {
+        exitCode: 1,
+        error: `Unknown agent: ${agentId}`
+      };
+    }
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(agent, null, 2) : renderAgentRegistryInspect(agent)
+    };
+  }
+
+  if (command === 'agents' && subcommand === 'validate') {
+    const result = await validateAgentRegistry(projectRoot);
+    return {
+      exitCode: result.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderAgentRegistryValidation(result)
+    };
+  }
+
+  if (command === 'agent-runtime' && subcommand === 'inspect') {
+    const inspection = await inspectAgentSkillTeamRuntime(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(inspection, null, 2) : renderAgentSkillTeamRuntimeInspection(inspection)
+    };
+  }
+
+  if (command === 'agent-runtime' && subcommand === 'validate') {
+    const result = await validateAgentSkillTeamRuntime(projectRoot);
+    return {
+      exitCode: result.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderAgentSkillTeamRuntimeValidation(result)
+    };
+  }
+
+  if (command === 'skill-capabilities' && subcommand === 'list') {
+    const registry = await listSkillCapabilities(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(registry, null, 2) : renderSkillCapabilityList(registry.capabilities, registry.registrySources)
+    };
+  }
+
+  if (command === 'skill-capabilities' && subcommand === 'inspect') {
+    const capabilityId = rest.find((item) => !item.startsWith('--'));
+    if (!capabilityId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd skill-capabilities inspect <capability_id> [--json]'
+      };
+    }
+    const capability = await inspectSkillCapability(projectRoot, capabilityId);
+    if (!capability) {
+      return { exitCode: 1, error: `Unknown skill capability: ${capabilityId}` };
+    }
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(capability, null, 2) : renderSkillCapabilityInspect(capability)
+    };
+  }
+
+  if (command === 'capability-sources' && subcommand === 'list') {
+    const catalog = await listCapabilitySources(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(catalog, null, 2) : renderCapabilitySourceList(catalog.sources, catalog.registrySources)
+    };
+  }
+
+  if (command === 'capability-sources' && subcommand === 'inspect') {
+    const sourceId = rest.find((item) => !item.startsWith('--'));
+    if (!sourceId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd capability-sources inspect <source_id> [--json]'
+      };
+    }
+    const source = await inspectCapabilitySource(projectRoot, sourceId);
+    if (!source) {
+      return { exitCode: 1, error: `Unknown capability source: ${sourceId}` };
+    }
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(source, null, 2) : renderCapabilitySourceInspect(source)
+    };
+  }
+
+  if (command === 'external-packs' && subcommand === 'inspect') {
+    const sourceId = rest.find((item) => !item.startsWith('--'));
+    if (!sourceId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd external-packs inspect <source_id> [--json]'
+      };
+    }
+    const inspection = await inspectExternalAgentPackImport(projectRoot, sourceId);
+    return {
+      exitCode: inspection.status === 'denied' ? 1 : 0,
+      output: rest.includes('--json') ? JSON.stringify(inspection, null, 2) : renderExternalAgentPackImportInspection(inspection)
+    };
+  }
+
+  if (command === 'team-mode' && subcommand === 'inspect') {
+    const policy = await inspectTeamModePolicy(projectRoot, {
+      taskId: readOption(rest, '--task') ?? undefined,
+      branch: readBranchOption(rest),
+      teamModeActivation: readTeamModeActivation(rest, rest.includes('--enabled') ? 'force' : undefined)
+    });
+    return {
+      exitCode: policy.decision === 'blocked' ? 1 : 0,
+      output: rest.includes('--json') ? JSON.stringify(policy, null, 2) : renderTeamModePolicy(policy)
+    };
+  }
+
+  if (command === 'query-status' && subcommand === 'inspect') {
+    const contract = await inspectQueryStatusContract(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(contract, null, 2) : renderQueryStatusContract(contract)
+    };
+  }
+
+  if (command === 'query-status' && subcommand === 'validate') {
+    const result = await validateQueryStatusContract(projectRoot);
+    return {
+      exitCode: result.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderQueryStatusValidation(result)
+    };
+  }
+
+  if (command === 'eval' && subcommand === 'inspect') {
+    const contract = await inspectSkillAgentEvalContract(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(contract, null, 2) : renderSkillAgentEvalContract(contract)
+    };
+  }
+
+  if (command === 'eval' && subcommand === 'validate') {
+    const result = await validateSkillAgentEvalContract(projectRoot);
+    return {
+      exitCode: result.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderSkillAgentEvalValidation(result)
+    };
+  }
+
+  if (command === 'learning' && subcommand === 'inspect') {
+    const contract = await inspectHarnessLearningContract(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(contract, null, 2) : renderHarnessLearningContract(contract)
+    };
+  }
+
+  if (command === 'learning' && subcommand === 'validate') {
+    const result = await validateHarnessLearningContract(projectRoot);
+    return {
+      exitCode: result.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderHarnessLearningValidation(result)
+    };
+  }
+
+  if (command === 'context-pack' && subcommand === 'inspect') {
+    const contract = await inspectProjectContextPackContract(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(contract, null, 2) : renderProjectContextPackContract(contract)
+    };
+  }
+
+  if (command === 'context-pack' && subcommand === 'validate') {
+    const result = await validateProjectContextPackContract(projectRoot);
+    return {
+      exitCode: result.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderProjectContextPackValidation(result)
     };
   }
 
@@ -560,7 +897,7 @@ async function main(args: string[]): Promise<CliResult> {
     }
     const decision = await inspectWorktreeIsolation(projectRoot, {
       taskId,
-      branch: readOption(rest, '--branch') ?? 'master',
+      branch: readBranchOption(rest),
       capabilityId: readOption(rest, '--capability') ?? undefined,
       peerTaskIds: readRepeatedOptions(rest, '--peer-task')
     });
@@ -571,7 +908,7 @@ async function main(args: string[]): Promise<CliResult> {
   }
 
   if (command === 'graph' && subcommand === 'inspect') {
-    const graph = await inspectTaskGraph(projectRoot, { branch: readOption(rest, '--branch') ?? 'master' });
+    const graph = await inspectTaskGraph(projectRoot, { branch: readBranchOption(rest) });
     return {
       exitCode: graph.valid ? 0 : 1,
       output: rest.includes('--json') ? JSON.stringify(graph, null, 2) : renderTaskGraphPlan(graph)
@@ -580,7 +917,7 @@ async function main(args: string[]): Promise<CliResult> {
 
   if (command === 'wave' && subcommand === 'inspect') {
     const wavePlan = await inspectWavePlan(projectRoot, {
-      branch: readOption(rest, '--branch') ?? 'master',
+      branch: readBranchOption(rest),
       capabilityId: readOption(rest, '--capability') ?? undefined
     });
     return {
@@ -598,7 +935,7 @@ async function main(args: string[]): Promise<CliResult> {
       };
     }
     const result = await runWaveExecutor(projectRoot, {
-      branch: readOption(rest, '--branch') ?? 'master',
+      branch: readBranchOption(rest),
       runId: readOption(rest, '--run') ?? undefined,
       capabilityId: readOption(rest, '--capability') ?? undefined,
       agent: readOption(rest, '--agent') ?? undefined,
@@ -636,7 +973,7 @@ async function main(args: string[]): Promise<CliResult> {
       };
     }
     const result = await runBackgroundExecutor(projectRoot, {
-      branch: readOption(rest, '--branch') ?? 'master',
+      branch: readBranchOption(rest),
       runId: readOption(rest, '--run') ?? undefined,
       taskId,
       agent: readOption(rest, '--agent') ?? undefined,
@@ -662,6 +999,82 @@ async function main(args: string[]): Promise<CliResult> {
     return {
       exitCode: inspection.valid ? 0 : 1,
       output: rest.includes('--json') ? JSON.stringify(inspection, null, 2) : renderBackgroundExecutorInspection(inspection)
+    };
+  }
+
+  if (command === 'worker-runtime' && subcommand === 'claim') {
+    const taskId = rest[0];
+    if (!taskId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd worker-runtime claim <task_id> [--run <run_id>] [--runtime <runtime_id>] [--agent <agent>] [--worker <adapter_id>] [--delegation <delegation_id>] [--lease-seconds <n>] [--branch <branch>] [--json]'
+      };
+    }
+    const result = await claimResidentWorkerRuntime(projectRoot, {
+      branch: readBranchOption(rest),
+      runId: readOption(rest, '--run') ?? undefined,
+      taskId,
+      runtimeId: readOption(rest, '--runtime') ?? undefined,
+      agent: readOption(rest, '--agent') ?? undefined,
+      workerAdapterId: readOption(rest, '--worker') ?? undefined,
+      delegationId: readOption(rest, '--delegation') ?? undefined,
+      leaseSeconds: readPositiveIntegerOption(rest, '--lease-seconds') ?? undefined
+    });
+    return {
+      exitCode: result.status === 'blocked' ? 1 : 0,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderResidentWorkerRuntimeClaimResult(result)
+    };
+  }
+
+  if (command === 'worker-runtime' && subcommand === 'heartbeat') {
+    const runtimeId = rest[0];
+    const runId = readOption(rest, '--run');
+    if (!runtimeId || !runId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd worker-runtime heartbeat <runtime_id> --run <run_id> [--lease-seconds <n>] [--json]'
+      };
+    }
+    const result = await heartbeatResidentWorkerRuntime(projectRoot, {
+      runId,
+      runtimeId,
+      leaseSeconds: readPositiveIntegerOption(rest, '--lease-seconds') ?? undefined
+    });
+    return {
+      exitCode: result.status === 'blocked' ? 1 : 0,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderResidentWorkerRuntimeHeartbeatResult(result)
+    };
+  }
+
+  if (command === 'worker-runtime' && subcommand === 'status') {
+    const positionalRunId = rest[0] && !rest[0].startsWith('--') ? rest[0] : null;
+    const runId = readOption(rest, '--run') ?? positionalRunId;
+    if (!runId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd worker-runtime status --run <run_id> [--json]'
+      };
+    }
+    const result = await listResidentWorkerRuntimes(projectRoot, { runId });
+    return {
+      exitCode: result.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderResidentWorkerRuntimeList(result)
+    };
+  }
+
+  if (command === 'worker-runtime' && subcommand === 'inspect') {
+    const runtimeId = rest[0];
+    const runId = readOption(rest, '--run');
+    if (!runtimeId || !runId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd worker-runtime inspect <runtime_id> --run <run_id> [--json]'
+      };
+    }
+    const result = await inspectResidentWorkerRuntime(projectRoot, { runId, runtimeId });
+    return {
+      exitCode: result.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderResidentWorkerRuntimeInspection(result)
     };
   }
 
@@ -768,18 +1181,33 @@ async function main(args: string[]): Promise<CliResult> {
     if (!artifactPath || !taskId || !agent) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd artifact template <artifacts/path.md> --task <task_id> --agent <agent> [--branch <branch>] [--status <status>]'
+        error: 'Usage: sdd artifact template <artifacts/path.md> --task <task_id> --agent <agent> [--run <run_id> --write] [--branch <branch>] [--status <status>]'
+      };
+    }
+    const template = await renderSddResultArtifactTemplate(projectRoot, {
+      artifactPath,
+      taskId,
+      agent,
+      branch: readBranchOption(rest),
+      status: readSddResultStatus(rest, '--status') ?? 'PASS'
+    });
+    const runId = readOption(rest, '--run');
+    if (rest.includes('--write')) {
+      if (!runId) {
+        return {
+          exitCode: 2,
+          error: 'Usage: sdd artifact template <artifacts/path.md> --task <task_id> --agent <agent> --run <run_id> --write'
+        };
+      }
+      const written = await writeArtifact(projectRoot, runId, toArtifactRootRelativePath(artifactPath), template);
+      return {
+        exitCode: 0,
+        output: `Artifact template written: ${written.runRelativePath}\nphysical_path=${written.absolutePath}`
       };
     }
     return {
       exitCode: 0,
-      output: await renderSddResultArtifactTemplate(projectRoot, {
-        artifactPath,
-        taskId,
-        agent,
-        branch: readOption(rest, '--branch') ?? 'master',
-        status: readSddResultStatus(rest, '--status') ?? 'PASS'
-      })
+      output: template
     };
   }
 
@@ -789,7 +1217,7 @@ async function main(args: string[]): Promise<CliResult> {
     if (!runId || !artifactPath) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd artifact validate <run_id> <artifacts/path.md> [--task <task_id>] [--agent <agent>] [--json]'
+        error: 'Usage: sdd artifact validate <run_id> <artifacts/path.md> [--task <task_id>] [--agent <agent>] [--json|--compact-json]'
       };
     }
     const expectedTask = readOption(rest, '--task') ?? undefined;
@@ -800,7 +1228,7 @@ async function main(args: string[]): Promise<CliResult> {
     });
     return {
       exitCode: report.valid ? 0 : 1,
-      output: rest.includes('--json') ? JSON.stringify(report, null, 2) : renderArtifactValidationReport(artifactPath, report, expectedTask, expectedAgent)
+      output: renderTextOrJson(rest, report, (value) => renderArtifactValidationReport(artifactPath, value, expectedTask, expectedAgent))
     };
   }
 
@@ -843,175 +1271,199 @@ async function main(args: string[]): Promise<CliResult> {
   };
 }
 
-function helpText(): string {
+function helpText(topic?: string): string {
+  if (topic === 'advanced') {
+    return advancedHelpText();
+  }
+  if (topic === 'workflow') {
+    return workflowHelpText();
+  }
   return `sdd Phase 2 platform CLI
 
-Commands:
-  sdd --version                            Print CLI/core version
-  sdd init [--force] [--ai <mode>] [--branch <branch>] [--no-scaffold-docs]
-                                                Create .sdd config, starter SDD docs, and generated AI entries
-  sdd update [--check] [--ai <mode>]       Refresh or check managed generated AI entries
-  sdd instructions [action] [--json]       Print dynamic SDD instruction payload
-  sdd doctor [--latest-only] [--all-runs] Check config, run evidence, specs, and AI entry drift
-  sdd status [--branch <branch>] [--json]  Show tasks, latest run, gaps, and recommended next command
-  sdd run create                           Create .sdd/runs/<run_id> with state/events/artifacts
-  sdd run status <run_id>                  Print current run status
-  sdd run list [--json]                    List recorded runs by updated time
-  sdd run index rebuild|inspect|query [options] Rebuild, inspect, or query Phase 3.13 local run index
-  sdd run inspect <run_id> [--json]        Inspect run state, events, artifacts, validation, sync-back
-  sdd run archive <run_id> [--reason]      Archive a run without deleting evidence
-  sdd sync-back inspect <run_id> [options] Inspect explicit proposal-to-tasks.md write-back readiness
-  sdd sync-back apply <run_id> [--approved] Apply verified sync-back proposal to tasks.md
-  sdd lifecycle decide [options]           Evaluate lifecycle decision gate
-  sdd do task <task_id> [options]          Run ingestion-aware task workflow over supplied artifacts
-  sdd verify task <task_id> --run <run_id> Run goal-level acceptance coverage verify
-  sdd tasks format                         Print canonical sdd-task fenced block format
-  sdd tasks list [--branch <branch>]       Parse and list sdd-task blocks
-  sdd tasks inspect <task_id> [--branch]   Inspect one parsed task
-  sdd tasks gaps [--branch <branch>]       Render parser task gap report
-  sdd artifact template <path> [options]   Print a valid sdd-result artifact template
-  sdd artifact validate <run_id> <path>    Validate a run-relative sdd-result artifact
-  sdd artifact ingest <run_id> <delegation_id> <path>
-  sdd artifact ingestions <run_id> [--json] Inspect Phase 3.6 artifact ingestion ledger
-  sdd capabilities list [--json]           List Phase 3.1 tool/capability declarations
-  sdd capabilities inspect <id> [--json]   Inspect one capability declaration
-  sdd governance inspect|evaluate [options] Inspect or evaluate Phase 3.14 governance policy
-  sdd plugins list [--json]                List Phase 3.2 plugin loading contracts
-  sdd plugins inspect <id> [--json]        Inspect one plugin loading contract
-  sdd queue list [--run <run_id>] [--json] List Phase 3.3 delegation queue items
-  sdd queue inspect <id> [--json]          Inspect one delegation queue item
-  sdd state-machine inspect [--json]       Inspect Phase 3.4 delegation state machine
-  sdd workers list [--json]                List Phase 3.5 worker adapter contracts
-  sdd workers inspect <id> [--json]        Inspect one worker adapter contract
-  sdd isolation inspect <task_id> [options] Dry-run Phase 3.7 worktree isolation decision
-  sdd graph inspect [--branch <branch>] [--json] Inspect Phase 3.9 task dependency graph
-  sdd wave inspect [--branch <branch>] [--capability <id>] [--json] Inspect Phase 3.10 dependency wave plan
-  sdd wave run [options]                     Run Phase 3.12 planner-driven wave executor
-  sdd wave executor <run_id> [--json]        Inspect Phase 3.12 wave executor evidence
-  sdd background run <task_id> [options]   Claim one Phase 3.11 background delegation; ingest supplied artifact if provided
-  sdd background inspect <run_id> [--json] Inspect Phase 3.11 background executor evidence
-  sdd worktree create <run_id> <task_id> [options]
-  sdd worktree inspect <run_id> [--json]  Inspect Phase 3.8 worktree lifecycle records
-  sdd worktree keep <run_id> <id>         Mark a worktree retained for inspection
-  sdd worktree remove <run_id> <id>       Remove a clean tracked worktree
+Common workflow:
+  sdd init [--force] [--ai <mode>] [--scaffold-docs] [--json]
+  sdd status [--branch <branch>] [--json|--compact-json]
+  sdd tasks inspect <task_id> [--branch <branch>] [--json|--compact-json]
+  sdd tasks route <task_id> [--branch <branch>] [--json|--compact-json]
+  sdd do task <task_id> [options]
+  sdd verify task <task_id> [--branch <branch>] [--run <run_id>] [--json|--compact-json]
+  sdd sync-back inspect [<run_id>] [--task <task_id>] [--branch <branch>] [--json|--compact-json]
+  sdd sync-back apply [<run_id>] [--task <task_id>] [--branch <branch>] [--approved] [--json|--compact-json]
+  sdd doctor [--latest-only] [--all-runs] [--json|--compact-json]
 
-AI options:
-  --ai auto                                Project Claude Code entries when supported
-  --ai claude-code                         Project Claude Code entries explicitly
-  --ai none                                Skip AI entry projection during init
+Evidence helpers:
+  sdd run create
+  sdd run list [--json]
+  sdd run inspect <run_id> [--json|--compact-json]
+  sdd run index rebuild|inspect|query [options] [--json|--compact-json]
+  sdd artifact template <path> --task <task_id> --agent <agent> [--run <run_id> --write]
+  sdd artifact validate <run_id> <path> [--task <task_id>] [--agent <agent>] [--json|--compact-json]
 
-Init options:
-  --branch <branch>                         Create starter docs under specs/<branch>; default master
-  --no-scaffold-docs                        Skip starter spec.md/plan.md/tasks.md creation
+Generated AI entries:
+  sdd update [--check] [--ai <mode>]
+  sdd instructions [action] [--json|--compact-json]
 
-Doctor options:
-  --latest-only                            Inspect only the newest non-archived run evidence
-  --all-runs                               Inspect every run, including archived runs
+More help:
+  sdd help workflow     Show core workflow options.
+  sdd help advanced     Show platform/agent/runtime commands.
 
-Run index options:
-  --run <run_id>                           Filter local run index query by run id
-  --task <task_id>                         Filter local run index query by task id
-  --status <status>                        Filter query by run status
-  --artifact <path>                        Filter query by indexed artifact path
-  --json                                   Print machine-readable local run index output
-
-Artifact options:
-  --task <task_id>                         Expected artifact task id
-  --agent <agent>                          Expected producing agent name
-  --branch <branch>                        Branch used to copy validator Acceptance mapping
-  --status <status>                        Template status; default PASS
-  --json                                   Print machine-readable validation result
-
-Governance options:
-  --worker <adapter_id>                    Worker adapter to evaluate
-  --risk <tag>                             Risk tag to evaluate; repeatable
-  --approved                               Record explicit approval for confirmation-gated operations
-  --json                                   Print machine-readable governance output
-
-Wave executor options:
-  --branch <branch>                        Read specs/<branch>/tasks.md; default master
-  --run <run_id>                           Reuse an existing run; default creates one
-  --capability <id>                        Capability used for planner isolation decisions
-  --strategy fast-stop|safe-continue       Stop on first task failure or finish current safe wave
-  --artifact <task_id:path>                Supply task-specific run-relative artifact; repeatable
-
-Instructions actions:
-  overview | init | doctor | update | spec | plan | tasks | do | verify | run-task | verify-task
-
-Do task options:
-  --branch <branch>                        Read specs/<branch>/spec.md, plan.md, tasks.md
-  --run <run_id>                           Reuse an existing run instead of creating one
-  --implement-artifact <path>              Run-relative implementer artifact, if available
-  --review-artifact <path>                 Run-relative reviewer artifact, required to complete
-  --debug-artifact <path>                  Optional single debugger artifact after review failure
-  --validation-artifact <path>             Run-relative validator artifact, required to complete
-
-Verify task options:
-  --branch <branch>                        Read specs/<branch>/spec.md, plan.md, tasks.md
-  --run <run_id>                           Required run id containing state/events/artifacts
-  --review-artifact <path>                 Optional reviewer artifact override
-  --validation-artifact <path>             Optional validator artifact override
-
-Lifecycle decide options:
-  --direct-safe                            High clarity, high confidence, reversible, cheap local validation
-  --risk <tag>                             Add risk tag; api/schema/database/security/state-machine/ci force gates
-  --contract <name>                        Mark affected API/schema/contract
-  --impact-confidence <high|medium|low>    Set impact confidence
-  --acceptance <high|medium|low>           Set acceptance clarity
-  --validation <clear|partial|unclear>     Set validation clarity
-  --external-unknown                       Require research route
-  --architecture                           Require architecture/research route
-  --checkpoint                             Force human checkpoint
-  --permission <name>                      Mark permission/checkpoint requirement
-  --run <run_id>                           Record decision to existing run state/events
-  --json                                   Print machine-readable result
-
-Sync-back options:
-  --branch <branch>                        Read target specs/<branch>/tasks.md
-  --task <task_id>                         Override run currentTask when inspecting or applying
-  --json                                   Print machine-readable result
-
-Isolation options:
-  --branch <branch>                        Read specs/<branch>/tasks.md
-  --capability <capability_id>             Capability side effect used for isolation decision
-  --peer-task <task_id>                    Compare affected_files overlap against peer task
-
-Graph options:
-  --branch <branch>                        Read specs/<branch>/tasks.md
-
-Wave options:
-  --branch <branch>                        Read specs/<branch>/tasks.md
-  --capability <capability_id>             Capability side effect used for isolation decisions
-
-Background options:
-  --branch <branch>                        Read specs/<branch>/tasks.md
-  --run <run_id>                           Reuse an existing run; default creates one
-  --agent <agent>                          Delegated agent name; default implementer
-  --worker <adapter_id>                    Worker adapter id; default sdd-cli-task-worker
-  --artifact <path>                        Run-relative sdd-result artifact to ingest
-  --delegation <delegation_id>             Stable delegation id for retry/ingest
-Worktree options:
-  --base <ref>                            Base ref for git worktree add; default HEAD
-  --id <worktree_id>                      Stable lifecycle id; default wt-<run>-<task>
-  --reason <text>                         Reason when keeping a worktree
-  `;
+Notes:
+  /sdd:spec owns workflow partition docs after project init.
+  init --branch is legacy starter-doc scaffolding; prefer sdd status --branch or /sdd:spec --branch for workflow partitions.
+`;
 }
+
+function workflowHelpText(): string {
+  return `sdd workflow help
+
+Core path:
+  1. sdd status [--branch <branch>]
+  2. sdd tasks inspect <task_id> [--branch <branch>]
+  3. sdd tasks route <task_id> [--branch <branch>]
+  4. sdd artifact template artifacts/<agent>-<task_id>.md --task <task_id> --agent <agent> --run <run_id> --write
+  5. sdd do task <task_id> --run <run_id> --implement-artifact <path> --review-artifact <path> --validation-artifact <path>
+  6. sdd verify task <task_id> [--branch <branch>]
+  7. sdd sync-back inspect --task <task_id> [--branch <branch>]
+  8. sdd sync-back apply --task <task_id> [--branch <branch>]
+
+JSON:
+  --json prints readable JSON; --compact-json prints one-line JSON for logs and scripts.
+`;
+}
+
+function advancedHelpText(): string {
+  return `sdd advanced help
+
+Runtime/catalog:
+  sdd agent-runtime inspect|validate [--json]
+  sdd skill-capabilities list|inspect [--json]
+  sdd capability-sources list|inspect [--json]
+  sdd external-packs inspect <source_id> [--json]
+  sdd team-mode inspect [--task <id>] [--team-mode [auto|force|off]] [--no-team-mode] [--json]
+
+Harness/platform:
+  sdd workflow list|inspect|validate [--json]
+  sdd agents list|inspect|validate [--json]
+  sdd query-status inspect|validate [--json]
+  sdd eval inspect|validate [--json]
+  sdd learning inspect|validate [--json]
+  sdd context-pack inspect|validate [--json]
+  sdd capabilities list|inspect [--json]
+  sdd governance inspect|evaluate [options]
+  sdd plugins list|inspect [--json]
+  sdd queue list|inspect [options]
+  sdd state-machine inspect [--json]
+  sdd workers list|inspect [--json]
+
+Execution/isolation:
+  sdd background run|inspect [options]
+  sdd worker-runtime claim|heartbeat|status|inspect [options]
+  sdd isolation inspect <task_id> [options]
+  sdd graph inspect [--branch <branch>] [--json]
+  sdd wave inspect|run|executor [options]
+  sdd worktree create|inspect|keep|remove [options]
+
+Legacy init partition option:
+  sdd init --branch <branch> creates starter docs for that branch, but normal workflow partitioning belongs to /sdd:spec and sdd status --branch.
+`;
+}
+
+function wantsJson(args: string[]): boolean {
+  return args.includes('--json') || args.includes('--compact-json');
+}
+
+function jsonOutput(value: unknown, args: string[]): string {
+  return JSON.stringify(value, null, args.includes('--compact-json') ? 0 : 2);
+}
+
+function renderTextOrJson<T>(args: string[], value: T, renderText: (value: T) => string): string {
+  return wantsJson(args) ? jsonOutput(value, args) : renderText(value);
+}
+
+function renderInitResult(result: InitProjectResult): string {
+  const aiEntries = result.aiTools.flatMap((tool) => tool.entries);
+  const aiCounts = new Map<string, number>();
+  for (const entry of aiEntries) {
+    aiCounts.set(entry.status, (aiCounts.get(entry.status) ?? 0) + 1);
+  }
+  const aiSummary = Array.from(aiCounts.entries()).map(([status, count]) => `${status}=${count}`).join(' ') || 'none';
+  const scaffoldedDocuments = result.documents.documents.filter((document) => document.status !== 'skipped');
+  const lines = ['SDD init', 'changed'];
+  lines.push(`- config ${result.created ? 'created/updated' : 'unchanged'} at ${result.configPath}`);
+  lines.push(`- semantic docs ${scaffoldedDocuments.map((document) => `${document.status}:${document.relativePath}`).join(', ') || 'none'}`);
+  lines.push(`- ai entries ${aiSummary}`);
+  lines.push('decision');
+  if (scaffoldedDocuments.length > 0) {
+    lines.push(`- legacy_scaffold_branch=${result.documents.branch}`);
+    lines.push(`- legacy_spec_dir=${result.documents.root}`);
+  }
+  lines.push('- sdd init is project-level setup; /sdd:spec is the workflow partition/spec entry');
+  lines.push('evidence');
+  for (const document of scaffoldedDocuments) {
+    lines.push(`- [${document.status}] ${document.relativePath}: ${document.message}`);
+  }
+  if (aiEntries.length === 0) {
+    lines.push('- ai entries skipped');
+  } else {
+    lines.push(`- ${aiEntries.length} managed AI entry projection(s) checked/applied`);
+  }
+  lines.push('- doctor checks git repository health; run git init first in fresh temporary projects before relying on doctor/run-index checks');
+  lines.push('gaps');
+  const driftEntries = aiEntries.filter((entry) => entry.status === 'drifted' || entry.status === 'user-modified' || entry.status === 'foreign' || entry.status === 'conflict');
+  if (driftEntries.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const entry of driftEntries) {
+      lines.push(`- [${entry.status}] ${entry.relativePath}: ${entry.action ?? entry.message}`);
+    }
+  }
+  lines.push('next');
+  lines.push('- /sdd:spec');
+  return lines.join('\n');
+}
+
 
 function renderProjectStatus(status: ProjectStatus): string {
   const lines = [`SDD status for ${status.branch}`];
-  lines.push(`documents spec=${status.documents.specExists} plan=${status.documents.planExists} tasks=${status.documents.tasksExists}`);
-  lines.push(`tasks total=${status.tasks.total} pending=${status.tasks.pending} in_progress=${status.tasks.inProgress} completed=${status.tasks.completed} blocked=${status.tasks.blocked} deferred=${status.tasks.deferred} unknown=${status.tasks.unknown} gaps=${status.tasks.gaps}`);
+  const staleDocuments = [
+    status.documents.planStale ? 'plan' : null,
+    status.documents.tasksStale ? 'tasks' : null
+  ].filter((item): item is string => item !== null);
+  const hasDocumentHashes = Boolean(
+    status.documents.specHash
+    || status.documents.planHash
+    || status.documents.tasksHash
+    || status.documents.planBasedOnSpecHash
+    || status.documents.tasksBasedOnPlanHash
+  );
+  lines.push('decision');
+  lines.push(`- workflow_status=${status.workflowStatus}`);
+  lines.push(`- context raw_branch=${status.context.rawBranch} partition=${status.context.partition} source=${status.context.branchSource} spec_dir=${status.context.specDir}`);
+  lines.push(`- git current_branch=${status.context.currentGitBranch ?? 'none'} working_tree_matched=${status.context.workingTreeMatched ?? 'unknown'}`);
+  lines.push(`- documents spec=${status.documents.specExists} plan=${status.documents.planExists} tasks=${status.documents.tasksExists} stale=${staleDocuments.join(',') || 'none'}`);
+  if (hasDocumentHashes) {
+    lines.push(`- document_hashes spec=${status.documents.specHash ?? 'none'} plan=${status.documents.planHash ?? 'none'} tasks=${status.documents.tasksHash ?? 'none'} plan_based_on_spec=${status.documents.planBasedOnSpecHash ?? 'none'} tasks_based_on_plan=${status.documents.tasksBasedOnPlanHash ?? 'none'}`);
+  }
+  lines.push(`- tasks total=${status.tasks.total} pending=${status.tasks.pending} in_progress=${status.tasks.inProgress} completed=${status.tasks.completed} blocked=${status.tasks.blocked} deferred=${status.tasks.deferred} unknown=${status.tasks.unknown} gaps=${status.tasks.gaps}`);
   if (status.latestRun) {
-    lines.push(`latest_run ${status.latestRun.runId} status=${status.latestRun.status} phase=${status.latestRun.phase ?? 'n/a'} task=${status.latestRun.currentTask ?? 'n/a'} validation=${status.latestRun.validationStatus} sync_back=${status.latestRun.syncBackStatus}`);
-  } else {
-    lines.push('latest_run none');
-  }
-  if (status.gaps.length > 0) {
-    lines.push('gaps');
-    for (const gap of status.gaps) {
-      lines.push(`- [${gap.severity}] ${gap.type} ${gap.taskId ?? 'document'} ${gap.field}: ${gap.message}`);
+    lines.push(`- latest_run ${status.latestRun.runId} status=${status.latestRun.status} phase=${status.latestRun.phase ?? 'n/a'} task=${status.latestRun.currentTask ?? 'n/a'} validation=${status.latestRun.validationStatus} sync_back=${status.latestRun.syncBackStatus}`);
+    if (status.latestRunEvidence) {
+      lines.push(`- latest_run_evidence route_preflight=${status.latestRunEvidence.routePreflight} agent_executions=${status.latestRunEvidence.agentExecutions} team_sessions=${status.latestRunEvidence.teamSessions} worker_runtimes=${status.latestRunEvidence.workerRuntimes} stale_worker_runtimes=${status.latestRunEvidence.staleWorkerRuntimes} artifact_ingestions=${status.latestRunEvidence.artifactIngestions}`);
+      if (status.latestRunEvidence.tasksChangedAfterRun && status.latestRun.syncBackStatus !== 'applied') {
+        lines.push('- latest_run_evidence may be stale: tasks.md changed after the latest run; inspect the task or rerun before relying on this run.');
+      } else if (status.latestRunEvidence.tasksChangedAfterRun) {
+        lines.push('- latest_run_evidence tasks.md changed after sync-back apply; task completion state is already recorded.');
+      }
     }
+  } else {
+    lines.push('- latest_run none');
   }
+  lines.push('evidence');
+  lines.push(`- branch documents loaded from ${status.context.specDir}`);
+  lines.push(status.gitRoot
+    ? `- git repository detected at ${status.gitRoot}; doctor and run-index checks can use Git repository context`
+    : '- doctor and run-index checks expect Git repository context; run git init first in fresh temporary projects');
+  renderDocumentGaps(lines, status.gaps);
   lines.push(`next ${status.recommendedNextCommand}`);
   return lines.join('\n');
 }
@@ -1042,13 +1494,7 @@ function renderLocalRunIndexInspection(inspection: LocalRunIndexInspection): str
   if (inspection.index) {
     lines.push(`contract=${inspection.index.contract} runs=${inspection.index.runs.length} tasks=${inspection.index.tasks.length} delegations=${inspection.index.delegations.length} artifacts=${inspection.index.artifacts.length} waves=${inspection.index.waves.length}`);
   }
-  if (inspection.issues.length > 0) {
-    lines.push('issues');
-    for (const issue of inspection.issues) {
-      lines.push(`- ${issue.field}: ${issue.message}`);
-      lines.push(`  recommendation: ${issue.recommendation}`);
-    }
-  }
+  renderIssues(lines, inspection.issues);
   return lines.join('\n');
 }
 
@@ -1071,13 +1517,7 @@ function renderGovernancePolicyDecision(decision: GovernancePolicyDecision): str
   for (const reason of decision.reasons) {
     lines.push(`- ${reason}`);
   }
-  if (decision.issues.length > 0) {
-    lines.push('issues');
-    for (const issue of decision.issues) {
-      lines.push(`- ${issue.field}: ${issue.message}`);
-      lines.push(`  recommendation: ${issue.recommendation}`);
-    }
-  }
+  renderIssues(lines, decision.issues);
   return lines.join('\n');
 }
 
@@ -1086,6 +1526,7 @@ function renderRunInspection(inspection: RunInspection): string {
   lines.push(`status=${inspection.summary.status} phase=${inspection.summary.phase ?? 'n/a'} task=${inspection.summary.currentTask ?? 'n/a'} updated=${inspection.summary.updatedAt}`);
   lines.push(`validation=${inspection.validation.status} evidence=${inspection.validation.evidence.join(',') || 'none'}`);
   lines.push(`sync_back=${inspection.syncBack.status} proposal=${inspection.syncBack.proposalPath ?? 'none'}`);
+  lines.push(`task_run_evidence=${inspection.taskRunEvidence.version} gaps=${inspection.taskRunEvidence.gaps.length} sync_back=${inspection.taskRunEvidence.syncBackProposal ?? 'none'}`);
   lines.push(`artifacts=${inspection.artifacts.length}`);
   for (const artifact of inspection.artifacts) {
     lines.push(`- ${artifact.path} kind=${artifact.kind} task=${artifact.task ?? 'n/a'} agent=${artifact.agent ?? 'n/a'}`);
@@ -1093,6 +1534,18 @@ function renderRunInspection(inspection: RunInspection): string {
   lines.push(`artifact_ingestions=${inspection.artifactIngestions.length}`);
   for (const ingestion of inspection.artifactIngestions) {
     lines.push(`- ${ingestion.delegationId} ${ingestion.status} artifact=${ingestion.artifactPath} result=${ingestion.resultStatus ?? 'n/a'} delegation=${ingestion.delegationStatus ?? 'n/a'}`);
+  }
+  lines.push(`agent_executions=${inspection.agentExecutions.length}`);
+  for (const execution of inspection.agentExecutions) {
+    lines.push(`- ${execution.executionId} profile=${execution.profile} status=${execution.status} task=${execution.taskId} artifacts=${execution.artifacts.join(',') || 'none'}`);
+  }
+  lines.push(`team_sessions=${inspection.teamSessions.length}`);
+  for (const session of inspection.teamSessions) {
+    lines.push(`- ${session.teamId} status=${session.status} mode=${session.teamMode.mode} activation=${session.teamMode.activation} cost=${session.teamMode.costClass} chief=${session.chiefProfile} members=${session.memberProfiles.join(',') || 'none'} artifacts=${session.artifacts.join(',') || 'none'}`);
+  }
+  lines.push(`worker_runtimes=${inspection.workerRuntimes.length}`);
+  for (const runtime of inspection.workerRuntimes) {
+    lines.push(`- ${runtime.runtimeId} status=${runtime.status} task=${runtime.taskId} agent=${runtime.agent} delegation=${runtime.delegationId} lease_expires=${runtime.leaseExpiresAt}`);
   }
   lines.push(`events=${inspection.eventCount}`);
   for (const event of inspection.recentEvents) {
@@ -1112,12 +1565,7 @@ function renderSyncBackInspection(inspection: SyncBackInspection): string {
       lines.push(`- ${reason}`);
     }
   }
-  if (inspection.gaps.length > 0) {
-    lines.push('gaps');
-    for (const gap of inspection.gaps) {
-      lines.push(`- [${gap.severity}] ${gap.type} ${gap.taskId ?? 'document'} ${gap.field}: ${gap.message}`);
-    }
-  }
+  renderDocumentGaps(lines, inspection.gaps);
   lines.push(`apply_policy=${inspection.applyPolicy.mode} approval_required=${inspection.applyPolicy.requiresApproval}`);
   for (const reason of inspection.applyPolicy.reasons) {
     lines.push(`- policy: ${reason}`);
@@ -1134,6 +1582,417 @@ function renderSyncBackApplyResult(result: SyncBackApplyResult): string {
   lines.push(`tasks_path=${result.tasksPath}`);
   lines.push(`applied=${result.applied}`);
   lines.push(`sync_back=${result.inspection.status}`);
+  return lines.join('\n');
+}
+
+function renderWorkflowGateList(workflows: WorkflowGateContract[]): string {
+  const lines = ['SDD workflow gates'];
+  for (const workflow of workflows) {
+    lines.push(`- ${workflow.id} command=${workflow.command} agents=${workflow.allowedAgents.join(',') || 'none'}`);
+  }
+  return lines.join('\n');
+}
+
+function renderWorkflowGateInspect(workflow: WorkflowGateContract): string {
+  const lines = [`Workflow gate ${workflow.id}`];
+  lines.push(`version=${workflow.version}`);
+  lines.push(`command=${workflow.command}`);
+  lines.push(`agents=${workflow.allowedAgents.join(',') || 'none'}`);
+  lines.push('required_inputs');
+  for (const input of workflow.requiredInputs) {
+    lines.push(`- ${input}`);
+  }
+  lines.push('required_artifacts');
+  for (const artifact of workflow.requiredArtifacts) {
+    lines.push(`- ${artifact}`);
+  }
+  lines.push('gate_conditions');
+  for (const condition of workflow.gateConditions) {
+    lines.push(`- ${condition}`);
+  }
+  lines.push(`gap_closure=${workflow.gapClosureBehavior}`);
+  lines.push(`next=${workflow.nextAction}`);
+  return lines.join('\n');
+}
+
+function renderWorkflowGateValidation(result: WorkflowGateValidation): string {
+  const lines = ['SDD workflow gate validation'];
+  lines.push(`valid=${result.valid}`);
+  lines.push(`workflows=${result.workflows.length}`);
+  lines.push('issues');
+  if (result.issues.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const issue of result.issues) {
+      lines.push(`- ${issue.field}: ${issue.message}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function renderAgentRegistryList(agents: AgentRegistryEntry[]): string {
+  const lines = ['SDD agent registry'];
+  for (const agent of agents) {
+    lines.push(`- ${agent.id} stages=${agent.allowedStages.join(',')} autonomy=${agent.autonomyCeiling}`);
+  }
+  return lines.join('\n');
+}
+
+function renderAgentRegistryInspect(agent: AgentRegistryEntry): string {
+  const lines = [`Agent ${agent.id}`];
+  lines.push(`version=${agent.version}`);
+  lines.push(`role=${agent.role}`);
+  lines.push(`allowed_stages=${agent.allowedStages.join(',')}`);
+  lines.push(`autonomy_ceiling=${agent.autonomyCeiling}`);
+  lines.push(`required_artifact=${agent.requiredArtifact}`);
+  lines.push(`verification=${agent.verificationExpectation}`);
+  lines.push('capabilities');
+  for (const capability of agent.capabilities) {
+    lines.push(`- ${capability}`);
+  }
+  lines.push('read_boundary');
+  for (const item of agent.readBoundary) {
+    lines.push(`- ${item}`);
+  }
+  lines.push('write_boundary');
+  for (const item of agent.writeBoundary) {
+    lines.push(`- ${item}`);
+  }
+  lines.push('tool_allowlist');
+  for (const tool of agent.toolAllowlist) {
+    lines.push(`- ${tool}`);
+  }
+  lines.push(`stop_condition=${agent.stopCondition}`);
+  return lines.join('\n');
+}
+
+function renderAgentRegistryValidation(result: AgentRegistryValidation): string {
+  const lines = ['SDD agent registry validation'];
+  lines.push(`valid=${result.valid}`);
+  lines.push(`agents=${result.agents.length}`);
+  lines.push('issues');
+  if (result.issues.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const issue of result.issues) {
+      lines.push(`- ${issue.field}: ${issue.message}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function renderRegistryOriginCounts(sources: RuntimeRegistryEntrySource[] | undefined): string {
+  if (!sources || sources.length === 0) {
+    return 'none';
+  }
+  const counts = new Map<string, number>();
+  for (const source of sources) {
+    counts.set(source.origin, (counts.get(source.origin) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([origin, count]) => `${origin}:${count}`).join(',');
+}
+
+function idsByOrigin(sources: RuntimeRegistryEntrySource[] | undefined, kind: RuntimeRegistryEntrySource['kind'], origin: RuntimeRegistryEntrySource['origin']): string {
+  const ids = sources?.filter((source) => source.kind === kind && source.origin === origin).map((source) => source.id) ?? [];
+  return ids.join(',') || 'none';
+}
+
+function renderAgentRouterDecision(decision: AgentRouterDecision): string {
+  const lines = [`Agent router decision ${decision.taskId}`];
+  lines.push(`version=${decision.version}`);
+  lines.push(`branch=${decision.branch} category=${decision.category}`);
+  lines.push(`recommended_profile=${decision.recommendedProfile ?? 'none'} autonomy_ceiling=${decision.autonomyCeiling}`);
+  lines.push(`allowed_profiles=${decision.allowedProfiles.join(',') || 'none'}`);
+  lines.push(`required_capabilities=${decision.requiredCapabilities.join(',') || 'none'}`);
+  lines.push(`source_capability=${decision.sourceCapability ?? 'none'} reuse=${decision.reuseDecision ?? 'none'}`);
+  if (decision.registrySources && decision.registrySources.length > 0) {
+    lines.push(`registry_sources=${decision.registrySources.map((source) => `${source.kind}:${source.id}:${source.origin}`).join(',')}`);
+  }
+  if (decision.resolvedAliases && decision.resolvedAliases.length > 0) {
+    lines.push(`alias_resolutions=${decision.resolvedAliases.map((alias) => `${alias.input}->${alias.resolved}:${alias.source}`).join(',')}`);
+  }
+  if (decision.routingRuleHits && decision.routingRuleHits.length > 0) {
+    lines.push(`routing_rule_hits=${decision.routingRuleHits.join(',')}`);
+  }
+  if (decision.quarantineWarnings && decision.quarantineWarnings.length > 0) {
+    lines.push('quarantine_warnings');
+    for (const warning of decision.quarantineWarnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+  if (decision.adapterMapping) {
+    lines.push(`adapter_mapping profile=${decision.adapterMapping.profile} host=${decision.adapterMapping.hostAdapter} projection=${decision.adapterMapping.projection}`);
+  }
+  if (decision.toolPermission) {
+    lines.push(`tool_permission profile=${decision.toolPermission.profile} policy=${decision.toolPermission.policy} groups=${decision.toolPermission.toolGroups.join(',')}`);
+    lines.push(`approval=${decision.toolPermission.approvalPolicy}`);
+  }
+  lines.push(`model_policy=${decision.modelPolicy.id} category=${decision.modelPolicy.category}`);
+  lines.push(`team_mode=${decision.teamMode.decision} mode=${decision.teamMode.mode} activation=${decision.teamMode.activation} cost=${decision.teamMode.costClass} waves=${decision.teamMode.waveRecommendation.join(',') || 'none'}`);
+  lines.push(`team_mode_reason=${decision.teamMode.reason}`);
+  lines.push(`required_artifacts=${decision.requiredArtifacts.join(',') || 'none'}`);
+  if (decision.blockedReason) {
+    lines.push(`blocked_reason=${decision.blockedReason}`);
+  }
+  lines.push(`next=${decision.nextAction}`);
+  return lines.join('\n');
+}
+
+function renderAgentSkillTeamRuntimeInspection(inspection: AgentSkillTeamRuntimeInspection): string {
+  const lines = ['SDD agent/skill/team runtime'];
+  lines.push(`version=${inspection.version}`);
+  lines.push(`profiles=${inspection.profiles.length} skill_capabilities=${inspection.skillCapabilities.length} capability_sources=${inspection.capabilitySources.length}`);
+  lines.push(`registry_origins=${renderRegistryOriginCounts(inspection.registrySources)}`);
+  lines.push(`project_profiles=${idsByOrigin(inspection.registrySources, 'profile', 'project_config')}`);
+  lines.push(`project_capabilities=${idsByOrigin(inspection.registrySources, 'skill_capability', 'project_config')}`);
+  lines.push(`project_sources=${idsByOrigin(inspection.registrySources, 'capability_source', 'project_config')}`);
+  if (inspection.aliases && Object.keys(inspection.aliases).length > 0) {
+    lines.push(`aliases=${Object.entries(inspection.aliases).map(([alias, target]) => `${alias}->${target}`).join(',')}`);
+  }
+  if (inspection.routingRules && inspection.routingRules.length > 0) {
+    lines.push(`routing_rules=${inspection.routingRules.map((rule) => rule.id).join(',')}`);
+  }
+  if (inspection.adapterMappings && inspection.adapterMappings.length > 0) {
+    lines.push(`adapter_mappings=${inspection.adapterMappings.map((mapping) => `${mapping.profile}:${mapping.hostAdapter}`).join(',')}`);
+  }
+  lines.push(`host_adapter=${inspection.hostAdapter.id} host=${inspection.hostAdapter.host}`);
+  lines.push(`team_mode_default=${inspection.teamMode.decision}`);
+  lines.push(`reuse_policy=${inspection.reusePolicy}`);
+  lines.push('profiles');
+  for (const profile of inspection.profiles) {
+    lines.push(`- ${profile.id} stages=${profile.stageScope.join(',')} risk_ceiling=${profile.riskCeiling}`);
+  }
+  lines.push('capabilities');
+  for (const capability of inspection.skillCapabilities) {
+    lines.push(`- ${capability.id} reuse=${capability.reuseDecision} evidence=${capability.evidenceType}`);
+  }
+  return lines.join('\n');
+}
+
+function renderAgentSkillTeamRuntimeValidation(result: AgentSkillTeamRuntimeValidation): string {
+  const lines = ['SDD agent/skill/team runtime validation'];
+  lines.push(`valid=${result.valid}`);
+  lines.push(`profiles=${result.inspection.profiles.length}`);
+  lines.push(`capabilities=${result.inspection.skillCapabilities.length}`);
+  lines.push(`registry_origins=${renderRegistryOriginCounts(result.inspection.registrySources)}`);
+  lines.push('issues');
+  if (result.issues.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const issue of result.issues) {
+      lines.push(`- ${issue.field}: ${issue.message}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function renderSkillCapabilityList(capabilities: SkillCapabilityContract[], registrySources?: RuntimeRegistryEntrySource[]): string {
+  const lines = ['SDD skill capabilities'];
+  lines.push(`registry_origins=${renderRegistryOriginCounts(registrySources)}`);
+  for (const capability of capabilities) {
+    const source = registrySources?.find((candidate) => candidate.kind === 'skill_capability' && candidate.id === capability.id);
+    lines.push(`- ${capability.id} domain=${capability.capabilityDomain.join(',')} reuse=${capability.reuseDecision} evidence=${capability.evidenceType} origin=${source?.origin ?? 'unknown'}`);
+  }
+  return lines.join('\n');
+}
+
+function renderSkillCapabilityInspect(capability: SkillCapabilityContract): string {
+  const lines = [`Skill capability ${capability.id}`];
+  lines.push(`version=${capability.version}`);
+  lines.push(`name=${capability.name}`);
+  lines.push(`kind=${capability.kind} source=${capability.source} source_ref=${capability.sourceRef}`);
+  lines.push(`domain=${capability.capabilityDomain.join(',')}`);
+  lines.push(`allowed_stages=${capability.allowedStages.join(',')}`);
+  lines.push(`risk_ceiling=${capability.requiredRiskCeiling}`);
+  lines.push(`evidence_type=${capability.evidenceType}`);
+  lines.push(`reuse_decision=${capability.reuseDecision}`);
+  if (capability.buildExceptionReason) {
+    lines.push(`build_exception=${capability.buildExceptionReason}`);
+  }
+  return lines.join('\n');
+}
+
+function renderCapabilitySourceList(sources: CapabilitySourceCatalogEntry[], registrySources?: RuntimeRegistryEntrySource[]): string {
+  const lines = ['SDD capability sources'];
+  lines.push(`registry_origins=${renderRegistryOriginCounts(registrySources)}`);
+  for (const source of sources) {
+    const registrySource = registrySources?.find((candidate) => candidate.kind === 'capability_source' && candidate.id === source.id);
+    lines.push(`- ${source.id} kind=${source.kind} reuse=${source.reuseDecision} quarantine=${source.quarantineRequired} origin=${registrySource?.origin ?? 'unknown'}`);
+  }
+  return lines.join('\n');
+}
+
+function renderCapabilitySourceInspect(source: CapabilitySourceCatalogEntry): string {
+  const lines = [`Capability source ${source.id}`];
+  lines.push(`version=${source.version}`);
+  lines.push(`name=${source.name}`);
+  lines.push(`kind=${source.kind} reuse=${source.reuseDecision} quarantine=${source.quarantineRequired}`);
+  lines.push(`source_ref=${source.sourceRef}`);
+  lines.push(`allowed_use=${source.allowedUse}`);
+  lines.push(`attribution=${source.attribution}`);
+  lines.push(`rationale=${source.rationale}`);
+  return lines.join('\n');
+}
+
+function renderExternalAgentPackImportInspection(inspection: ExternalAgentPackImportInspection): string {
+  const lines = [`External pack import ${inspection.sourceId}`];
+  lines.push(`version=${inspection.version}`);
+  lines.push(`status=${inspection.status} risk_ceiling=${inspection.riskCeiling}`);
+  lines.push(`allowed_profiles=${inspection.allowedProfiles.join(',') || 'none'}`);
+  lines.push(`mapping=${inspection.mappingResult}`);
+  lines.push(`reason=${inspection.reason}`);
+  lines.push('checks');
+  for (const check of inspection.checks) {
+    lines.push(`- ${check.check} status=${check.status} evidence=${check.evidence}`);
+  }
+  return lines.join('\n');
+}
+
+function renderTeamModePolicy(policy: TeamModePolicy): string {
+  const lines = ['SDD team-mode policy'];
+  lines.push(`version=${policy.version}`);
+  lines.push(`enabled=${policy.enabled} decision=${policy.decision} mode=${policy.mode} activation=${policy.activation} cost=${policy.costClass}`);
+  lines.push(`reason=${policy.reason}`);
+  lines.push(`chief=${policy.chiefProfile} members=${policy.memberProfiles.join(',') || 'none'} max_members=${policy.maxMembers}`);
+  lines.push(`require_artifacts=${policy.requireArtifacts}`);
+  lines.push(`waves=${policy.waveRecommendation.join(',') || 'none'}`);
+  if (policy.blockedReason) {
+    lines.push(`blocked_reason=${policy.blockedReason}`);
+  }
+  for (const wave of policy.allowedWaves) {
+    lines.push(`- ${wave.id} kind=${wave.waveKind} members=${wave.memberProfiles.join(',')} merge_gate=${wave.mergeGate}`);
+  }
+  return lines.join('\n');
+}
+
+function renderQueryStatusContract(contract: QueryStatusContract): string {
+  const lines = ['SDD query status contract'];
+  lines.push(`version=${contract.version}`);
+  lines.push(`source=${contract.sourceDocument}`);
+  for (const surface of contract.surfaces) {
+    lines.push(`- ${surface.id} command=${surface.command}`);
+    lines.push(`  responsibility=${surface.responsibility}`);
+    lines.push(`  includes=${surface.includes.join(',')}`);
+    lines.push(`  excludes=${surface.excludes.join(',')}`);
+    lines.push(`  next=${surface.nextActionRule}`);
+  }
+  return lines.join('\n');
+}
+
+function renderQueryStatusValidation(result: QueryStatusValidation): string {
+  const lines = ['SDD query status validation'];
+  lines.push(`valid=${result.valid}`);
+  lines.push(`surfaces=${result.surfaces.length}`);
+  lines.push('issues');
+  if (result.issues.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const issue of result.issues) {
+      lines.push(`- ${issue.field}: ${issue.message}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function renderSkillAgentEvalContract(contract: SkillAgentEvalContract): string {
+  const lines = ['SDD skill/agent eval contract'];
+  lines.push(`version=${contract.version}`);
+  lines.push(`source=${contract.sourceReport}`);
+  lines.push(`corpus=${contract.corpus.length}`);
+  lines.push('dimensions');
+  for (const dimension of contract.dimensions) {
+    lines.push(`- ${dimension.id} threshold=${dimension.passThreshold}`);
+    lines.push(`  expectation=${dimension.expectation}`);
+    lines.push(`  baseline=${dimension.baselineFinding}`);
+  }
+  lines.push('regression_assertions');
+  for (const assertion of contract.regressionAssertions) {
+    lines.push(`- ${assertion}`);
+  }
+  return lines.join('\n');
+}
+
+function renderSkillAgentEvalValidation(result: SkillAgentEvalValidation): string {
+  const lines = ['SDD skill/agent eval validation'];
+  lines.push(`valid=${result.valid}`);
+  lines.push(`dimensions=${result.contract.dimensions.length}`);
+  lines.push(`corpus=${result.contract.corpus.length}`);
+  lines.push('issues');
+  if (result.issues.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const issue of result.issues) {
+      lines.push(`- ${issue.field}: ${issue.message}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function renderHarnessLearningContract(contract: HarnessLearningContract): string {
+  const lines = ['SDD harness learning contract'];
+  lines.push(`version=${contract.version}`);
+  lines.push(`source=${contract.sourceTrial}`);
+  lines.push(`promotion=${contract.promotionRule}`);
+  lines.push('allowed_sinks');
+  for (const sink of contract.allowedSinks) {
+    lines.push(`- ${sink.id}: ${sink.output}`);
+    lines.push(`  boundary=${sink.boundary}`);
+  }
+  lines.push('forbidden_outputs');
+  for (const output of contract.forbiddenOutputs) {
+    lines.push(`- ${output}`);
+  }
+  return lines.join('\n');
+}
+
+function renderHarnessLearningValidation(result: HarnessLearningValidation): string {
+  const lines = ['SDD harness learning validation'];
+  lines.push(`valid=${result.valid}`);
+  lines.push(`allowed_sinks=${result.contract.allowedSinks.length}`);
+  lines.push(`forbidden_outputs=${result.contract.forbiddenOutputs.length}`);
+  lines.push('issues');
+  if (result.issues.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const issue of result.issues) {
+      lines.push(`- ${issue.field}: ${issue.message}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function renderProjectContextPackContract(contract: ProjectContextPackContract): string {
+  const lines = ['SDD project context pack contract'];
+  lines.push(`version=${contract.version}`);
+  lines.push(`entry=${contract.entryPoint}`);
+  lines.push('durable_context');
+  for (const item of contract.durableContext) {
+    lines.push(`- ${item}`);
+  }
+  lines.push('runtime_sources_of_truth');
+  for (const source of contract.runtimeSourcesOfTruth) {
+    lines.push(`- ${source}`);
+  }
+  lines.push('boundaries');
+  for (const boundary of contract.boundaries) {
+    lines.push(`- ${boundary}`);
+  }
+  return lines.join('\n');
+}
+
+function renderProjectContextPackValidation(result: ProjectContextPackValidation): string {
+  const lines = ['SDD project context pack validation'];
+  lines.push(`valid=${result.valid}`);
+  lines.push(`entry=${result.contract.entryPoint}`);
+  lines.push(`runtime_sources=${result.contract.runtimeSourcesOfTruth.length}`);
+  lines.push('issues');
+  if (result.issues.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const issue of result.issues) {
+      lines.push(`- ${issue.field}: ${issue.message}`);
+    }
+  }
   return lines.join('\n');
 }
 
@@ -1282,13 +2141,7 @@ function renderArtifactIngestionInspection(inspection: ArtifactResultIngestionIn
   for (const record of inspection.records) {
     lines.push(`- ${record.delegationId} ${record.status} artifact=${record.artifactPath} result=${record.resultStatus ?? 'n/a'} delegation=${record.delegationStatus ?? 'n/a'}`);
   }
-  if (inspection.issues.length > 0) {
-    lines.push('issues');
-    for (const issue of inspection.issues) {
-      lines.push(`- ${issue.field}: ${issue.message}`);
-      lines.push(`  recommendation: ${issue.recommendation}`);
-    }
-  }
+  renderIssues(lines, inspection.issues);
   return lines.join('\n');
 }
 
@@ -1298,13 +2151,7 @@ function renderBackgroundExecutorResult(result: BackgroundExecutorResult): strin
   lines.push(`run=${result.runId} delegation=${result.delegationId ?? 'n/a'} queue=${result.queueItemId ?? 'n/a'} worker=${result.workerAdapterId}`);
   lines.push(`artifact=${result.artifactPath ?? 'pending'}`);
   lines.push(result.message);
-  if (result.issues.length > 0) {
-    lines.push('issues');
-    for (const issue of result.issues) {
-      lines.push(`- ${issue.field}: ${issue.message}`);
-      lines.push(`  recommendation: ${issue.recommendation}`);
-    }
-  }
+  renderIssues(lines, result.issues);
   return lines.join('\n');
 }
 
@@ -1315,14 +2162,82 @@ function renderBackgroundExecutorInspection(inspection: BackgroundExecutorInspec
   for (const delegation of inspection.delegations) {
     lines.push(`- ${delegation.delegationId} ${delegation.status} task=${delegation.taskId} agent=${delegation.agent} artifact=${delegation.expectedArtifact}`);
   }
-  if (inspection.issues.length > 0) {
-    lines.push('issues');
-    for (const issue of inspection.issues) {
-      lines.push(`- ${issue.field}: ${issue.message}`);
-      lines.push(`  recommendation: ${issue.recommendation}`);
-    }
+  renderIssues(lines, inspection.issues);
+  return lines.join('\n');
+}
+
+function renderResidentWorkerRuntimeClaimResult(result: ResidentWorkerRuntimeClaimResult): string {
+  const lines = [`Resident worker runtime ${result.status} for ${result.taskId}`];
+  lines.push(`version=${result.version}`);
+  lines.push(`run=${result.runId} runtime=${result.runtimeId ?? 'n/a'} delegation=${result.delegationId ?? 'n/a'} queue=${result.queueItemId ?? 'n/a'} worker=${result.workerAdapterId}`);
+  lines.push(`artifact=${result.expectedArtifact ?? 'pending'} lease_expires=${result.leaseExpiresAt ?? 'n/a'}`);
+  lines.push(result.message);
+  renderIssues(lines, result.issues);
+  if (result.runtimeId && result.leaseExpiresAt) {
+    lines.push(`next sdd worker-runtime heartbeat ${result.runtimeId} --run ${result.runId}`);
+    lines.push(`inspect sdd worker-runtime inspect ${result.runtimeId} --run ${result.runId}`);
   }
   return lines.join('\n');
+}
+
+function renderResidentWorkerRuntimeHeartbeatResult(result: ResidentWorkerRuntimeHeartbeatResult): string {
+  const lines = [`Resident worker runtime ${result.status}: ${result.runtimeId}`];
+  lines.push(`version=${result.version}`);
+  lines.push(`run=${result.runId} lease_expires=${result.leaseExpiresAt ?? 'n/a'}`);
+  lines.push(result.message);
+  renderIssues(lines, result.issues);
+  if (result.runtime) {
+    lines.push(`next ${result.status === 'terminal' ? `sdd background inspect ${result.runId}` : `sdd worker-runtime inspect ${result.runtimeId} --run ${result.runId}`}`);
+  }
+  return lines.join('\n');
+}
+
+function renderResidentWorkerRuntimeList(result: ResidentWorkerRuntimeList): string {
+  const lines = [`Resident worker runtimes for ${result.runId}`];
+  lines.push(`version=${result.version}`);
+  lines.push(`runtimes=${result.runtimes.length} active=${result.activeRuntimes} stale=${result.staleRuntimes} terminal=${result.terminalRuntimes} blocked=${result.blockedRuntimes}`);
+  for (const runtime of result.runtimes) {
+    lines.push(`- ${runtime.runtimeId} ${runtime.status} task=${runtime.taskId} agent=${runtime.agent} delegation=${runtime.delegationId} lease_expires=${runtime.leaseExpiresAt}`);
+  }
+  renderIssues(lines, result.issues);
+  return lines.join('\n');
+}
+
+function renderResidentWorkerRuntimeInspection(inspection: ResidentWorkerRuntimeInspection): string {
+  const lines = [`Resident worker runtime ${inspection.status}: ${inspection.runtimeId}`];
+  lines.push(`version=${inspection.version}`);
+  lines.push(`run=${inspection.runId} valid=${inspection.valid} lease_expired=${inspection.leaseExpired}`);
+  if (inspection.runtime) {
+    lines.push(`task=${inspection.runtime.taskId} agent=${inspection.runtime.agent} worker=${inspection.runtime.workerAdapterId}`);
+    lines.push(`delegation=${inspection.runtime.delegationId} queue=${inspection.runtime.queueItemId} artifact=${inspection.runtime.expectedArtifact}`);
+    lines.push(`claimed=${inspection.runtime.claimedAt} heartbeat=${inspection.runtime.lastHeartbeatAt ?? 'none'} lease_expires=${inspection.runtime.leaseExpiresAt}`);
+    lines.push(`evidence=${inspection.runtime.evidenceSummary}`);
+  }
+  lines.push(`queue_status=${inspection.queueItem?.status ?? 'missing'} adapter=${inspection.workerAdapter?.id ?? 'missing'}`);
+  lines.push(`next ${inspection.recommendedNextCommand}`);
+  renderIssues(lines, inspection.issues);
+  return lines.join('\n');
+}
+
+function renderIssues(lines: string[], issues: Array<{ field: string; message: string; recommendation: string }>): void {
+  if (issues.length === 0) {
+    return;
+  }
+  lines.push('issues');
+  for (const issue of issues) {
+    lines.push(`- ${issue.field}: ${issue.message}`);
+    lines.push(`  recommendation: ${issue.recommendation}`);
+  }
+}
+
+function renderDocumentGaps(lines: string[], gaps: Array<{ severity: string; type: string; taskId?: string | null; field: string; message: string }>): void {
+  if (gaps.length === 0) {
+    return;
+  }
+  lines.push('gaps');
+  for (const gap of gaps) {
+    lines.push(`- [${gap.severity}] ${gap.type} ${gap.taskId ?? 'document'} ${gap.field}: ${gap.message}`);
+  }
 }
 
 function renderWaveExecutorResult(result: WaveExecutorResult): string {
@@ -1345,13 +2260,7 @@ function renderWaveExecutorResult(result: WaveExecutorResult): string {
       lines.push(`- ${gate.taskId}: ${gate.reasons.join(' | ')}`);
     }
   }
-  if (result.issues.length > 0) {
-    lines.push('issues');
-    for (const issue of result.issues) {
-      lines.push(`- ${issue.field}: ${issue.message}`);
-      lines.push(`  recommendation: ${issue.recommendation}`);
-    }
-  }
+  renderIssues(lines, result.issues);
   return lines.join('\n');
 }
 
@@ -1362,13 +2271,7 @@ function renderWaveExecutorInspection(inspection: WaveExecutorInspection): strin
   for (const event of inspection.waveEvents) {
     lines.push(`- ${event.event}: ${event.summary ?? ''}`);
   }
-  if (inspection.issues.length > 0) {
-    lines.push('issues');
-    for (const issue of inspection.issues) {
-      lines.push(`- ${issue.field}: ${issue.message}`);
-      lines.push(`  recommendation: ${issue.recommendation}`);
-    }
-  }
+  renderIssues(lines, inspection.issues);
   return lines.join('\n');
 }
 
@@ -1410,25 +2313,20 @@ function renderWorktreeLifecycleInspection(inspection: WorktreeLifecycleInspecti
   for (const record of inspection.records) {
     lines.push(`- ${record.worktreeId} ${record.status} task=${record.taskId} path=${record.worktreePath} dirty=${record.dirty}`);
   }
-  if (inspection.issues.length > 0) {
-    lines.push('issues');
-    for (const issue of inspection.issues) {
-      lines.push(`- ${issue.field}: ${issue.message}`);
-      lines.push(`  recommendation: ${issue.recommendation}`);
-    }
-  }
+  renderIssues(lines, inspection.issues);
   return lines.join('\n');
 }
 
 function renderTaskGraphPlan(graph: TaskGraphPlan): string {
   const lines = [`Task graph ${graph.valid ? 'valid' : 'blocked'} for ${graph.branch}`];
   lines.push(`version=${graph.version}`);
+  lines.push(`contract=${graph.contract}`);
   lines.push(`tasks=${graph.summary.tasks} dependencies=${graph.summary.dependencies} file_overlaps=${graph.summary.fileOverlaps}`);
   lines.push(`high_risk_tasks=${graph.summary.highRiskTasks.length > 0 ? graph.summary.highRiskTasks.join(',') : 'none'}`);
   lines.push(`validation=${graph.summary.validationCommands.length > 0 ? graph.summary.validationCommands.join(' | ') : 'none'}`);
   lines.push('nodes');
   for (const node of graph.nodes) {
-    lines.push(`- ${node.taskId} status=${node.status} wave=${node.wave ?? 'n/a'} deps=${node.dependsOn.join(',') || 'none'} files=${node.affectedFiles.length}`);
+    lines.push(`- ${node.taskId} status=${node.status} wave=${node.wave ?? 'n/a'} deps=${node.dependsOn.join(',') || 'none'} files=${node.affectedFiles.length} agent_fit=${node.agentFit.join(',') || 'none'} verification=${node.verificationAvailability.join(',') || 'none'} autonomy=${node.autonomy ?? 'n/a'}`);
   }
   if (graph.dependencyEdges.length > 0) {
     lines.push('dependency_edges');
@@ -1485,12 +2383,55 @@ function renderWavePlan(plan: WavePlan): string {
   return lines.join('\n');
 }
 
-function readOption(args: string[], name: string): string | null {
-  const index = args.indexOf(name);
-  if (index < 0) {
-    return null;
+function readTeamModeActivation(args: string[], fallback?: TeamModeActivation): TeamModeActivation | undefined {
+  if (args.includes('--no-team-mode')) {
+    return 'off';
   }
-  return args[index + 1] ?? null;
+  const inline = args.find((item) => item.startsWith('--team-mode='));
+  const inlineValue = inline?.split('=', 2)[1];
+  if (inlineValue === 'auto' || inlineValue === 'force' || inlineValue === 'off') {
+    return inlineValue;
+  }
+  const index = args.indexOf('--team-mode');
+  if (index >= 0) {
+    const value = args[index + 1];
+    if (value === 'auto' || value === 'force' || value === 'off') {
+      return value;
+    }
+    return 'force';
+  }
+  return fallback;
+}
+
+
+function readBranchContext(args: string[]): { branch?: string; branchSource?: ContextBranchSource } {
+  const branch = readBranchOption(args);
+  return branch ? { branch, branchSource: 'cli_option' } : {};
+}
+
+function readBranchOption(args: string[]): string | undefined {
+  return readOption(args, '--branch') ?? undefined;
+}
+
+function readOptionalPositionalArgument(args: string[]): string | undefined {
+  const booleanOptions = new Set(['--approved', '--json', '--no-team-mode', '--force', '--check', '--latest-only', '--all-runs', '--scaffold-docs', '--no-scaffold-docs', '--direct-safe', '--external-unknown', '--architecture', '--checkpoint']);
+  for (let index = 0; index < args.length; index += 1) {
+    const item = args[index];
+    if (!item.startsWith('--')) {
+      return item;
+    }
+    if (item.includes('=')) {
+      continue;
+    }
+    if (!booleanOptions.has(item) && args[index + 1] && !args[index + 1].startsWith('--')) {
+      index += 1;
+    }
+  }
+  return undefined;
+}
+
+async function readResolvedBranch(projectRoot: string, args: string[]): Promise<string> {
+  return (await resolveSddContext(projectRoot, readBranchContext(args))).branch;
 }
 
 function readWaveExecutorStrategy(args: string[], name: string): WaveExecutorStrategy | null {
@@ -1507,15 +2448,6 @@ function readGovernancePolicyOperation(value: string | undefined): GovernancePol
   return value === 'background_executor' || value === 'wave_executor' || value === 'sync_back_apply' || value === 'destructive_git' || value === 'external_interaction' || value === 'cleanup' ? value : null;
 }
 
-function readRepeatedOption(args: string[], name: string): string[] {
-  const values: string[] = [];
-  for (let index = 0; index < args.length; index += 1) {
-    if (args[index] === name && args[index + 1]) {
-      values.push(args[index + 1]);
-    }
-  }
-  return values;
-}
 
 function readTaskArtifactOptions(args: string[]): Record<string, string> {
   const artifacts: Record<string, string> = {};
@@ -1561,24 +2493,35 @@ function readAiToolSelection(args: string[], allowNone: boolean): AiToolSelectio
   throw new Error(`Unsupported --ai value: ${value}`);
 }
 
-function readLifecycleSignalOptions(args: string[]) {
+async function readLifecycleSignalOptions(args: string[]): Promise<{ signals: Partial<LifecycleDecisionSignals>; riskExtraction: LifecycleRiskGateExtraction | null; error?: string }> {
   const directSafe = args.includes('--direct-safe');
   const riskTags = readRepeatedOptions(args, '--risk');
   const contracts = readRepeatedOptions(args, '--contract');
   const permissions = readRepeatedOptions(args, '--permission');
-  return {
+  const fromText = readOption(args, '--from-text');
+  const fromFile = readOption(args, '--from-file');
+  if (fromText && fromFile) {
+    return { signals: {}, riskExtraction: null, error: 'Usage: sdd lifecycle decide accepts only one of --from-text or --from-file' };
+  }
+  const riskExtraction = fromText
+    ? extractLifecycleRiskSignalsFromText(fromText, 'from_text')
+    : fromFile
+      ? extractLifecycleRiskSignalsFromText(await readFile(fromFile, 'utf8'), 'from_file')
+      : null;
+  const extracted = riskExtraction?.signals ?? {};
+  const signals: Partial<LifecycleDecisionSignals> = {
     intent_clarity: directSafe ? 'high' as const : readSignalClarity(args, '--intent') ?? 'medium' as const,
     acceptance_clarity: directSafe ? 'high' as const : readSignalClarity(args, '--acceptance') ?? 'medium' as const,
     estimated_change_size: directSafe ? 'tiny' as const : readEstimatedChangeSize(args, '--size') ?? 'small' as const,
     task_count_estimate: Number(readOption(args, '--tasks') ?? (directSafe ? '1' : '1')),
     file_count_estimate: Number(readOption(args, '--files') ?? (directSafe ? '1' : '1')),
     affected_layers: readRepeatedOptions(args, '--layer'),
-    affected_contracts: contracts,
+    affected_contracts: uniqueCliStrings([...contracts, ...(extracted.affected_contracts ?? [])]),
     dependency_fanout: readDependencyFanout(args, '--fanout') ?? 'local' as const,
-    impact_confidence: directSafe ? 'high' as const : readImpactConfidence(args, '--impact-confidence') ?? 'medium' as const,
-    risk_tags: riskTags,
-    reversibility: directSafe ? 'reversible' as const : readReversibility(args, '--reversibility') ?? 'unknown' as const,
-    validation_clarity: directSafe ? 'clear' as const : readValidationClarity(args, '--validation') ?? 'partial' as const,
+    impact_confidence: directSafe ? 'high' as const : extracted.impact_confidence ?? readImpactConfidence(args, '--impact-confidence') ?? 'medium' as const,
+    risk_tags: uniqueCliStrings([...riskTags, ...(extracted.risk_tags ?? [])]),
+    reversibility: directSafe ? 'reversible' as const : extracted.reversibility ?? readReversibility(args, '--reversibility') ?? 'unknown' as const,
+    validation_clarity: directSafe ? 'clear' as const : extracted.validation_clarity ?? readValidationClarity(args, '--validation') ?? 'partial' as const,
     validation_available: directSafe || args.includes('--validation-available'),
     validation_cost: directSafe ? 'cheap' as const : readValidationCost(args, '--validation-cost') ?? 'unknown' as const,
     policy_hits: readRepeatedOptions(args, '--policy'),
@@ -1590,22 +2533,46 @@ function readLifecycleSignalOptions(args: string[]) {
     orchestration_uncertainty: directSafe ? 'low' as const : readOrchestrationUncertainty(args, '--orchestration') ?? 'medium' as const,
     human_checkpoint_required: args.includes('--checkpoint'),
     approval_reason: readRepeatedOptions(args, '--approval-reason'),
-    source_artifacts: readRepeatedOptions(args, '--source-artifact'),
+    source_artifacts: uniqueCliStrings([...readRepeatedOptions(args, '--source-artifact'), ...(fromFile ? [fromFile] : [])]),
     can_scout_impact: !args.includes('--cannot-scout-impact'),
-    architecture_decision_required: args.includes('--architecture'),
-    external_unknown: args.includes('--external-unknown')
+    architecture_decision_required: args.includes('--architecture') || Boolean(extracted.architecture_decision_required),
+    external_unknown: args.includes('--external-unknown') || Boolean(extracted.external_unknown)
   };
+  return { signals, riskExtraction };
 }
 
-function readRepeatedOptions(args: string[], name: string): string[] {
-  const values: string[] = [];
-  for (let index = 0; index < args.length; index += 1) {
-    if (args[index] === name && args[index + 1]) {
-      values.push(args[index + 1]);
-      index += 1;
+
+function uniqueCliStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter((value) => value.length > 0)));
+}
+
+function renderLifecycleRiskExtraction(extraction: LifecycleRiskGateExtraction | null): string {
+  if (!extraction) {
+    return '';
+  }
+  const lines = [
+    'Lifecycle Risk Gate',
+    'changed',
+    '- deterministic risk signals extracted',
+    'decision',
+    `- source=${extraction.source}`,
+    `- risk_tags=${extraction.riskTags.join(',') || 'none'}`,
+    `- affected_contracts=${extraction.affectedContracts.join(',') || 'none'}`,
+    `- external_unknown=${extraction.externalUnknown}`,
+    'evidence'
+  ];
+  if (extraction.evidence.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const item of extraction.evidence) {
+      lines.push(`- ${item.category}: ${item.matched} -> ${item.riskTag}`);
     }
   }
-  return values;
+  lines.push('gaps');
+  lines.push('- none');
+  lines.push('next');
+  lines.push('- Evaluate extracted signals with lifecycle decision gate.');
+  return `${lines.join('\n')}\n`;
 }
 
 function readSignalClarity(args: string[], name: string): 'high' | 'medium' | 'low' | null {
@@ -1655,14 +2622,36 @@ id: T1
 status: pending
 wave: 1
 depends_on: []
+acceptance_refs:
+  - AC-1
+plan_refs:
+  - "§4 Target Design Overview"
 affected_files:
   - path/to/file
 validation:
   - command string
-risk: []
+risk:
+  - state-machine
+agent_fit:
+  - scout
+  - implementer
+  - reviewer
+  - validator
+verification_availability:
+  - unit:command string
+  - build:command string
+autonomy: full_sdd_with_checkpoint
+allowed_agents:
+  - scout
+  - implementer
+  - reviewer
+  - validator
+required_artifacts:
+  - artifacts/review-T1.md
+  - artifacts/validation-T1.md
 \`\`\`
 
-Companion sections such as #### Boundary, #### Acceptance, and #### Implementation Notes must stay outside the fenced sdd-task metadata block. Keep only metadata inside the fence.
+Put contract metadata inside the fenced block: acceptance_refs, plan_refs, agent_fit, verification_availability, autonomy, allowed_agents, and required_artifacts. Companion sections such as #### Boundary, #### Acceptance, and #### Implementation Notes must stay outside the fenced sdd-task metadata block.
 
 #### Boundary
 

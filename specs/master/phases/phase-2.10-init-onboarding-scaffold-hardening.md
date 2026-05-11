@@ -15,11 +15,11 @@ Phase 2.10 是 Phase 2 的 release hardening 小阶段。目标是让 `sdd init`
 - `sdd init --ai claude-code` 默认生成：
   - `.sdd/project.yml`
   - `.sdd/runs/`
-  - `specs/<branch>/spec.md`
-  - `specs/<branch>/plan.md`
-  - `specs/<branch>/tasks.md`
+  - 可选 starter `specs/master/spec.md`
+  - 可选 starter `specs/master/plan.md`
+  - 可选 starter `specs/master/tasks.md`
   - Claude Code managed entries
-- 支持 `sdd init --branch <branch>`。
+- 当前形态：`sdd init` 是项目级接入，不再作为 branch workflow 入口；分区 workflow 由 `/sdd:spec` 和 `sdd status [--branch]` 处理。
 - 支持 `sdd init --no-scaffold-docs`。
 - 默认不覆盖已有 semantic docs；显式 `--force` 才覆盖。
 - 更新 generated entries、instruction payload、用户文档和验证记录。

@@ -13,6 +13,7 @@ detection:
       score: 14
 sdd:
   spec_dir: specs/<branch>
+  default_branch: master
   docs_language: zh-CN
   compatible_with: spec-kit
 validation:

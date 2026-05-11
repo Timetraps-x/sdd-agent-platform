@@ -478,26 +478,46 @@ Phase 4 关注：
 
 Phase 4 不做自动发布 CI/CD，不配置 npm token/secret，不静默执行真实 `npm publish`，也不改变 SDD runtime 主路径。
 
-### 3.5 Phase 5：项目代码知识图谱阶段
+### 3.5 Phase 5：SDD Harness Engineering / SDD Harness 工程化阶段
 
-原 Phase 4 代码知识图谱方向顺延为 Phase 5。该方向暂不拆分小阶段，只作为长期架构目标保留。它的目标是在 SDD workflow、入口投影、agent runtime 和 npm 分发基线稳定后，建设项目代码知识图谱，让平台从“按任务执行”进一步演进为“理解项目结构、依赖、变更影响和历史决策”的持续迭代系统。
+Phase 5 重构为 SDD Harness Engineering，并拆成 5.0~5.6 的可执行小阶段。它不是继续做泛泛竞品调研，也不是建设 OS、scheduler、plugin runtime、OpenCode clone 或自主执行内核，而是在 Phase 4 npm 分发完成后，依托 Claude Code 等 AI coding harness，把 Spec Kit、cc-sdd、GSD、Oh My OpenAgent / Oh My OpenCode、BMAD 的源码级机制转译成本项目的 harness contracts、evidence boundary 和可落地改造任务。
 
-Phase 5 关注：
+插入该阶段的原因来自真实仓库试用：当前 `/sdd:spec`、`/sdd:plan`、`/sdd:tasks` 仍偏“薄 CLI wrapper + 文档改写”，没有充分体现 branch context、risk extraction、agent orchestration、workflow gate、evidence runtime、output quality、eval 和 repeated-failure learning 的竞争力。直接进入代码知识图谱会跳过这些 harness 基础，导致图谱只能服务搜索，不能提升 SDD 主路径。
+
+Phase 5 拆分后的 contract 路线：
+
+- Phase 5.0：reframe / contract freeze / no-OS guardrail。
+- Phase 5.1 `ContextResolverContract`、`LifecycleRiskGateContract`、`OutputQualityContract`：修复 branch context、risk extraction 和输出质量。
+- Phase 5.2 `WorkflowGateContract`、`AgentRegistryContract`：让 workflow 和 agent registry 可见、可 inspect、可 validate。
+- Phase 5.3 `TaskGraphContract`、`TaskRunEvidenceContract`：让 task graph、agent_fit、verification availability、run evidence 和 verifier 成为执行事实源。
+- Phase 5.4 managed asset manifest、`QueryStatusContract`：统一 generated entry ownership、doctor drift、status/doctor/run inspect/debug 输出边界。
+- Phase 5.5 `SkillAgentEvalContract`、`HarnessLearningContract`、Project Context Pack：让真实 trial、eval 和 repeated-failure learning 形成质量闭环。
+- Phase 5.6 Phase 7 Graph Handoff Hardening：稳定 graph-ready harness metadata，不实现图谱；新的 Phase 6 先补齐 Agent / Skill Runtime Harness。
+
+外部项目在 Phase 5/6 中只是 evidence input 和机制参考：Spec Kit 提供 managed manifest/hash 和 workflow checklist，cc-sdd 提供 task implementation loop，GSD 提供 query/dispatch/verifier/gap closure，BMAD 提供角色边界和 step-file discipline，Oh My OpenAgent/OpenCode 提供 agent team、category/model routing、background execution、skill/tool reuse、doctor/eval 和 adapter pattern 参考。本项目不复制任何外部目录结构、prompt 或 runtime。
+
+Phase 5 不做 graph database、embedding store、完整 AST/LSP 图谱、不重写为 OpenCode plugin、不替代 Claude Code 的权限、hooks、worktree、slash command 或 tool execution 边界。它只定义 SDD harness contracts、evidence、gates、query/status、eval 和 bounded learning inputs。
+
+### 3.6 Phase 6：项目代码知识图谱阶段
+
+原 Phase 5 代码知识图谱方向顺延为 Phase 6。该方向暂不拆分小阶段，只作为长期架构目标保留。它的目标是在 SDD workflow、入口投影、agent runtime、npm 分发基线和 Phase 5.6 graph-ready harness metadata handoff 稳定后，建设项目代码知识图谱，让平台从“按任务执行”进一步演进为“理解项目结构、依赖、变更影响和历史决策”的持续迭代系统。
+
+Phase 6 关注：
 
 - 代码结构图谱：module / package / class / function / API / table / mapper / config 的关系。
-- 依赖与影响图谱：调用关系、数据流、配置依赖、任务 affected_files 与真实影响面的映射。
-- SDD 语义图谱：spec / plan / task / acceptance / artifact / gap / validation evidence 的关系。
-- 运行历史图谱：run、agent、version、task result、debug attempt、validation result 的演进。
-- 检索与推理能力：支持 impact analysis、相似任务召回、风险提示、测试建议和架构漂移识别。
+- 业务语义图谱：feature、spec、plan、task、artifact、decision、gap、validation 的关系。
+- 变更影响分析：某个 task 影响哪些 API、表、配置、测试和历史决策。
+- agent context retrieval：让 planner/reviewer/debugger 能按 task 拉取最相关的代码和历史 evidence。
+- 长期演进记忆：沉淀项目级设计约束、技术债、常见缺陷、验证策略。
 
-Phase 5 可参考开源图谱和代码智能方向，但不直接照搬实现：
+Phase 6 可继续吸收外部方案：
 
-- GSD 的 dependency wave / files overlap / gap closure 可转译为任务依赖与影响图谱。
+- GSD 的 query/dispatch API 可转译为图谱查询入口。
 - Oh My OpenCode / Oh My OpenAgent 的 Explore / Librarian / Oracle 编排可转译为图谱采集、外部知识补充和高成本架构咨询。
 - Spec Kit 的 spec / plan / tasks 产物链可转译为 SDD 语义节点与阶段边。
 - 代码索引、AST、LSP、调用图、数据库 schema 和运行 artifact 应逐步汇入统一知识层。
 
-Phase 5 不作为 Phase 1、Phase 2、Phase 3 或 Phase 4 的前置条件。Phase 1/2/3/4 的架构必须为 Phase 5 预留稳定 contract：task metadata、artifact schema、event log、agent version、validation evidence 和 package distribution evidence 都不能只服务当前命令，而要能被后续图谱长期消费。
+Phase 6 不作为 Phase 1、Phase 2、Phase 3、Phase 4 或 Phase 5 的前置条件。Phase 1~5 的架构必须为 Phase 6 预留稳定 contract：task metadata、artifact schema、event log、agent version、validation evidence、HarnessContract、AutonomyLevel、AgentFit、VerificationAvailability、GapClosure、ProjectContextPack、SkillAgentEvalResult 和 package distribution evidence 都不能只服务当前命令，而要能被后续图谱长期消费。
 
 ## 4. Phase 1 完成定义
 

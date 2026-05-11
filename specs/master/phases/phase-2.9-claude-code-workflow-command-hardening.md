@@ -45,7 +45,7 @@ Phase 2.9 用于把 Phase 2.8 已提供的 `sdd status`、run inspect 与 sync-b
 
 - `/sdd` 明确执行 `sdd status` 并按 recommended next command 引导。
 - `/sdd:do` 明确执行 `sdd status`、`sdd instructions do --json`、`sdd tasks inspect <task_id>`，并只在 task boundary 内推进 `sdd do task <task_id>`。
-- `/sdd:verify` 明确执行 `sdd status`、`sdd run inspect <run_id>`、`sdd verify task <task_id> --run <run_id>`，PASS 后只运行 `sdd sync-back inspect`。
+- `/sdd:verify` 明确执行 `sdd status`、`sdd instructions verify --json`、`sdd verify task <task_id> [--run <run_id>]`，PASS 后只运行 `sdd sync-back inspect`；Phase 6.5 后常规路径省略 `--run`。
 - generated entries 明确禁止静默 `sync-back apply`。
 - instruction payload 与 generated entries 的流程一致。
 - `npm run typecheck`、`npm test`、`npm run build` 通过。

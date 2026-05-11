@@ -61,7 +61,7 @@ Phase 4.0 不直接改 `package.json` 或执行 publish，而是把 npm publishe
 - 每个 Phase 4.x 都有明确 scope、non-goals、acceptance 和 validation gate。
 - 真实 publish 被明确隔离到 Phase 4.4，并要求用户确认。
 - publish 前默认安装路径仍保持 GitHub direct install。
-- Phase 5 继续保留代码知识图谱方向，不与 Phase 4 npm distribution 混淆。
+- Phase 5 进入 SDD Harness Engineering，Phase 6 继续保留代码知识图谱方向，不与 Phase 4 npm distribution 混淆。
 
 ## 下游引用
 

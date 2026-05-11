@@ -10,6 +10,7 @@ adapter:
 
 project_defaults:
   spec_dir: specs/<branch>
+  # Project-level SDD document prose language; runtime CLI/JSON output remains English.
   docs_language: zh-CN
   compatible_with: spec-kit
 

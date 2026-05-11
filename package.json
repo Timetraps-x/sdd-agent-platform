@@ -1,6 +1,6 @@
 {
   "name": "sdd-agent-platform",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Local SDD + subagent workflow platform for Claude Code.",
   "license": "MIT",

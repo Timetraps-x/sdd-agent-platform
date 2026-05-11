@@ -25,6 +25,27 @@ Phase 4.3 进入 npm registry publish 流程的预演阶段：运行 `npm publis
 5. 如果 dry-run 提示 OTP / 2FA，按 npm 提示提供一次性验证码；不要把长期 npm token 写入仓库、文档或对话。
 6. dry-run 通过后仍不能自动真实 publish；Phase 4.4 必须再次确认 package name、version、account 和 exact publish command。
 
+## Phase 4.4 security-key/browser authentication fast path
+
+真实发布时如果 `npm publish --access public` 返回 `EOTP` 并提示打开 `https://www.npmjs.com/auth/cli/...`，这不是等待 Google Authenticator 扫码页。`npm publish` 只会触发当前账号已配置的 2FA 验证方式；Google Authenticator 二维码只会在 npm 账号安全设置里新增/重置 authenticator app 时出现。
+
+后续发包按这个顺序处理：
+
+1. 先确认 dry-run 干净：`npm publish --dry-run`。
+2. 发布前确认账号：`npm whoami`，必须是预期 npm account。
+3. 由用户在本机终端或 Claude Code prompt 中执行 `! npm publish --access public`，这样完整 browser auth URL 会显示在用户终端；对话/工具输出可能会脱敏成 `***`。
+4. 打开终端里的完整 `https://www.npmjs.com/auth/cli/...` 链接。
+5. 按 npm 页面完成 security key / passkey / Windows Hello / browser authentication。
+6. 如果第一次 publish 命令已经退出，完成浏览器认证后重新执行 `npm publish --access public`。
+7. 发布成功后立即验证：`npm view sdd-agent-platform name version --json`、`npm install -g sdd-agent-platform@latest`、`sdd --version`、clean repo `sdd init --ai claude-code && sdd status && sdd doctor`。
+
+注意事项：
+
+- 不要把 recovery code 当成 OTP；recovery code 不能转换成 Google Authenticator 的 6 位动态码。
+- 不要把长期 npm token、`.npmrc` 或恢复码写入仓库、文档或对话。
+- 如果已经成功发布过某个版本，后续发布必须先 bump version；npm 不允许覆盖同名同版本包。
+- 如果需要 Google Authenticator 6 位码，必须先在 npm Account / Security / Two-Factor Authentication 里添加或重置 authenticator app。
+
 ## 非目标
 
 - 不执行真实 `npm publish`。

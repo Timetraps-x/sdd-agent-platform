@@ -1,12 +1,406 @@
 {
   "contract": "phase-3.13-local-run-index-v1",
-  "generatedAt": "2026-05-07T06:41:08.472Z",
+  "generatedAt": "2026-05-11T12:21:36.798Z",
   "runs": [
+    {
+      "runId": "20260511-013",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE6.8-2",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.8-2",
+      "affectedFiles": [
+        "packages/core/src/index.ts",
+        "packages/core/src/index.test.ts",
+        "templates/spec-template.md",
+        "templates/plan-template.md",
+        "templates/tasks-template.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "c9715eddb6de89c89056042a466db8be96491c15969f9cc5f56913142e9f91ae",
+        "planHash": "93ae9f0d05adc6a5967250ade7989b2040d09249cfd903caf214e7c9f0bbd012",
+        "tasksHash": "50052c90d8a8533741e5977b961eb3937b6d03ddd358db2b4e7cdbd207ddbd0f",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T11:54:30.393Z",
+      "updatedAt": "2026-05-11T11:55:15.095Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE6.8-2"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260511-012",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE6.8-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.8-1",
+      "affectedFiles": [
+        "schemas/contracts/project-yml-contract.md",
+        "templates/project-template.yml",
+        "adapters/generic.yml",
+        "adapters/java-maven.yml",
+        "packages/core/src/index.ts",
+        "packages/core/src/index.test.ts"
+      ],
+      "documentSnapshot": {
+        "specHash": "c9715eddb6de89c89056042a466db8be96491c15969f9cc5f56913142e9f91ae",
+        "planHash": "93ae9f0d05adc6a5967250ade7989b2040d09249cfd903caf214e7c9f0bbd012",
+        "tasksHash": "98aa7cdfb9c2cfd032f15a2dca47adad100a80088d94185b20964b598af027a8",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T11:50:12.754Z",
+      "updatedAt": "2026-05-11T11:51:02.424Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE6.8-1"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260511-011",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE6.7-3",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.7-3",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.ts",
+        "packages/core/src/instructions.ts",
+        "packages/core/src/index.test.ts",
+        "specs/master/phase6.7-validation.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "c9715eddb6de89c89056042a466db8be96491c15969f9cc5f56913142e9f91ae",
+        "planHash": "93ae9f0d05adc6a5967250ade7989b2040d09249cfd903caf214e7c9f0bbd012",
+        "tasksHash": "c8b5642bc6f17af01da75d06c6fecffb3ea813282ebbfba5fa4fa12e78aaaa7b",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T11:47:42.230Z",
+      "updatedAt": "2026-05-11T11:48:47.200Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE6.7-3"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260511-010",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE6.7-2",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.7-2",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.test.ts"
+      ],
+      "documentSnapshot": {
+        "specHash": "c9715eddb6de89c89056042a466db8be96491c15969f9cc5f56913142e9f91ae",
+        "planHash": "93ae9f0d05adc6a5967250ade7989b2040d09249cfd903caf214e7c9f0bbd012",
+        "tasksHash": "e88a4ca21a60607fbc3d6fecdc543e2a451b358beb1fff3e252e0add22a6b46a",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T11:46:28.796Z",
+      "updatedAt": "2026-05-11T11:47:31.114Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE6.7-2"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260511-008",
+      "status": "archived",
+      "phase": "do",
+      "currentTask": "PHASE6.7-2",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.7-2",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.test.ts"
+      ],
+      "documentSnapshot": {
+        "specHash": "c9715eddb6de89c89056042a466db8be96491c15969f9cc5f56913142e9f91ae",
+        "planHash": "93ae9f0d05adc6a5967250ade7989b2040d09249cfd903caf214e7c9f0bbd012",
+        "tasksHash": "e88a4ca21a60607fbc3d6fecdc543e2a451b358beb1fff3e252e0add22a6b46a",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T11:29:23.383Z",
+      "updatedAt": "2026-05-11T11:46:28.688Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "PHASE6.7-2"
+      ],
+      "artifactCount": 5
+    },
+    {
+      "runId": "20260511-007",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE6.7-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.7-1",
+      "affectedFiles": [
+        "specs/master/phase6.7-spec.md",
+        "specs/master/phase6.7-plan.md",
+        "specs/master/phase6.7-tasks.md",
+        "specs/master/phase6.7-validation.md",
+        "specs/master/phase6.8-spec.md",
+        "specs/master/phase6.8-plan.md",
+        "specs/master/phase6.8-tasks.md",
+        "specs/master/phase6.8-validation.md",
+        "specs/master/phases/phase-6.7-token-budget-output-dedup-runtime.md",
+        "specs/master/phases/phase-6.8-project-document-language-runtime.md",
+        "specs/master/spec.md",
+        "specs/master/plan.md",
+        "specs/master/tasks.md",
+        "specs/master/validation.md",
+        "specs/master/phases/README.md",
+        "specs/master/phases/PHASE_STATUS.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "c9715eddb6de89c89056042a466db8be96491c15969f9cc5f56913142e9f91ae",
+        "planHash": "93ae9f0d05adc6a5967250ade7989b2040d09249cfd903caf214e7c9f0bbd012",
+        "tasksHash": "591a122211f7fa953e201f1a9ce7c5c227ce9bab9190aa9f20e8892c00a251c2",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T11:27:03.282Z",
+      "updatedAt": "2026-05-11T11:38:23.052Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE6.7-1"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260511-009",
+      "status": "archived",
+      "phase": "verify",
+      "currentTask": "PHASE6.7-3",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.7-3",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.ts",
+        "packages/core/src/instructions.ts",
+        "packages/core/src/index.test.ts",
+        "specs/master/phase6.7-validation.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "c9715eddb6de89c89056042a466db8be96491c15969f9cc5f56913142e9f91ae",
+        "planHash": "93ae9f0d05adc6a5967250ade7989b2040d09249cfd903caf214e7c9f0bbd012",
+        "tasksHash": "591a122211f7fa953e201f1a9ce7c5c227ce9bab9190aa9f20e8892c00a251c2",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T11:30:47.960Z",
+      "updatedAt": "2026-05-11T11:38:22.835Z",
+      "validationStatus": "blocked",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "PHASE6.7-3"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260511-005",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE6.8-3",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.8-3",
+      "affectedFiles": [
+        "specs/master/phase6.8-validation.md",
+        "specs/master/tasks.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "c9715eddb6de89c89056042a466db8be96491c15969f9cc5f56913142e9f91ae",
+        "planHash": "93ae9f0d05adc6a5967250ade7989b2040d09249cfd903caf214e7c9f0bbd012",
+        "tasksHash": "f0e40c10f6a3842eab3ae2db9adebb8f15d5e5fafae0912a2c1d09433b6c5acb",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T11:12:36.891Z",
+      "updatedAt": "2026-05-11T11:19:24.551Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE6.8-3"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260511-004",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE6.6-2",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.6-2",
+      "affectedFiles": [
+        "README.md",
+        "docs/user-guide.md",
+        "docs/ai-readme.md",
+        "specs/master/spec.md",
+        "specs/master/plan.md",
+        "specs/master/tasks.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "c0a3a9f714705aa3cdce2fb72abc3ec66f4f37b6556feaa59fe198d389c49b7d",
+        "planHash": "8d99740beb604f0392c722845007fa278d002001167f617f3ae4b40a5f59dfd8",
+        "tasksHash": "606eee614d99f968c553bfc64e0b43246f397157dae52dce2d69c4a4af51c8fa",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T07:33:15.624Z",
+      "updatedAt": "2026-05-11T07:42:44.674Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE6.6-2"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260511-002",
+      "status": "archived",
+      "phase": "do",
+      "currentTask": "PHASE6.6-1",
+      "partition": "fix_20260507_bug",
+      "gitBranch": "fix_20260507_bug",
+      "taskId": "PHASE6.6-1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T06:58:27.580Z",
+      "updatedAt": "2026-05-11T07:04:26.635Z",
+      "validationStatus": "blocked",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "PHASE6.6-1"
+      ],
+      "artifactCount": 1
+    },
+    {
+      "runId": "20260511-003",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE6.6-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.6-1",
+      "affectedFiles": [
+        "docs/documentation-information-architecture.md",
+        "specs/master/tasks.md",
+        "specs/master/phase6.6-validation.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "8327c8d6a561f50ef07a04dd5d49e85b4af5ee372dc5ddd56ebe8e18ff940444",
+        "planHash": "7a9d56341f1176959b4726ce2959e9742df52627ec4c7a806d2cc7b6f033d20e",
+        "tasksHash": "1f5204caca9ebbd03004ebfd211362a755860e20b27ece72613b8c7dfc846ec3",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T07:02:46.913Z",
+      "updatedAt": "2026-05-11T07:04:06.733Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE6.6-1"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260511-001",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-11T06:45:14.300Z",
+      "updatedAt": "2026-05-11T06:45:14.302Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260509-001",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-09T06:07:26.126Z",
+      "updatedAt": "2026-05-09T06:07:26.127Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
     {
       "runId": "20260507-001",
       "status": "created",
       "phase": null,
       "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-05-07T05:19:07.461Z",
       "updatedAt": "2026-05-07T05:19:07.461Z",
       "validationStatus": "not_run",
@@ -19,6 +413,17 @@
       "status": "completed",
       "phase": "verify",
       "currentTask": "DEMO-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "DEMO-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-05-06T08:50:22.481Z",
       "updatedAt": "2026-05-06T08:55:18.806Z",
       "validationStatus": "pass",
@@ -33,6 +438,17 @@
       "status": "blocked",
       "phase": "do",
       "currentTask": "P18-SMOKE",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P18-SMOKE",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-05-01T00:03:30.000Z",
       "updatedAt": "2026-05-01T00:03:30.000Z",
       "validationStatus": "blocked",
@@ -47,6 +463,17 @@
       "status": "completed",
       "phase": "do",
       "currentTask": "P18-SMOKE",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P18-SMOKE",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-05-01T00:03:00.000Z",
       "updatedAt": "2026-05-01T00:03:00.000Z",
       "validationStatus": "pass",
@@ -61,6 +488,17 @@
       "status": "failed",
       "phase": "verify",
       "currentTask": "P1.9-T2",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.9-T2",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:19:40.003Z",
       "updatedAt": "2026-05-01T00:02:00.000Z",
       "validationStatus": "blocked",
@@ -75,6 +513,17 @@
       "status": "completed",
       "phase": "verify",
       "currentTask": "P1.10-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.10-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:26:26.641Z",
       "updatedAt": "2026-04-30T18:30:08.940Z",
       "validationStatus": "pass",
@@ -89,6 +538,17 @@
       "status": "blocked",
       "phase": "do",
       "currentTask": "P1.10-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.10-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:25:09.980Z",
       "updatedAt": "2026-04-30T18:25:41.839Z",
       "validationStatus": "pass",
@@ -103,6 +563,17 @@
       "status": "created",
       "phase": null,
       "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:22:10.614Z",
       "updatedAt": "2026-04-30T18:22:10.615Z",
       "validationStatus": "not_run",
@@ -115,6 +586,17 @@
       "status": "created",
       "phase": null,
       "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:21:57.580Z",
       "updatedAt": "2026-04-30T18:21:57.580Z",
       "validationStatus": "not_run",
@@ -127,6 +609,17 @@
       "status": "blocked",
       "phase": "verify",
       "currentTask": "P1.9-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.9-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:19:28.654Z",
       "updatedAt": "2026-04-30T18:19:35.985Z",
       "validationStatus": "blocked",
@@ -141,6 +634,17 @@
       "status": "completed",
       "phase": "verify",
       "currentTask": "P1.9-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.9-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:19:12.704Z",
       "updatedAt": "2026-04-30T18:19:24.243Z",
       "validationStatus": "pass",
@@ -155,6 +659,17 @@
       "status": "blocked",
       "phase": "do",
       "currentTask": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.8-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:09:36.419Z",
       "updatedAt": "2026-04-30T18:12:18.782Z",
       "validationStatus": "pass_with_gaps",
@@ -169,6 +684,17 @@
       "status": "completed",
       "phase": "do",
       "currentTask": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.8-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:09:16.167Z",
       "updatedAt": "2026-04-30T18:12:17.419Z",
       "validationStatus": "pass",
@@ -183,6 +709,17 @@
       "status": "blocked",
       "phase": "do",
       "currentTask": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.8-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:09:56.483Z",
       "updatedAt": "2026-04-30T18:09:56.567Z",
       "validationStatus": "pass",
@@ -197,6 +734,17 @@
       "status": "blocked",
       "phase": "do",
       "currentTask": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.8-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:04:50.171Z",
       "updatedAt": "2026-04-30T18:04:54.900Z",
       "validationStatus": "pass",
@@ -211,6 +759,17 @@
       "status": "completed",
       "phase": "do",
       "currentTask": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.8-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:04:41.240Z",
       "updatedAt": "2026-04-30T18:04:46.999Z",
       "validationStatus": "pass",
@@ -225,6 +784,17 @@
       "status": "blocked",
       "phase": "do",
       "currentTask": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.8-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:02:20.886Z",
       "updatedAt": "2026-04-30T18:02:20.954Z",
       "validationStatus": "pass",
@@ -239,6 +809,17 @@
       "status": "completed",
       "phase": "do",
       "currentTask": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.8-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:01:53.592Z",
       "updatedAt": "2026-04-30T18:02:14.451Z",
       "validationStatus": "pass",
@@ -253,6 +834,17 @@
       "status": "completed",
       "phase": "do",
       "currentTask": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "taskId": "P1.8-T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T18:00:55.837Z",
       "updatedAt": "2026-04-30T18:01:10.647Z",
       "validationStatus": "pass",
@@ -267,6 +859,17 @@
       "status": "created",
       "phase": null,
       "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T17:46:45.796Z",
       "updatedAt": "2026-04-30T17:46:49.369Z",
       "validationStatus": "not_run",
@@ -279,6 +882,17 @@
       "status": "created",
       "phase": null,
       "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T17:46:28.973Z",
       "updatedAt": "2026-04-30T17:46:28.973Z",
       "validationStatus": "not_run",
@@ -291,6 +905,17 @@
       "status": "created",
       "phase": null,
       "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T17:41:53.585Z",
       "updatedAt": "2026-04-30T17:41:57.912Z",
       "validationStatus": "not_run",
@@ -303,6 +928,17 @@
       "status": "created",
       "phase": null,
       "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T17:35:12.588Z",
       "updatedAt": "2026-04-30T17:35:12.588Z",
       "validationStatus": "not_run",
@@ -315,6 +951,17 @@
       "status": "created",
       "phase": null,
       "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
       "createdAt": "2026-04-30T16:50:06.248Z",
       "updatedAt": "2026-04-30T16:50:06.249Z",
       "validationStatus": "not_run",
@@ -326,6 +973,9 @@
   "tasks": [
     {
       "taskId": "DEMO-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "PASS",
       "runId": "20260506-001",
       "runStatus": "completed",
@@ -333,6 +983,9 @@
     },
     {
       "taskId": "P1.10-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "blocked",
       "runId": "20260501-019",
       "runStatus": "blocked",
@@ -340,6 +993,9 @@
     },
     {
       "taskId": "P1.10-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "PASS",
       "runId": "20260501-020",
       "runStatus": "completed",
@@ -347,6 +1003,9 @@
     },
     {
       "taskId": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "completed",
       "runId": "20260501-006",
       "runStatus": "completed",
@@ -354,6 +1013,9 @@
     },
     {
       "taskId": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "completed",
       "runId": "20260501-007",
       "runStatus": "completed",
@@ -361,6 +1023,9 @@
     },
     {
       "taskId": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "blocked",
       "runId": "20260501-008",
       "runStatus": "blocked",
@@ -368,6 +1033,9 @@
     },
     {
       "taskId": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "completed",
       "runId": "20260501-009",
       "runStatus": "completed",
@@ -375,6 +1043,9 @@
     },
     {
       "taskId": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "blocked",
       "runId": "20260501-010",
       "runStatus": "blocked",
@@ -382,6 +1053,9 @@
     },
     {
       "taskId": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "completed",
       "runId": "20260501-011",
       "runStatus": "completed",
@@ -389,6 +1063,9 @@
     },
     {
       "taskId": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "blocked",
       "runId": "20260501-012",
       "runStatus": "blocked",
@@ -396,6 +1073,9 @@
     },
     {
       "taskId": "P1.8-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "blocked",
       "runId": "20260501-013",
       "runStatus": "blocked",
@@ -403,6 +1083,9 @@
     },
     {
       "taskId": "P1.9-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "PASS",
       "runId": "20260501-014",
       "runStatus": "completed",
@@ -410,6 +1093,9 @@
     },
     {
       "taskId": "P1.9-T1",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "BLOCKED",
       "runId": "20260501-015",
       "runStatus": "blocked",
@@ -417,6 +1103,9 @@
     },
     {
       "taskId": "P1.9-T2",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "blocked",
       "runId": "20260501-016",
       "runStatus": "failed",
@@ -424,6 +1113,9 @@
     },
     {
       "taskId": "P18-SMOKE",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "blocked",
       "runId": "smoke-p18-block",
       "runStatus": "blocked",
@@ -431,10 +1123,185 @@
     },
     {
       "taskId": "P18-SMOKE",
+      "partition": null,
+      "gitBranch": null,
+      "affectedFiles": [],
       "status": "completed",
       "runId": "smoke-p18-pass",
       "runStatus": "completed",
       "updatedAt": "2026-05-01T00:03:00.000Z"
+    },
+    {
+      "taskId": "PHASE6.6-1",
+      "partition": "fix_20260507_bug",
+      "gitBranch": "fix_20260507_bug",
+      "affectedFiles": [],
+      "status": "blocked",
+      "runId": "20260511-002",
+      "runStatus": "archived",
+      "updatedAt": "2026-05-11T07:04:26.635Z"
+    },
+    {
+      "taskId": "PHASE6.6-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "docs/documentation-information-architecture.md",
+        "specs/master/tasks.md",
+        "specs/master/phase6.6-validation.md"
+      ],
+      "status": "PASS",
+      "runId": "20260511-003",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-11T07:04:06.733Z"
+    },
+    {
+      "taskId": "PHASE6.6-2",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "README.md",
+        "docs/user-guide.md",
+        "docs/ai-readme.md",
+        "specs/master/spec.md",
+        "specs/master/plan.md",
+        "specs/master/tasks.md"
+      ],
+      "status": "PASS",
+      "runId": "20260511-004",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-11T07:42:44.674Z"
+    },
+    {
+      "taskId": "PHASE6.7-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "specs/master/phase6.7-spec.md",
+        "specs/master/phase6.7-plan.md",
+        "specs/master/phase6.7-tasks.md",
+        "specs/master/phase6.7-validation.md",
+        "specs/master/phase6.8-spec.md",
+        "specs/master/phase6.8-plan.md",
+        "specs/master/phase6.8-tasks.md",
+        "specs/master/phase6.8-validation.md",
+        "specs/master/phases/phase-6.7-token-budget-output-dedup-runtime.md",
+        "specs/master/phases/phase-6.8-project-document-language-runtime.md",
+        "specs/master/spec.md",
+        "specs/master/plan.md",
+        "specs/master/tasks.md",
+        "specs/master/validation.md",
+        "specs/master/phases/README.md",
+        "specs/master/phases/PHASE_STATUS.md"
+      ],
+      "status": "PASS",
+      "runId": "20260511-007",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-11T11:38:23.052Z"
+    },
+    {
+      "taskId": "PHASE6.7-2",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.test.ts"
+      ],
+      "status": "blocked",
+      "runId": "20260511-008",
+      "runStatus": "archived",
+      "updatedAt": "2026-05-11T11:46:28.688Z"
+    },
+    {
+      "taskId": "PHASE6.7-2",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.test.ts"
+      ],
+      "status": "PASS",
+      "runId": "20260511-010",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-11T11:47:31.114Z"
+    },
+    {
+      "taskId": "PHASE6.7-3",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.ts",
+        "packages/core/src/instructions.ts",
+        "packages/core/src/index.test.ts",
+        "specs/master/phase6.7-validation.md"
+      ],
+      "status": "BLOCKED",
+      "runId": "20260511-009",
+      "runStatus": "archived",
+      "updatedAt": "2026-05-11T11:38:22.835Z"
+    },
+    {
+      "taskId": "PHASE6.7-3",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.ts",
+        "packages/core/src/instructions.ts",
+        "packages/core/src/index.test.ts",
+        "specs/master/phase6.7-validation.md"
+      ],
+      "status": "PASS",
+      "runId": "20260511-011",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-11T11:48:47.200Z"
+    },
+    {
+      "taskId": "PHASE6.8-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "schemas/contracts/project-yml-contract.md",
+        "templates/project-template.yml",
+        "adapters/generic.yml",
+        "adapters/java-maven.yml",
+        "packages/core/src/index.ts",
+        "packages/core/src/index.test.ts"
+      ],
+      "status": "PASS",
+      "runId": "20260511-012",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-11T11:51:02.424Z"
+    },
+    {
+      "taskId": "PHASE6.8-2",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/core/src/index.ts",
+        "packages/core/src/index.test.ts",
+        "templates/spec-template.md",
+        "templates/plan-template.md",
+        "templates/tasks-template.md"
+      ],
+      "status": "PASS",
+      "runId": "20260511-013",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-11T11:55:15.095Z"
+    },
+    {
+      "taskId": "PHASE6.8-3",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "specs/master/phase6.8-validation.md",
+        "specs/master/tasks.md"
+      ],
+      "status": "PASS",
+      "runId": "20260511-005",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-11T11:19:24.551Z"
     }
   ],
   "delegations": [
@@ -1026,6 +1893,576 @@
       ],
       "createdAt": "2026-05-06T08:51:38.453Z",
       "updatedAt": "2026-05-06T08:51:38.462Z"
+    },
+    {
+      "id": "20260511-003:B-PHASE6.6-1-implementer-001",
+      "runId": "20260511-003",
+      "delegationId": "B-PHASE6.6-1-implementer-001",
+      "taskId": "PHASE6.6-1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-003:PHASE6.6-1:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.6-1.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.6-1.md",
+        ".sdd\\runs\\20260511-003\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T07:03:45.497Z",
+      "updatedAt": "2026-05-11T07:03:45.559Z"
+    },
+    {
+      "id": "20260511-003:B-PHASE6.6-1-reviewer-001",
+      "runId": "20260511-003",
+      "delegationId": "B-PHASE6.6-1-reviewer-001",
+      "taskId": "PHASE6.6-1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-003:PHASE6.6-1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.6-1.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.6-1.md",
+        ".sdd\\runs\\20260511-003\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T07:03:45.741Z",
+      "updatedAt": "2026-05-11T07:03:45.795Z"
+    },
+    {
+      "id": "20260511-003:B-PHASE6.6-1-validator-001",
+      "runId": "20260511-003",
+      "delegationId": "B-PHASE6.6-1-validator-001",
+      "taskId": "PHASE6.6-1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-003:PHASE6.6-1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.6-1.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.6-1.md",
+        ".sdd\\runs\\20260511-003\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T07:03:45.974Z",
+      "updatedAt": "2026-05-11T07:03:46.064Z"
+    },
+    {
+      "id": "20260511-004:B-PHASE6.6-2-implementer-001",
+      "runId": "20260511-004",
+      "delegationId": "B-PHASE6.6-2-implementer-001",
+      "taskId": "PHASE6.6-2",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-004:PHASE6.6-2:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.6-2.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.6-2.md",
+        ".sdd\\runs\\20260511-004\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T07:39:01.200Z",
+      "updatedAt": "2026-05-11T07:39:01.248Z"
+    },
+    {
+      "id": "20260511-004:B-PHASE6.6-2-reviewer-001",
+      "runId": "20260511-004",
+      "delegationId": "B-PHASE6.6-2-reviewer-001",
+      "taskId": "PHASE6.6-2",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-004:PHASE6.6-2:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.6-2.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.6-2.md",
+        ".sdd\\runs\\20260511-004\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T07:39:01.454Z",
+      "updatedAt": "2026-05-11T07:39:01.501Z"
+    },
+    {
+      "id": "20260511-004:B-PHASE6.6-2-validator-001",
+      "runId": "20260511-004",
+      "delegationId": "B-PHASE6.6-2-validator-001",
+      "taskId": "PHASE6.6-2",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-004:PHASE6.6-2:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.6-2.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.6-2.md",
+        ".sdd\\runs\\20260511-004\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T07:39:01.673Z",
+      "updatedAt": "2026-05-11T07:39:01.720Z"
+    },
+    {
+      "id": "20260511-005:B-PHASE6.8-3-implementer-001",
+      "runId": "20260511-005",
+      "delegationId": "B-PHASE6.8-3-implementer-001",
+      "taskId": "PHASE6.8-3",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-005:PHASE6.8-3:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.8-3.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.8-3.md",
+        ".sdd\\runs\\20260511-005\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:12:37.646Z",
+      "updatedAt": "2026-05-11T11:12:37.692Z"
+    },
+    {
+      "id": "20260511-005:B-PHASE6.8-3-reviewer-001",
+      "runId": "20260511-005",
+      "delegationId": "B-PHASE6.8-3-reviewer-001",
+      "taskId": "PHASE6.8-3",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-005:PHASE6.8-3:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.8-3.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.8-3.md",
+        ".sdd\\runs\\20260511-005\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:12:37.798Z",
+      "updatedAt": "2026-05-11T11:12:37.831Z"
+    },
+    {
+      "id": "20260511-005:B-PHASE6.8-3-validator-001",
+      "runId": "20260511-005",
+      "delegationId": "B-PHASE6.8-3-validator-001",
+      "taskId": "PHASE6.8-3",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-005:PHASE6.8-3:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.8-3.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.8-3.md",
+        ".sdd\\runs\\20260511-005\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:12:37.947Z",
+      "updatedAt": "2026-05-11T11:12:37.983Z"
+    },
+    {
+      "id": "20260511-007:B-PHASE6.7-1-implementer-001",
+      "runId": "20260511-007",
+      "delegationId": "B-PHASE6.7-1-implementer-001",
+      "taskId": "PHASE6.7-1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-007:PHASE6.7-1:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.7-1.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.7-1.md",
+        ".sdd\\runs\\20260511-007\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:27:38.920Z",
+      "updatedAt": "2026-05-11T11:27:38.955Z"
+    },
+    {
+      "id": "20260511-007:B-PHASE6.7-1-reviewer-001",
+      "runId": "20260511-007",
+      "delegationId": "B-PHASE6.7-1-reviewer-001",
+      "taskId": "PHASE6.7-1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-007:PHASE6.7-1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.7-1.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.7-1.md",
+        ".sdd\\runs\\20260511-007\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:27:39.061Z",
+      "updatedAt": "2026-05-11T11:27:39.097Z"
+    },
+    {
+      "id": "20260511-007:B-PHASE6.7-1-validator-001",
+      "runId": "20260511-007",
+      "delegationId": "B-PHASE6.7-1-validator-001",
+      "taskId": "PHASE6.7-1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-007:PHASE6.7-1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.7-1.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.7-1.md",
+        ".sdd\\runs\\20260511-007\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:27:39.182Z",
+      "updatedAt": "2026-05-11T11:27:39.211Z"
+    },
+    {
+      "id": "20260511-008:B-PHASE6.7-2-implementer-001",
+      "runId": "20260511-008",
+      "delegationId": "B-PHASE6.7-2-implementer-001",
+      "taskId": "PHASE6.7-2",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-008:PHASE6.7-2:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.7-2.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.7-2.md",
+        ".sdd\\runs\\20260511-008\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:30:06.523Z",
+      "updatedAt": "2026-05-11T11:30:06.563Z"
+    },
+    {
+      "id": "20260511-008:B-PHASE6.7-2-reviewer-001",
+      "runId": "20260511-008",
+      "delegationId": "B-PHASE6.7-2-reviewer-001",
+      "taskId": "PHASE6.7-2",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-008:PHASE6.7-2:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.7-2.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.7-2.md",
+        ".sdd\\runs\\20260511-008\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:30:06.683Z",
+      "updatedAt": "2026-05-11T11:30:06.730Z"
+    },
+    {
+      "id": "20260511-008:B-PHASE6.7-2-validator-001",
+      "runId": "20260511-008",
+      "delegationId": "B-PHASE6.7-2-validator-001",
+      "taskId": "PHASE6.7-2",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-008:PHASE6.7-2:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.7-2.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.7-2.md",
+        ".sdd\\runs\\20260511-008\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:30:06.839Z",
+      "updatedAt": "2026-05-11T11:30:06.884Z"
+    },
+    {
+      "id": "20260511-009:B-PHASE6.7-3-implementer-001",
+      "runId": "20260511-009",
+      "delegationId": "B-PHASE6.7-3-implementer-001",
+      "taskId": "PHASE6.7-3",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-009:PHASE6.7-3:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.7-3.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.7-3.md",
+        ".sdd\\runs\\20260511-009\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:31:47.404Z",
+      "updatedAt": "2026-05-11T11:31:47.442Z"
+    },
+    {
+      "id": "20260511-009:B-PHASE6.7-3-reviewer-001",
+      "runId": "20260511-009",
+      "delegationId": "B-PHASE6.7-3-reviewer-001",
+      "taskId": "PHASE6.7-3",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-009:PHASE6.7-3:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.7-3.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.7-3.md",
+        ".sdd\\runs\\20260511-009\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:31:47.540Z",
+      "updatedAt": "2026-05-11T11:31:47.574Z"
+    },
+    {
+      "id": "20260511-009:B-PHASE6.7-3-validator-001",
+      "runId": "20260511-009",
+      "delegationId": "B-PHASE6.7-3-validator-001",
+      "taskId": "PHASE6.7-3",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-009:PHASE6.7-3:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.7-3.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.7-3.md",
+        ".sdd\\runs\\20260511-009\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:31:47.679Z",
+      "updatedAt": "2026-05-11T11:31:47.720Z"
+    },
+    {
+      "id": "20260511-010:B-PHASE6.7-2-implementer-001",
+      "runId": "20260511-010",
+      "delegationId": "B-PHASE6.7-2-implementer-001",
+      "taskId": "PHASE6.7-2",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-010:PHASE6.7-2:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.7-2.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.7-2.md",
+        ".sdd\\runs\\20260511-010\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:47:11.591Z",
+      "updatedAt": "2026-05-11T11:47:11.628Z"
+    },
+    {
+      "id": "20260511-010:B-PHASE6.7-2-reviewer-001",
+      "runId": "20260511-010",
+      "delegationId": "B-PHASE6.7-2-reviewer-001",
+      "taskId": "PHASE6.7-2",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-010:PHASE6.7-2:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.7-2.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.7-2.md",
+        ".sdd\\runs\\20260511-010\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:47:11.746Z",
+      "updatedAt": "2026-05-11T11:47:11.772Z"
+    },
+    {
+      "id": "20260511-010:B-PHASE6.7-2-validator-001",
+      "runId": "20260511-010",
+      "delegationId": "B-PHASE6.7-2-validator-001",
+      "taskId": "PHASE6.7-2",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-010:PHASE6.7-2:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.7-2.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.7-2.md",
+        ".sdd\\runs\\20260511-010\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:47:11.872Z",
+      "updatedAt": "2026-05-11T11:47:11.910Z"
+    },
+    {
+      "id": "20260511-011:B-PHASE6.7-3-implementer-001",
+      "runId": "20260511-011",
+      "delegationId": "B-PHASE6.7-3-implementer-001",
+      "taskId": "PHASE6.7-3",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-011:PHASE6.7-3:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.7-3.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.7-3.md",
+        ".sdd\\runs\\20260511-011\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:48:46.326Z",
+      "updatedAt": "2026-05-11T11:48:46.367Z"
+    },
+    {
+      "id": "20260511-011:B-PHASE6.7-3-reviewer-001",
+      "runId": "20260511-011",
+      "delegationId": "B-PHASE6.7-3-reviewer-001",
+      "taskId": "PHASE6.7-3",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-011:PHASE6.7-3:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.7-3.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.7-3.md",
+        ".sdd\\runs\\20260511-011\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:48:46.484Z",
+      "updatedAt": "2026-05-11T11:48:46.511Z"
+    },
+    {
+      "id": "20260511-011:B-PHASE6.7-3-validator-001",
+      "runId": "20260511-011",
+      "delegationId": "B-PHASE6.7-3-validator-001",
+      "taskId": "PHASE6.7-3",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-011:PHASE6.7-3:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.7-3.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.7-3.md",
+        ".sdd\\runs\\20260511-011\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:48:46.599Z",
+      "updatedAt": "2026-05-11T11:48:46.629Z"
+    },
+    {
+      "id": "20260511-012:B-PHASE6.8-1-implementer-001",
+      "runId": "20260511-012",
+      "delegationId": "B-PHASE6.8-1-implementer-001",
+      "taskId": "PHASE6.8-1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-012:PHASE6.8-1:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.8-1.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.8-1.md",
+        ".sdd\\runs\\20260511-012\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:51:00.326Z",
+      "updatedAt": "2026-05-11T11:51:00.375Z"
+    },
+    {
+      "id": "20260511-012:B-PHASE6.8-1-reviewer-001",
+      "runId": "20260511-012",
+      "delegationId": "B-PHASE6.8-1-reviewer-001",
+      "taskId": "PHASE6.8-1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-012:PHASE6.8-1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.8-1.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.8-1.md",
+        ".sdd\\runs\\20260511-012\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:51:00.638Z",
+      "updatedAt": "2026-05-11T11:51:00.709Z"
+    },
+    {
+      "id": "20260511-012:B-PHASE6.8-1-validator-001",
+      "runId": "20260511-012",
+      "delegationId": "B-PHASE6.8-1-validator-001",
+      "taskId": "PHASE6.8-1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-012:PHASE6.8-1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.8-1.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.8-1.md",
+        ".sdd\\runs\\20260511-012\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:51:01.029Z",
+      "updatedAt": "2026-05-11T11:51:01.081Z"
+    },
+    {
+      "id": "20260511-013:B-PHASE6.8-2-implementer-001",
+      "runId": "20260511-013",
+      "delegationId": "B-PHASE6.8-2-implementer-001",
+      "taskId": "PHASE6.8-2",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-013:PHASE6.8-2:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE6.8-2.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE6.8-2.md",
+        ".sdd\\runs\\20260511-013\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:55:14.146Z",
+      "updatedAt": "2026-05-11T11:55:14.185Z"
+    },
+    {
+      "id": "20260511-013:B-PHASE6.8-2-reviewer-001",
+      "runId": "20260511-013",
+      "delegationId": "B-PHASE6.8-2-reviewer-001",
+      "taskId": "PHASE6.8-2",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-013:PHASE6.8-2:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE6.8-2.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE6.8-2.md",
+        ".sdd\\runs\\20260511-013\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:55:14.322Z",
+      "updatedAt": "2026-05-11T11:55:14.362Z"
+    },
+    {
+      "id": "20260511-013:B-PHASE6.8-2-validator-001",
+      "runId": "20260511-013",
+      "delegationId": "B-PHASE6.8-2-validator-001",
+      "taskId": "PHASE6.8-2",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260511-013:PHASE6.8-2:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE6.8-2.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE6.8-2.md",
+        ".sdd\\runs\\20260511-013\\events.jsonl"
+      ],
+      "createdAt": "2026-05-11T11:55:14.481Z",
+      "updatedAt": "2026-05-11T11:55:14.524Z"
     }
   ],
   "artifacts": [
@@ -1060,6 +2497,86 @@
       "agent": "unknown",
       "createdAt": "2026-04-30T18:19:35.985Z",
       "runId": "20260501-015"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.6-1.md",
+      "kind": "artifact",
+      "task": "PHASE6.6-1",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T07:03:46.513Z",
+      "runId": "20260511-003"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.6-2.md",
+      "kind": "artifact",
+      "task": "PHASE6.6-2",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T07:39:02.106Z",
+      "runId": "20260511-004"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.7-1.md",
+      "kind": "artifact",
+      "task": "PHASE6.7-1",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T11:27:39.437Z",
+      "runId": "20260511-007"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.7-2.md",
+      "kind": "artifact",
+      "task": "PHASE6.7-2",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T11:30:07.093Z",
+      "runId": "20260511-008"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.7-2.md",
+      "kind": "artifact",
+      "task": "PHASE6.7-2",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T11:47:12.162Z",
+      "runId": "20260511-010"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.7-3.md",
+      "kind": "artifact",
+      "task": "PHASE6.7-3",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T11:31:47.961Z",
+      "runId": "20260511-009"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.7-3.md",
+      "kind": "artifact",
+      "task": "PHASE6.7-3",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T11:48:46.872Z",
+      "runId": "20260511-011"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.8-1.md",
+      "kind": "artifact",
+      "task": "PHASE6.8-1",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T11:51:01.689Z",
+      "runId": "20260511-012"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.8-2.md",
+      "kind": "artifact",
+      "task": "PHASE6.8-2",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T11:55:14.755Z",
+      "runId": "20260511-013"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE6.8-3.md",
+      "kind": "artifact",
+      "task": "PHASE6.8-3",
+      "agent": "unknown",
+      "createdAt": "2026-05-11T11:12:38.236Z",
+      "runId": "20260511-005"
     },
     {
       "path": "artifacts/gap-report-P1.10-T1.md",
@@ -1102,12 +2619,108 @@
       "runId": "20260501-013"
     },
     {
+      "path": "artifacts/gap-report-PHASE6.6-1.md",
+      "kind": "gap-report",
+      "task": "PHASE6.6-1",
+      "agent": "runtime",
+      "createdAt": "2026-05-11T07:00:52.888Z",
+      "runId": "20260511-002"
+    },
+    {
+      "path": "artifacts/gap-report-PHASE6.7-2.md",
+      "kind": "gap-report",
+      "task": "PHASE6.7-2",
+      "agent": "runtime",
+      "createdAt": "2026-05-11T11:38:35.867Z",
+      "runId": "20260511-008"
+    },
+    {
       "path": "artifacts/implement-DEMO-T1.md",
       "kind": "implement",
       "task": "DEMO-T1",
       "agent": "implementer",
       "createdAt": "2026-05-06T08:51:38.499Z",
       "runId": "20260506-001"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.6-1.md",
+      "kind": "implement",
+      "task": "PHASE6.6-1",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T07:03:45.559Z",
+      "runId": "20260511-003"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.6-2.md",
+      "kind": "implement",
+      "task": "PHASE6.6-2",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T07:39:01.248Z",
+      "runId": "20260511-004"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.7-1.md",
+      "kind": "implement",
+      "task": "PHASE6.7-1",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T11:27:38.955Z",
+      "runId": "20260511-007"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.7-2.md",
+      "kind": "implement",
+      "task": "PHASE6.7-2",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T11:30:06.563Z",
+      "runId": "20260511-008"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.7-2.md",
+      "kind": "implement",
+      "task": "PHASE6.7-2",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T11:47:11.628Z",
+      "runId": "20260511-010"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.7-3.md",
+      "kind": "implement",
+      "task": "PHASE6.7-3",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T11:31:47.442Z",
+      "runId": "20260511-009"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.7-3.md",
+      "kind": "implement",
+      "task": "PHASE6.7-3",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T11:48:46.367Z",
+      "runId": "20260511-011"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.8-1.md",
+      "kind": "implement",
+      "task": "PHASE6.8-1",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T11:51:00.375Z",
+      "runId": "20260511-012"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.8-2.md",
+      "kind": "implement",
+      "task": "PHASE6.8-2",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T11:55:14.185Z",
+      "runId": "20260511-013"
+    },
+    {
+      "path": "artifacts/implement-PHASE6.8-3.md",
+      "kind": "implement",
+      "task": "PHASE6.8-3",
+      "agent": "implementer",
+      "createdAt": "2026-05-11T11:12:37.692Z",
+      "runId": "20260511-005"
     },
     {
       "path": "artifacts/review-DEMO-T1.md",
@@ -1188,6 +2801,86 @@
       "agent": "reviewer",
       "createdAt": "2026-05-01T00:03:00.000Z",
       "runId": "smoke-p18-pass"
+    },
+    {
+      "path": "artifacts/review-PHASE6.6-1.md",
+      "kind": "review",
+      "task": "PHASE6.6-1",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T07:03:45.795Z",
+      "runId": "20260511-003"
+    },
+    {
+      "path": "artifacts/review-PHASE6.6-2.md",
+      "kind": "review",
+      "task": "PHASE6.6-2",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T07:39:01.501Z",
+      "runId": "20260511-004"
+    },
+    {
+      "path": "artifacts/review-PHASE6.7-1.md",
+      "kind": "review",
+      "task": "PHASE6.7-1",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T11:27:39.097Z",
+      "runId": "20260511-007"
+    },
+    {
+      "path": "artifacts/review-PHASE6.7-2.md",
+      "kind": "review",
+      "task": "PHASE6.7-2",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T11:30:06.730Z",
+      "runId": "20260511-008"
+    },
+    {
+      "path": "artifacts/review-PHASE6.7-2.md",
+      "kind": "review",
+      "task": "PHASE6.7-2",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T11:47:11.772Z",
+      "runId": "20260511-010"
+    },
+    {
+      "path": "artifacts/review-PHASE6.7-3.md",
+      "kind": "review",
+      "task": "PHASE6.7-3",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T11:31:47.574Z",
+      "runId": "20260511-009"
+    },
+    {
+      "path": "artifacts/review-PHASE6.7-3.md",
+      "kind": "review",
+      "task": "PHASE6.7-3",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T11:48:46.511Z",
+      "runId": "20260511-011"
+    },
+    {
+      "path": "artifacts/review-PHASE6.8-1.md",
+      "kind": "review",
+      "task": "PHASE6.8-1",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T11:51:00.709Z",
+      "runId": "20260511-012"
+    },
+    {
+      "path": "artifacts/review-PHASE6.8-2.md",
+      "kind": "review",
+      "task": "PHASE6.8-2",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T11:55:14.362Z",
+      "runId": "20260511-013"
+    },
+    {
+      "path": "artifacts/review-PHASE6.8-3.md",
+      "kind": "review",
+      "task": "PHASE6.8-3",
+      "agent": "reviewer",
+      "createdAt": "2026-05-11T11:12:37.831Z",
+      "runId": "20260511-005"
     },
     {
       "path": "artifacts/validation-DEMO-T1.md",
@@ -1276,7 +2969,231 @@
       "agent": "validator",
       "createdAt": "2026-05-01T00:03:00.000Z",
       "runId": "smoke-p18-pass"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.6-1.md",
+      "kind": "validation",
+      "task": "PHASE6.6-1",
+      "agent": "validator",
+      "createdAt": "2026-05-11T07:03:46.064Z",
+      "runId": "20260511-003"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.6-2.md",
+      "kind": "validation",
+      "task": "PHASE6.6-2",
+      "agent": "validator",
+      "createdAt": "2026-05-11T07:39:01.720Z",
+      "runId": "20260511-004"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.7-1.md",
+      "kind": "validation",
+      "task": "PHASE6.7-1",
+      "agent": "validator",
+      "createdAt": "2026-05-11T11:27:39.211Z",
+      "runId": "20260511-007"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.7-2.md",
+      "kind": "validation",
+      "task": "PHASE6.7-2",
+      "agent": "validator",
+      "createdAt": "2026-05-11T11:30:06.884Z",
+      "runId": "20260511-008"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.7-2.md",
+      "kind": "validation",
+      "task": "PHASE6.7-2",
+      "agent": "validator",
+      "createdAt": "2026-05-11T11:47:11.910Z",
+      "runId": "20260511-010"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.7-3.md",
+      "kind": "validation",
+      "task": "PHASE6.7-3",
+      "agent": "validator",
+      "createdAt": "2026-05-11T11:31:47.720Z",
+      "runId": "20260511-009"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.7-3.md",
+      "kind": "validation",
+      "task": "PHASE6.7-3",
+      "agent": "validator",
+      "createdAt": "2026-05-11T11:48:46.629Z",
+      "runId": "20260511-011"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.8-1.md",
+      "kind": "validation",
+      "task": "PHASE6.8-1",
+      "agent": "validator",
+      "createdAt": "2026-05-11T11:51:01.081Z",
+      "runId": "20260511-012"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.8-2.md",
+      "kind": "validation",
+      "task": "PHASE6.8-2",
+      "agent": "validator",
+      "createdAt": "2026-05-11T11:55:14.524Z",
+      "runId": "20260511-013"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.8-3.md",
+      "kind": "validation",
+      "task": "PHASE6.8-3",
+      "agent": "validator",
+      "createdAt": "2026-05-11T11:12:37.983Z",
+      "runId": "20260511-005"
     }
   ],
-  "waves": []
+  "waves": [],
+  "latestByPartitionTask": [
+    {
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.6-1",
+      "runId": "20260511-003",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "docs/documentation-information-architecture.md",
+        "specs/master/tasks.md",
+        "specs/master/phase6.6-validation.md"
+      ],
+      "updatedAt": "2026-05-11T07:04:06.733Z"
+    },
+    {
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.6-2",
+      "runId": "20260511-004",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "README.md",
+        "docs/user-guide.md",
+        "docs/ai-readme.md",
+        "specs/master/spec.md",
+        "specs/master/plan.md",
+        "specs/master/tasks.md"
+      ],
+      "updatedAt": "2026-05-11T07:42:44.674Z"
+    },
+    {
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.7-1",
+      "runId": "20260511-007",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "specs/master/phase6.7-spec.md",
+        "specs/master/phase6.7-plan.md",
+        "specs/master/phase6.7-tasks.md",
+        "specs/master/phase6.7-validation.md",
+        "specs/master/phase6.8-spec.md",
+        "specs/master/phase6.8-plan.md",
+        "specs/master/phase6.8-tasks.md",
+        "specs/master/phase6.8-validation.md",
+        "specs/master/phases/phase-6.7-token-budget-output-dedup-runtime.md",
+        "specs/master/phases/phase-6.8-project-document-language-runtime.md",
+        "specs/master/spec.md",
+        "specs/master/plan.md",
+        "specs/master/tasks.md",
+        "specs/master/validation.md",
+        "specs/master/phases/README.md",
+        "specs/master/phases/PHASE_STATUS.md"
+      ],
+      "updatedAt": "2026-05-11T11:38:23.052Z"
+    },
+    {
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.7-2",
+      "runId": "20260511-010",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.test.ts"
+      ],
+      "updatedAt": "2026-05-11T11:47:31.114Z"
+    },
+    {
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.7-3",
+      "runId": "20260511-011",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "packages/cli/src/main.ts",
+        "packages/core/src/index.ts",
+        "packages/core/src/instructions.ts",
+        "packages/core/src/index.test.ts",
+        "specs/master/phase6.7-validation.md"
+      ],
+      "updatedAt": "2026-05-11T11:48:47.200Z"
+    },
+    {
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.8-1",
+      "runId": "20260511-012",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "schemas/contracts/project-yml-contract.md",
+        "templates/project-template.yml",
+        "adapters/generic.yml",
+        "adapters/java-maven.yml",
+        "packages/core/src/index.ts",
+        "packages/core/src/index.test.ts"
+      ],
+      "updatedAt": "2026-05-11T11:51:02.424Z"
+    },
+    {
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.8-2",
+      "runId": "20260511-013",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "packages/core/src/index.ts",
+        "packages/core/src/index.test.ts",
+        "templates/spec-template.md",
+        "templates/plan-template.md",
+        "templates/tasks-template.md"
+      ],
+      "updatedAt": "2026-05-11T11:55:15.095Z"
+    },
+    {
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.8-3",
+      "runId": "20260511-005",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "specs/master/phase6.8-validation.md",
+        "specs/master/tasks.md"
+      ],
+      "updatedAt": "2026-05-11T11:19:24.551Z"
+    }
+  ],
+  "activeByAffectedFile": []
 }
