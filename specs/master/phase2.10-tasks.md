@@ -39,10 +39,10 @@ affected_files:
   - packages/core/src/ai-tools.ts
   - packages/core/src/instructions.ts
   - .claude/commands/sdd.md
-  - .claude/commands/sdd/init.md
   - .claude/commands/sdd/spec.md
   - .claude/commands/sdd/plan.md
   - .claude/commands/sdd/tasks.md
+  - .claude/commands/sdd/do.md
 validation:
   - node ./dist/packages/cli/src/main.js update --check
 risk: []
@@ -54,7 +54,7 @@ risk: []
 
 #### Acceptance
 
-- `/sdd:init` 说明 init 生成 starter semantic docs。
+- 当前 `/sdd` 是根入口 thin wrapper，`/sdd:spec` 是 workflow partition 入口；`sdd init` 只负责项目级接入和可选 starter docs。
 - `/sdd` 遇到 ONBOARDING-1 时要求 refine existing docs，不创建平行文档。
 
 #### Implementation Notes

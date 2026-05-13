@@ -27,7 +27,7 @@ risk:
 
 #### Acceptance
 
-- CLI `sdd verify task <task_id> --run <run_id>` 可运行。
+- CLI `sdd verify task <task_id> [--run <run_id>]` 可运行；Phase 6.5 后常规路径省略 `--run`。
 - Reviewer / validator artifact contract 不合法时阻塞。
 - Validator artifact 未覆盖 acceptance 时阻塞并输出 gap。
 - Verify 写入 coverage artifact、state/events、sync-back proposal。

@@ -58,6 +58,9 @@ risk:
 ## Rules
 
 - `spec_dir` may contain `<branch>` and is resolved by runtime/command code in later phases.
+- `docs_language` is one project-level SDD document prose preference for generated `spec.md`, `plan.md`, and `tasks.md` content.
+- `docs_language` is not a runtime localization switch; CLI text, JSON output, diagnostics, command names, contract identifiers, metadata keys, status enum, artifact paths, and fenced block identifiers remain stable/English.
+- `docs_language` has no per-run, per-task, or per-document override layer. Init, config edits, chat, and workflow guidance only update the same project-level preference.
 - Validation commands are declarations only; adapters do not execute commands.
 - Phase 1 requires `background_write: false` and `worktree_isolation: false`.
 - Lifecycle profiles must use the canonical model in `docs/architecture/lifecycle-decision-model.md`.

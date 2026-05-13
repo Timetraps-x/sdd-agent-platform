@@ -1,186 +1,46 @@
 # SDD Agent Platform
 
-自建的 SDD + subagent workflow 平台，用于把规格驱动开发、Claude Code subagent 编排、运行状态、审查验证和项目适配沉淀为一套可持续迭代的个人 AI 开发平台。
+SDD Agent Platform 是一个本地优先的规格驱动开发（SDD）与 Claude Code subagent workflow 平台。它把需求、计划、任务边界、运行状态、agent 证据、验证结果和 sync-back 写回串成一条可审计的本地证据链。
 
-本项目不是对 Spec Kit、GSD、BMAD、OpenSpec 或 Oh My OpenCode 的直接封装，而是吸收它们的关键机制后，设计一套适合 Claude Code 工作流的本地平台。
+它不是 Spec Kit、GSD、OpenSpec、BMAD 或 Oh My OpenCode 的封装，而是吸收这些工具的共同机制后，为 Claude Code 工作流设计的一套 CLI/core harness。
 
-## 核心思想
-
-```text
-SDD 文档定义“应该做什么”
-Runtime state/events/artifacts 定义“实际做到了哪里”
-Agent contract 定义“谁能做什么、产出什么证据”
-Project adapter 定义“不同项目如何验证”
-Lifecycle decision 定义“当前需求需要多少 SDD”
-AI tool entry projection 定义“如何把 CLI/core 能力投影成 Claude Code 等工具的薄入口”
-```
-
-平台遵循：
+核心目标：
 
 ```text
 Controlled phase transitions, automated intra-phase orchestration.
 阶段推进可控，阶段内编排自动化。
 ```
 
-同时遵循：
+同时坚持：
 
 ```text
 Sufficient SDD, not maximum SDD.
 只做足以安全完成当前需求的规格化，不多做，不少做。
 ```
 
-## 生命周期决策
+## 适合解决什么问题
 
-`/sdd-*` 命令是智能入口，不是固定流程入口。Phase 1.0 已完成 lifecycle decision model 调研、对比与定稿；当前以 `docs/architecture/lifecycle-decision-model.md` 的 canonical model 为准，根据需求规模、风险、不确定性和规格完整度判断最短安全路径：
+普通 agent 可以直接改代码，但在高风险任务里容易把需求边界、状态流转、并发、数据库、审查、验证和写回混在主会话里。SDD Agent Platform 在 Claude Code 外增加一层可检查的工程约束：
 
-```text
-direct    intent -> implement -> minimal validation
-compact   intent/mini-spec -> task boundary -> implement -> validation
-full      spec -> plan -> tasks -> do -> verify -> sync-back
-research  research -> options -> decision -> architecture artifact -> implementation spec
-```
+| 维度 | 普通 agent 直接执行 | SDD Agent Platform |
+|---|---|---|
+| 路径选择 | 依赖 prompt 判断 | lifecycle decision 选择 direct / compact / full / research |
+| 任务边界 | 容易随实现扩大 | `sdd tasks inspect` 固定 Boundary / Acceptance / affected files |
+| agent 参与 | 证据混在主会话 | implementer / reviewer / validator 输出 run-relative artifacts |
+| 验收 | 自然语言总结 | `.sdd/runs/<run_id>/artifacts` + acceptance coverage |
+| 写回 | 人工记得改状态 | `sync-back inspect/apply` 显式回流到 `tasks.md` |
+| 健康检查 | 临时脚本 | `sdd doctor` 检查配置、run evidence、generated entry drift |
 
-小改即使从 SDD 入口进入，也应该快速完成；复杂任务会升级到更完整的生命周期。当前 profile 已是 canonical model 的路径词汇，后续 phase 只消费该模型并落地 runtime record、command gate 与验证证据，不再重新定义算法。
+## 5 分钟快速开始
 
+### 1. 安装 CLI
 
-## 设计原则
-
-- Spec Kit-compatible，而不是 Spec Kit-based。
-- Markdown 是 SDD 语义事实源。
-- `.sdd/runs` 是 runtime 执行事实源。
-- Claude Code command / skill 保持薄入口。
-- TypeScript runtime 承载状态、事件、artifact、doctor、validation 等核心逻辑。
-- Agent 输出优先沉淀为 artifact，而不是堆在主会话上下文中。
-- 高风险操作继续交由 Claude Code 原生权限、settings、hooks 和用户确认管理。
-- 平台从第一天预留未来代码知识图谱所需的 metadata。
-- 命令入口先经过调研验证后的生命周期决策模型，再选择最短安全路径。
-- Phase 2 命名为 AI 工具入口投影：这是 Spec Kit、GSD、OpenSpec、Oh My OpenCode/OpenAgent 共同采用的 CLI 到 AI 工具入口投影模式。
-
-## 文档入口
-
-- [用户使用指南（人类用户）](docs/user-guide.md)
-- [AI / Claude Code README](docs/ai-readme.md)
-- [架构设计方案](docs/architecture/sdd-agent-platform-architecture.md)
-- [总体方案](docs/research/自建_SDD_subagent_工作流平台方案.md)
-- [Lifecycle Decision Model](docs/architecture/lifecycle-decision-model.md)
-- [Lifecycle Decision Model Research](docs/research/lifecycle-decision-model-research.md)
-- [支持 subagent 的 SDD 工作流深度分析报告](docs/research/支持_subagent_的_SDD_工作流深度分析报告.md)
-- [支持 subagent 的 SDD 工作流调研](docs/research/支持_subagent_的_SDD_工作流调研.md)
-
-## SDD 文档
-
-当前平台自身也使用 SDD 文档推进：
-
-- [Phase artifacts index](specs/master/phases/README.md)
-- [Phase status](specs/master/phases/PHASE_STATUS.md)
-- [Phase 1.0 Lifecycle Decision Model 调研、对比与定稿](specs/master/phases/phase-1.0-lifecycle-research.md)
-- [Phase 1.0 spec](specs/master/phase1.0-spec.md)
-- [Phase 1.0 plan](specs/master/phase1.0-plan.md)
-- [Phase 1.0 tasks](specs/master/phase1.0-tasks.md)
-- [Phase 1.0 validation](specs/master/phase1.0-validation.md)
-- [Phase 1.1 Architecture Baseline](specs/master/phases/phase-1.1-architecture-baseline.md)
-- [Phase 1.1 spec](specs/master/phase1.1-spec.md)
-- [Phase 1.1 plan](specs/master/phase1.1-plan.md)
-- [Phase 1.1 tasks](specs/master/phase1.1-tasks.md)
-- [Phase 1.1 validation](specs/master/phase1.1-validation.md)
-- [Phase 1.2 Runtime Skeleton](specs/master/phases/phase-1.2-runtime-skeleton.md)
-- [Phase 1.2 spec](specs/master/phase1.2-spec.md)
-- [Phase 1.2 plan](specs/master/phase1.2-plan.md)
-- [Phase 1.2 tasks](specs/master/phase1.2-tasks.md)
-- [Phase 1.2 validation](specs/master/phase1.2-validation.md)
-- [Phase 1.3 Contract / Templates / Adapters Pack](specs/master/phases/phase-1.3-contract-templates-adapters.md)
-- [Phase 1.3 spec](specs/master/phase1.3-spec.md)
-- [Phase 1.3 plan](specs/master/phase1.3-plan.md)
-- [Phase 1.3 tasks](specs/master/phase1.3-tasks.md)
-- [Phase 1.3 validation](specs/master/phase1.3-validation.md)
-- [Phase 1.4 Commands / Agents / Workflows Pack](specs/master/phases/phase-1.4-commands-agents-workflows.md)
-- [Phase 1.4 spec](specs/master/phase1.4-spec.md)
-- [Phase 1.4 plan](specs/master/phase1.4-plan.md)
-- [Phase 1.4 tasks](specs/master/phase1.4-tasks.md)
-- [Phase 1.4 validation](specs/master/phase1.4-validation.md)
-- [Phase 1.5 SDD Parser / Task Model](specs/master/phases/phase-1.5-sdd-parser-task-model.md)
-- [Phase 1.5 spec](specs/master/phase1.5-spec.md)
-- [Phase 1.5 plan](specs/master/phase1.5-plan.md)
-- [Phase 1.5 tasks](specs/master/phase1.5-tasks.md)
-- [Phase 1.5 validation](specs/master/phase1.5-validation.md)
-- [Phase 1.6 Artifact / Delegation Contract](specs/master/phases/phase-1.6-artifact-delegation-contract.md)
-- [Phase 1.6 spec](specs/master/phase1.6-spec.md)
-- [Phase 1.6 plan](specs/master/phase1.6-plan.md)
-- [Phase 1.6 tasks](specs/master/phase1.6-tasks.md)
-- [Phase 1.6 validation](specs/master/phase1.6-validation.md)
-- [Phase 1.7 Claude Code Command Integration](specs/master/phases/phase-1.7-claude-code-command-integration.md)
-- [Phase 1.7 spec](specs/master/phase1.7-spec.md)
-- [Phase 1.7 plan](specs/master/phase1.7-plan.md)
-- [Phase 1.7 tasks](specs/master/phase1.7-tasks.md)
-- [Phase 1.7 validation](specs/master/phase1.7-validation.md)
-- [Phase 1.8 Single-task Loop](specs/master/phases/phase-1.8-single-task-loop.md)
-- [Phase 1.8 spec](specs/master/phase1.8-spec.md)
-- [Phase 1.8 plan](specs/master/phase1.8-plan.md)
-- [Phase 1.8 tasks](specs/master/phase1.8-tasks.md)
-- [Phase 1.8 validation](specs/master/phase1.8-validation.md)
-- [Phase 1.9 Goal-level Verify / Doctor](specs/master/phases/phase-1.9-goal-verify-doctor.md)
-- [Phase 1.9 spec](specs/master/phase1.9-spec.md)
-- [Phase 1.9 plan](specs/master/phase1.9-plan.md)
-- [Phase 1.9 tasks](specs/master/phase1.9-tasks.md)
-- [Phase 1.9 validation](specs/master/phase1.9-validation.md)
-- [Phase 1.10 Real/Synthetic Project Trial](specs/master/phases/phase-1.10-real-project-trial.md)
-- [Phase 1.10 spec](specs/master/phase1.10-spec.md)
-- [Phase 1.10 plan](specs/master/phase1.10-plan.md)
-- [Phase 1.10 tasks](specs/master/phase1.10-tasks.md)
-- [Phase 1.10 validation](specs/master/phase1.10-validation.md)
-- [Phase 2.0 AI 工具入口投影与全局安装接入](specs/master/phases/phase-2.0-ai-tool-entry-projection.md)
-- [Phase 4.0 NPM Package Distribution Baseline](specs/master/phases/phase-4.0-npm-package-distribution.md)
-- [Phase 4.1 Package Metadata Hardening](specs/master/phases/phase-4.1-package-metadata-hardening.md)
-- [Phase 4.2 Package Contents and Install Smoke](specs/master/phases/phase-4.2-package-contents-install-smoke.md)
-- [Phase 4.3 NPM Publish Dry-run and Human Runbook](specs/master/phases/phase-4.3-npm-publish-dry-run-runbook.md)
-- [Phase 4.4 Public Publish and Adoption](specs/master/phases/phase-4.4-public-publish-adoption.md)
-
-## CLI 命令
-
-> Phase 2 已完成 AI 工具入口投影与全局安装接入，Phase 4 已完成 npm published package 分发主路径：`sdd` 可直接从 npm 安装，`sdd init` 可一次性生成 `.sdd`、starter `specs/<branch>/spec.md|plan.md|tasks.md` 与 Claude Code managed entries，`sdd update` 可检查/修复漂移，`sdd instructions` 提供动态薄入口指令，`sdd artifact template/validate` 和 `sdd run archive` 降低真实工作流摩擦。
-
-```text
-sdd --version
-sdd init [--force] [--ai auto|claude-code|none] [--branch <branch>] [--no-scaffold-docs]
-sdd update [--check] [--ai auto|claude-code]
-sdd instructions [overview|init|doctor|update|run-task|verify-task] [--json]
-sdd doctor [--latest-only] [--all-runs]
-sdd run create
-sdd run status <run_id>
-sdd run archive <run_id> [--reason <text>]
-sdd lifecycle decide [options]
-sdd tasks list|inspect|gaps [--branch <branch>]
-sdd artifact template <artifacts/path.md> --task <task_id> --agent <agent> [--branch <branch>] [--status <status>]
-sdd artifact validate <run_id> <artifacts/path.md> [--task <task_id>] [--agent <agent>] [--json]
-sdd do task <task_id> [--branch <branch>] [--run <run_id>] --review-artifact <path> --validation-artifact <path>
-sdd verify task <task_id> --branch <branch> --run <run_id> --review-artifact <path> --validation-artifact <path>
-```
-
-CLI 是本地 runtime 入口；长期状态和执行事实源由 `.sdd/runs/<run_id>/state.json`、`events.jsonl` 和 `artifacts/` 管理。
-
-## 安装态全链路使用示例
-
-下面流程对应公开 npm 包安装后的端到端路径。普通用户不需要先 clone 平台仓库，直接安装 `sdd-agent-platform` 即可。
-
-### 1. 从 npm 安装 CLI
+普通用户不需要 clone 本仓库：
 
 ```bash
 npm install -g sdd-agent-platform@latest
 sdd --version
-```
-
-如果你需要验证 GitHub 源码安装路径，也可以使用：
-
-```bash
-npm install -g git+ssh://git@github.com/Timetraps-x/sdd-agent-platform.git
-sdd --version
-```
-
-平台开发时才需要 clone 仓库并直接运行 dist CLI：
-
-```bash
-node ./dist/packages/cli/src/main.js --help
-node ./dist/packages/cli/src/main.js --version
+sdd --help
 ```
 
 卸载：
@@ -189,184 +49,122 @@ node ./dist/packages/cli/src/main.js --version
 npm uninstall -g sdd-agent-platform
 ```
 
-### 2. 初始化项目
-
-`sdd doctor` 要求在 Git 仓库中运行；非 Git 目录会返回 `git_repo` failure。
+平台开发者本地验证可使用构建后的 dist CLI：
 
 ```bash
-git init
+npm run build
+node ./dist/packages/cli/src/main.js --help
+```
+
+### 2. 在目标项目初始化
+
+在目标 Git 仓库中执行：
+
+```bash
 sdd init --ai claude-code
 sdd status
-sdd update --check
 sdd doctor
 ```
 
-首次 init 会默认生成 starter SDD 文档：`specs/master/spec.md`、`plan.md`、`tasks.md`。这些是 onboarding placeholder，真实实现前应替换/细化；已有语义文档默认保留，只有显式 `--force` 才覆盖。首次 init 后还没有 run 时，doctor 可能返回 `WARN run_evidence`，这是正常状态；创建 run 后会消失。
-
-### 3. 准备 SDD 文档
-
-按 branch 名放置：
+初始化后通常会出现：
 
 ```text
-specs/case/spec.md
-specs/case/plan.md
-specs/case/tasks.md
+.sdd/project.yml
+.sdd/runs/
+specs/<branch>/spec.md
+specs/<branch>/plan.md
+specs/<branch>/tasks.md
+.claude/commands/...      # managed generated entries
+.claude/skills/sdd/...    # managed generated skill
 ```
 
-最小 `tasks.md` 示例：
+`sdd init` 是项目级接入；具体需求进入哪个 workflow partition，由当前 Git branch 或显式 `--branch` 决定。
 
-````markdown
-# Case Tasks
+### 3. 在 Claude Code 里继续
 
-### CASE-T1: Implement calculator addition
+如果已经生成 Claude Code 入口，在项目里输入：
 
-```sdd-task
-id: CASE-T1
-status: pending
-wave: 1
-depends_on: []
-affected_files:
-  - src/calculator.js
-  - test/calculator.test.js
-validation:
-  - npm test
-risk:
-  - local-runtime
+```text
+/sdd
 ```
 
-#### Boundary
+`/sdd` 会先读取 `sdd status`，再根据 CLI/core 的 recommended next command 判断下一步是补 spec、写 plan、拆 tasks、执行 task、verify，还是处理 sync-back。
 
-Only validate local calculator addition behavior. Do not commit, push, or call external services.
+## 主工作流
 
-#### Acceptance
-
-- Calculator add returns the sum of two positive numbers.
-- Calculator add handles negative and positive operands.
-- Calculator add coerces numeric strings consistently.
-````
-
-Note: `#### Boundary`, `#### Acceptance`, and `#### Implementation Notes` are companion sections and must stay outside the `sdd-task` fenced block. Keep only metadata inside the fence.
-
-### 4. 创建 run 并记录 lifecycle decision
+常见单任务路径如下：
 
 ```bash
-sdd run create > run-create.json
-RUN_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('run-create.json','utf8')).runId)")
+# 读状态和任务边界
+sdd status --branch master
+sdd tasks inspect <task_id> --branch master
+sdd tasks route <task_id> --branch master
 
-sdd lifecycle decide \
-  --run "$RUN_ID" \
-  --intent high \
-  --acceptance high \
-  --size small \
-  --tasks 1 \
-  --files 2 \
-  --layer runtime \
-  --risk local-runtime \
-  --impact-confidence high \
-  --validation clear \
-  --validation-available \
-  --validation-cost cheap \
-  --fanout local \
-  --reversibility reversible \
-  --source-artifact specs/case/spec.md \
-  --source-artifact specs/case/tasks.md \
-  --json
+# 创建 run
+sdd run create
+
+# 用真实 run 写入 artifacts 模板
+sdd artifact template artifacts/implement-<task_id>.md --task <task_id> --agent implementer --branch master --run <run_id> --write
+sdd artifact template artifacts/review-<task_id>.md --task <task_id> --agent reviewer --branch master --run <run_id> --write
+sdd artifact template artifacts/validation-<task_id>.md --task <task_id> --agent validator --branch master --run <run_id> --write
+
+# 填写 Evidence 后先校验 artifact
+sdd artifact validate <run_id> artifacts/implement-<task_id>.md --task <task_id> --agent implementer
+sdd artifact validate <run_id> artifacts/review-<task_id>.md --task <task_id> --agent reviewer
+sdd artifact validate <run_id> artifacts/validation-<task_id>.md --task <task_id> --agent validator
+
+# 执行、验证、写回
+sdd do task <task_id> --branch master --run <run_id> \
+  --implement-artifact artifacts/implement-<task_id>.md \
+  --review-artifact artifacts/review-<task_id>.md \
+  --validation-artifact artifacts/validation-<task_id>.md
+
+sdd verify task <task_id> --branch master --run <run_id>
+sdd sync-back inspect <run_id> --task <task_id> --branch master
+sdd sync-back apply <run_id> --task <task_id> --branch master
 ```
 
-该命令只做 lifecycle gate 和 run record，不执行 task loop，也不启动 agent。
+复杂或高风险任务如果 `sync-back inspect` 输出 `approval_required=true`，必须人工确认后才使用 `--approved`。
 
-### 5. 检查 task parser
+## 核心事实源
 
-```bash
-sdd tasks list --branch case
-sdd tasks inspect CASE-T1 --branch case
-sdd tasks gaps --branch case
-```
+| 事实源 | 含义 |
+|---|---|
+| `specs/<branch>/spec.md` | 需求、范围、验收标准 |
+| `specs/<branch>/plan.md` | 设计方案、风险控制、验证矩阵 |
+| `specs/<branch>/tasks.md` | 可执行 task、边界、artifact 要求 |
+| `.sdd/runs/<run_id>/state.json` | 运行状态 |
+| `.sdd/runs/<run_id>/events.jsonl` | 运行事件 |
+| `.sdd/runs/<run_id>/artifacts/*.md` | implement/review/validation/coverage 证据 |
+| `.claude/**` | managed AI entry projection，不是手写事实源 |
 
-期望：`gaps=0`，`tasks gaps` 输出 `PASS`。
+## 文档地图
 
-### 6. 准备 reviewer / validator artifacts
+| 文档 | 面向对象 | 用途 |
+|---|---|---|
+| [用户指南](docs/user-guide.md) | 人类用户 | 安装、初始化、执行任务、verify、sync-back、doctor、常见问题 |
+| [AI README](docs/ai-readme.md) | Claude Code / AI 操作者 | status-first、artifact、task boundary、sync-back 策略 |
+| [文档信息架构](docs/documentation-information-architecture.md) | 维护者 | Markdown 文档分类、迁移风险、未来整理策略 |
+| [架构设计](docs/architecture/sdd-agent-platform-architecture.md) | 平台维护者 | 平台架构和核心设计 |
+| [Lifecycle Decision Model](docs/architecture/lifecycle-decision-model.md) | 平台维护者 | direct / compact / full / research 的决策模型 |
+| [Phase artifacts index](specs/master/phases/README.md) | 平台维护者 | 本仓库 SDD phase 归档入口 |
+| [Phase status](specs/master/phases/PHASE_STATUS.md) | 平台维护者 | phase 状态汇总 |
 
-`do` 和 `verify` 消费显式 artifact；真实执行、review、validation 可以由主会话或外部流程完成后写入 artifact。推荐先生成合法模板，再补充 Evidence。
-
-```bash
-mkdir -p ".sdd/runs/$RUN_ID/artifacts"
-
-sdd artifact template artifacts/review-CASE-T1.md --task CASE-T1 --agent reviewer --branch case \
-  > ".sdd/runs/$RUN_ID/artifacts/review-CASE-T1.md"
-sdd artifact template artifacts/validation-CASE-T1.md --task CASE-T1 --agent validator --branch case \
-  > ".sdd/runs/$RUN_ID/artifacts/validation-CASE-T1.md"
-```
-
-在生成文件中补充 `## Evidence`：
-
-```markdown
-## Evidence
-
-- Calculator add returns the sum of two positive numbers: PASS.
-- Calculator add handles negative and positive operands: PASS.
-- Calculator add coerces numeric strings consistently: PASS.
-- Commands run: npm test.
-```
-
-validator template 会生成 `## Acceptance Mapping` 并复制 exact Acceptance text；不要把 Acceptance 改写成同义句，否则 goal-level verify 会 deterministic block。`sdd-result.artifacts` 只放 `artifacts/<file>` run-relative artifact 路径，源码和测试文件引用放在 `## Evidence`。
-
-先单独校验 artifact contract：
-
-```bash
-sdd artifact validate "$RUN_ID" artifacts/review-CASE-T1.md --task CASE-T1 --agent reviewer
-sdd artifact validate "$RUN_ID" artifacts/validation-CASE-T1.md --task CASE-T1 --agent validator
-```
-
-### 7. 执行 single-task loop 和 goal-level verify
-
-```bash
-sdd do task CASE-T1 \
-  --branch case \
-  --run "$RUN_ID" \
-  --review-artifact artifacts/review-CASE-T1.md \
-  --validation-artifact artifacts/validation-CASE-T1.md
-
-sdd verify task CASE-T1 \
-  --branch case \
-  --run "$RUN_ID" \
-  --review-artifact artifacts/review-CASE-T1.md \
-  --validation-artifact artifacts/validation-CASE-T1.md
-
-sdd run status "$RUN_ID"
-sdd doctor --latest-only
-sdd doctor
-```
-
-期望：
-
-- `do task` 返回 `status: completed`。
-- `verify task` 返回 `status: PASS`，并生成 `artifacts/acceptance-coverage-CASE-T1.md`。
-- `run status` 显示 `status: completed`、`phase: verify`。
-- `doctor` 输出 `PASS`，没有 stale delegation、invalid artifact 或 terminal event gap。
-- `doctor --latest-only` 只检查最新非归档 run；需要历史审计时可运行 `sdd doctor --all-runs`。
-
-### 8. 卸载
-
-```bash
-npm uninstall sdd-agent-platform
-test ! -e node_modules/.bin/sdd
-```
-
-卸载只移除 CLI 包，不会删除目标项目中的 `specs/`、源码或 `.sdd/runs` 证据。
+研究与历史分析材料保留在 `docs/research/`；runtime contract assets 保留在 `commands/`、`agents/`、`templates/`、`workflows/` 等目录，不作为普通 Markdown 文档搬迁。
 
 ## 项目结构
 
 ```text
 packages/          TypeScript runtime 与 CLI
-commands/          Claude Code 命令入口说明
+commands/          Claude Code 命令入口说明源材料
 agents/            SDD lifecycle agent contract
 templates/         spec / plan / tasks / project / sync-back 模板
 workflows/         阶段 workflow contract
 adapters/          项目适配模板
-schemas/           runtime、artifact 与 Phase 1.3 contract pack
-docs/              架构与研究文档
+schemas/           runtime、artifact 与 contract pack
+docs/              用户、AI、架构、研究文档
 specs/             本项目自身的 SDD 文档
+.sdd/              本地运行状态和证据
 context/           项目记忆与决策上下文
 ```
 
@@ -376,30 +174,66 @@ context/           项目记忆与决策上下文
 npm run typecheck
 npm test
 npm run build
+npm pack --dry-run --json
 ```
 
-## 非目标
+常用 CLI smoke：
 
-第一阶段不做：
+```bash
+node ./dist/packages/cli/src/main.js status --branch master
+node ./dist/packages/cli/src/main.js doctor --latest-only
+node ./dist/packages/cli/src/main.js instructions overview --json
+```
 
-- plugin loader
-- tool registry
-- background write agents
-- 默认 worktree
-- dependency wave 并发执行
-- 自动 commit / push / merge
-- dashboard / run database
-- doctor auto-fix
+## npm 发布维护速查
 
-第二阶段不做：
+普通安装路径是：
 
-- background write agents
-- per-task worktree
-- dependency wave 并发执行
-- plugin loader
-- dashboard / run database
-- 代码知识图谱
-- fuzzy acceptance matching
-- 自动 `sync-back apply`
+```bash
+npm install -g sdd-agent-platform@latest
+```
 
-Phase 2 优先解决全局安装、目标仓库 init、AI 工具入口投影、update/doctor 漂移检查、instruction API、artifact UX 和 run hygiene；平台化扩展顺延到 Phase 3；npm published package 分发主路径已在 Phase 4 完成；代码知识图谱顺延到 Phase 5。
+平台维护者发布新版本时，先完成本地验证和 dry-run：
+
+```bash
+npm whoami
+npm publish --dry-run
+```
+
+真实发布必须显式确认后执行：
+
+```bash
+npm publish --access public
+```
+
+如果真实发布返回 `EOTP` 并提示打开 `https://www.npmjs.com/auth/cli/...`，这是 npm security-key/browser authentication 流程，不是 Google Authenticator 扫码页。发布人应在本机终端或 Claude Code prompt 中执行 `! npm publish --access public`，打开终端里完整的 npm auth URL，按页面完成 security key / passkey / Windows Hello / browser authentication；如果命令已经退出，认证后重新执行 `npm publish --access public`。
+
+发布成功后验证：
+
+```bash
+npm view sdd-agent-platform name version --json
+npm install -g sdd-agent-platform@latest
+sdd --version
+# clean Git repo
+sdd init --ai claude-code
+sdd status
+sdd doctor
+```
+
+不要把长期 npm token、`.npmrc`、recovery code 写入仓库、文档或对话。recovery code 不能转换成 Google Authenticator OTP；已经发布过的版本不能覆盖，后续发包必须先 bump version。
+
+## 安全边界
+
+默认不做：
+
+- 自动 commit / push / force push。
+- 自动创建 PR、issue、外部评论或修改共享系统。
+- 自动执行 destructive git、清理未提交变更或删除历史 run evidence。
+- 未经确认对复杂任务执行 `sync-back apply --approved`。
+- 把 `.claude/**`、`commands/**`、`agents/**`、`templates/**`、`workflows/**` 当作普通文档随意搬迁。
+
+已有未提交变更不应阻塞 SDD workflow；正确做法是通过 branch/partition、run evidence、artifact 和 sync-back 策略隔离风险，而不是要求工作树必须干净。
+
+## 当前状态
+
+当前主路径已经覆盖全局安装、project init/update、Claude Code entry projection、artifact UX、run index、doctor、governance、wave/background/worktree contracts、agent/skill/team runtime、resident worker、声明式 runtime registry、`/sdd:spec` 分区入口和多分支 run 隔离。代码知识图谱顺延到 Phase 7。

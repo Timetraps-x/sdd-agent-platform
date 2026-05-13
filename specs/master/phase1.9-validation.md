@@ -127,7 +127,7 @@ npm run sdd -- verify task P1.9-T1 --branch master --run 20260501-015 --review-a
   "gaps": [
     {
       "field": "acceptance_coverage",
-      "message": "Acceptance item is not covered by validator evidence: CLI `sdd verify task <task_id> --run <run_id>` 可运行。"
+      "message": "Acceptance item is not covered by validator evidence: CLI `sdd verify task <task_id> [--run <run_id>]` 可运行；Phase 6.5 后常规路径省略 `--run`。"
     }
   ]
 }

@@ -47,7 +47,7 @@ Phase docs and indexes only.
 - Phase 4 index includes 4.0~4.4.
 - Phase status includes 4.0~4.4 gates.
 - Validation index includes 4.0~4.4 docs.
-- Phase 5 remains code knowledge graph.
+- Phase 5 remains SDD Harness Engineering; Phase 6 remains code knowledge graph.
 
 ## P4.0-T4: Create retained docs for downstream Phase 4.x work
 

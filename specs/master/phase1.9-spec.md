@@ -28,7 +28,7 @@
 
 ## 4. 验收标准
 
-- `sdd verify task <task_id> --run <run_id>` 能输出 `PASS` / `PASS_WITH_GAPS` / `FAIL` / `BLOCKED`。
+- `sdd verify task <task_id> [--run <run_id>]` 能输出 `PASS` / `PASS_WITH_GAPS` / `FAIL` / `BLOCKED`；Phase 6.5 后常规路径省略 `--run` 并按 partition + taskId 解析 latest eligible run。
 - validator artifact 中未覆盖的 acceptance 会形成 verification gap，不能误判为 completed。
 - verify 结果进入 acceptance coverage artifact 和 sync-back proposal。
 - doctor 能报告 stale RUNNING delegation、completed 但缺 terminal event、completed 但 artifact missing/invalid、`delegation_started` without terminal event。

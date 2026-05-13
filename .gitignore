@@ -4,6 +4,9 @@ coverage/
 .env
 .env.*
 .sdd/runs/
+.sdd/runtime.sqlite*
+.sdd/cache/
 .DS_Store
 .idea/
 *.tgz
+.sdd-*-smoke-*/

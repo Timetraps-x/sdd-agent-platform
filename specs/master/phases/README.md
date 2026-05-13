@@ -70,8 +70,41 @@
 
 ## Phase 5
 
-Phase 5 保留给原 Phase 4 的代码知识图谱方向；该方向在 npm published package 分发基线稳定后再拆分小阶段。
+| Phase | Artifact | Status | 定位 |
+|---|---|---|---|
+| 5.0 | [phase-5.0-source-architecture-localization.md](phase-5.0-source-architecture-localization.md) | [status](PHASE_STATUS.md) | SDD Harness Engineering Reframe and Contract Freeze：完成定位重构、contract freeze、no-OS guardrail 和拆分路线 |
+| 5.1 | [phase-5.1-context-risk-output-harness.md](phase-5.1-context-risk-output-harness.md) | [status](PHASE_STATUS.md) | Context / Risk / Output Harness：branch context、risk extraction、autonomy decision、输出结构 |
+| 5.2 | [phase-5.2-workflow-agent-registry-harness.md](phase-5.2-workflow-agent-registry-harness.md) | [status](PHASE_STATUS.md) | Workflow / Agent Registry Harness：workflow gate、agent registry、slash command agent evidence |
+| 5.3 | [phase-5.3-task-graph-run-evidence-harness.md](phase-5.3-task-graph-run-evidence-harness.md) | [status](PHASE_STATUS.md) | Task Graph / Run Evidence Harness：task graph、agent_fit、verification availability、run evidence、verifier |
+| 5.4 | [phase-5.4-managed-assets-query-status-harness.md](phase-5.4-managed-assets-query-status-harness.md) | [status](PHASE_STATUS.md) | Managed Assets / Query Status Harness：managed manifest、doctor drift、status/doctor/run inspect/debug 边界 |
+| 5.5 | [phase-5.5-eval-learning-context-pack-harness.md](phase-5.5-eval-learning-context-pack-harness.md) | [status](PHASE_STATUS.md) | Eval / Learning / Context Pack Harness：ERP trial eval、HarnessLearning、Project Context Pack |
+| 5.6 | [phase-5.6-phase7-graph-handoff-hardening.md](phase-5.6-phase7-graph-handoff-hardening.md) | [status](PHASE_STATUS.md) | Phase 7 Graph Handoff Hardening：graph-ready harness metadata，不实现图谱 |
+| 5.7 | [phase-5.7-hardening-regression-gate.md](phase-5.7-hardening-regression-gate.md) | [status](PHASE_STATUS.md) | Hardening / Regression Gate：真实 ERP 回归、agent evidence 叙事、对外 demo 对比 |
+| 5.8 | [phase-5.8-semantic-document-contracts.md](phase-5.8-semantic-document-contracts.md) | [status](PHASE_STATUS.md) | Semantic Document Contracts：spec 需求契约、plan 技术方案桥接、tasks 执行证据契约 |
+| 5.9 | [phase-5.9-task-contract-parser-inspect.md](phase-5.9-task-contract-parser-inspect.md) | [status](PHASE_STATUS.md) | Task Contract Parser / Inspect：task refs、agent/artifact/verification/autonomy 字段进入 runtime 可见性 |
+| 5.10 | [phase-5.10-document-chain-verify-doctor.md](phase-5.10-document-chain-verify-doctor.md) | [status](PHASE_STATUS.md) | Document Chain Verify / Doctor：spec -> plan -> tasks -> artifacts 的验收链路检查 |
 
+## Phase 6
+
+| Phase | Artifact | Status | 定位 |
+|---|---|---|---|
+| 6.0 | [phase-6.0-agent-skill-runtime-harness.md](phase-6.0-agent-skill-runtime-harness.md) | [status](PHASE_STATUS.md) | Agent / Skill / Team Runtime Harness：借鉴 Oh My OpenAgent/OpenCode 等开源轮子的 agent team/category/model/background/skill/team-mode 机制，但由 SDD contract、risk gate、evidence、tool permission 和 host adapter 控制，不重造 OpenCode/Claude Code/plugin/MCP/team runtime |
+| 6.1 | [phase-6.1-resident-agent-worker-runtime.md](phase-6.1-resident-agent-worker-runtime.md) | [status](PHASE_STATUS.md) | Resident Agent Worker Runtime：在 Phase 6.0 router/team metadata 之上增加 worker claim、lease、heartbeat、status、inspect、run evidence 和 doctor stale visibility，不实现 daemon/tmux/远程 worker fleet |
+| 6.2 | [phase-6.2-rc-stabilization.md](phase-6.2-rc-stabilization.md) | [status](PHASE_STATUS.md) | RC Stabilization：在 Phase 7.0 code graph 前收口 core/CLI/test 维护边界、CLI UX、package hygiene 和 release-candidate validation，不扩新功能 |
+| 6.3 | [phase-6.3-declarative-agent-skill-capability-runtime.md](phase-6.3-declarative-agent-skill-capability-runtime.md) | [status](PHASE_STATUS.md) | Declarative Agent/Skill Capability Runtime：将内置 agent/skill/source catalog 扩展为 built-in + project-config merged registry，支持非内置 agent/skill 的可校验调度，不导入任意 prompt |
+| 6.4 | [phase-6.4-spec-partition-entry.md](phase-6.4-spec-partition-entry.md) | [status](PHASE_STATUS.md) | Spec Partition Entry：`/sdd:spec` 作为工作流分区入口，解析当前 Git branch 或显式 branch，`status` 只读查看分区状态，支持 spec revision/stale 检测 |
+| 6.5 | [phase-6.5-parallel-branch-run-isolation.md](phase-6.5-parallel-branch-run-isolation.md) | [status](PHASE_STATUS.md) | Parallel Branch Run Isolation：run 绑定 partition/gitBranch/task/document snapshot，partition+task 查找 latest run，并保护 stale/wrong-branch/affectedFiles 冲突 |
+| 6.6 | [phase-6.6-documentation-information-architecture.md](phase-6.6-documentation-information-architecture.md) | [status](PHASE_STATUS.md) | Documentation Information Architecture：进入 Phase 7 前冻结文档分类、迁移风险、runtime/generated/archive 边界和验证门禁，真实安装运行 SDD workflow 产出证据 |
+| 6.7 | [phase-6.7-token-budget-output-dedup-runtime.md](phase-6.7-token-budget-output-dedup-runtime.md) | [status](PHASE_STATUS.md) | Token Budget and Output Dedup Runtime：集中 CLI JSON/compact 输出路径，减少 runtime renderer/instruction/evidence 重复输出，不改变机器可读合同 |
+| 6.8 | [phase-6.8-project-document-language-runtime.md](phase-6.8-project-document-language-runtime.md) | [status](PHASE_STATUS.md) | Project Document Language Runtime：使用同一个项目级 `docs_language` 控制 SDD 文档 prose，runtime/CLI/JSON/contract 继续英文稳定 |
+| 6.9 | [phase-6.9-runtime-trust-fast-path-hardening.md](phase-6.9-runtime-trust-fast-path-hardening.md) | [status](PHASE_STATUS.md) | Runtime Trust Layer and Fast Path Hardening：CER/PROV/attestation/policy 证据可信模型、真实项目 PASS 证据质量、policy-backed coverage、per-delegation routing、invocation ledger、sync-back 单调状态、doctor trust checks、命令 profiling/derived fast path 和 team-mode cost routing |
+| 6.10 | [phase-6.10-context-budget-runtime-log-workers.md](phase-6.10-context-budget-runtime-log-workers.md) | [status](PHASE_STATUS.md) | Context Budget Runtime and Non-authoritative Log Workers：context profile、hash-backed evidence summary、context build、命令输出摘要、非权威 log worker/subagent 边界和输出预算回归 |
+
+## Phase 7
+
+| Phase | Artifact | Status | 定位 |
+|---|---|---|---|
+| 7.0 | [phase-7.0-code-knowledge-graph-baseline.md](phase-7.0-code-knowledge-graph-baseline.md) | [status](PHASE_STATUS.md) | 原代码知识图谱方向顺延，消费 Phase 5 graph-ready metadata、Phase 5.10 document-chain evidence、Phase 6 agent/skill/team runtime metadata、Phase 6.1 resident worker runtime evidence、Phase 6.2 RC validation evidence、Phase 6.3 merged runtime registry evidence、Phase 6.4 partition/revision evidence、Phase 6.5 partition-aware run isolation evidence、Phase 6.6 documentation IA evidence、Phase 6.7 output dedup evidence、Phase 6.8 document language evidence、Phase 6.9 policy-proven runtime trust / structured evidence graph / fast-path evidence 和 Phase 6.10 context budget / non-authoritative projection evidence |
 ## 引用规则
 
 - phase 的可执行边界以本目录下对应文件为准。

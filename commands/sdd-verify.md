@@ -1,6 +1,6 @@
 ---
 name: sdd-verify
-version: 0.2.0
+version: 0.3.0
 phase: 1.9
 contract: sdd-command-v1
 workflow: workflows/verify.yml
@@ -59,13 +59,13 @@ user request -> `sdd lifecycle decide` -> profile/checkpoint -> verify workflow
 ## CLI support
 
 ```text
-sdd verify task <task_id> --run <run_id> [--branch <branch>] [--review-artifact artifacts/path.md] [--validation-artifact artifacts/path.md]
+sdd verify task <task_id> [--branch <branch>] [--run <run_id>] [--review-artifact artifacts/path.md] [--validation-artifact artifacts/path.md]
 ```
 
 Rules:
 
 - Reads `specs/<branch>/tasks.md` task acceptance and validation commands.
-- Uses supplied artifact paths or completed reviewer/validator artifacts discoverable from run state.
+- Uses supplied artifact paths or completed reviewer/validator artifacts discoverable from the latest eligible partition/task run; explicit `--run` is reserved for replay, CI, or old-run inspection.
 - Writes `artifacts/acceptance-coverage-<task_id>.md`.
 - Updates run `phase=verify`, validation status, events, and `artifacts/sync-back-proposal.md`.
 - Does not run build/test commands itself in Phase 1.9; command execution evidence must be present in validator artifact.

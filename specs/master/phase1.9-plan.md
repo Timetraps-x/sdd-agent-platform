@@ -6,7 +6,7 @@
 
 ## 2. Verify 设计
 
-- CLI：`sdd verify task <task_id> --run <run_id> [--branch <branch>] [--review-artifact ...] [--validation-artifact ...]`。
+- CLI：`sdd verify task <task_id> [--branch <branch>] [--run <run_id>] [--review-artifact ...] [--validation-artifact ...]`；Phase 6.5 后常规路径省略 `--run`。
 - 输入：task acceptance、task validation commands、run state、reviewer artifact、validator artifact。
 - artifact discovery：优先使用显式参数；否则从 completed delegation 或 state artifact index 查找 reviewer/validator artifact。
 - acceptance coverage：validator artifact 必须显式包含 task acceptance 文本；否则记录 `acceptance_coverage` gap。
