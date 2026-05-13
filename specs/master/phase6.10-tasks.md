@@ -44,7 +44,7 @@ contract: sdd-tasks-doc-v1
 
 ```sdd-task
 id: PHASE6.10-1
-status: completed
+status: pending
 wave: 1
 depends_on: []
 acceptance_refs:
@@ -93,15 +93,11 @@ Forbidden scope:
 
 - AC-1: Contracts are stable, typed, JSON-renderable, and covered by tests.
 
-#### Implementation Notes
-
-- Sync-back applied from run `20260512-008` (2026-05-12T12:55:16.255Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-1.md`, `artifacts/validation-PHASE6.10-1.md`, `artifacts/acceptance-coverage-PHASE6.10-1.md`.
-
 ### PHASE6.10-2: Add context-profiled CLI output projection
 
 ```sdd-task
 id: PHASE6.10-2
-status: completed
+status: pending
 wave: 2
 depends_on:
   - PHASE6.10-1
@@ -154,15 +150,11 @@ Forbidden scope:
 
 - AC-2/AC-3: Brief is compact and forensic remains complete or source-expandable.
 
-#### Implementation Notes
-
-- Sync-back applied from run `20260512-010` (2026-05-12T13:02:17.238Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-2.md`, `artifacts/validation-PHASE6.10-2.md`, `artifacts/acceptance-coverage-PHASE6.10-2.md`.
-
 ### PHASE6.10-3: Add hash-backed evidence summary projection
 
 ```sdd-task
 id: PHASE6.10-3
-status: completed
+status: pending
 wave: 2
 depends_on:
   - PHASE6.10-1
@@ -214,15 +206,11 @@ Forbidden scope:
 
 - AC-4/AC-8: Summary is useful for context but rejected as source evidence.
 
-#### Implementation Notes
-
-- Sync-back applied from run `20260512-011` (2026-05-12T13:04:03.186Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-3.md`, `artifacts/validation-PHASE6.10-3.md`, `artifacts/acceptance-coverage-PHASE6.10-3.md`.
-
 ### PHASE6.10-4: Add workflow-mode context build command
 
 ```sdd-task
 id: PHASE6.10-4
-status: completed
+status: pending
 wave: 3
 depends_on:
   - PHASE6.10-2
@@ -274,15 +262,11 @@ Forbidden scope:
 
 - AC-5: Each mode produces deterministic minimal working sets.
 
-#### Implementation Notes
-
-- Sync-back applied from run `20260512-012` (2026-05-12T13:05:17.417Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-4.md`, `artifacts/validation-PHASE6.10-4.md`, `artifacts/acceptance-coverage-PHASE6.10-4.md`.
-
 ### PHASE6.10-5: Add agent-specific context packages
 
 ```sdd-task
 id: PHASE6.10-5
-status: completed
+status: pending
 wave: 3
 depends_on:
   - PHASE6.10-4
@@ -334,15 +318,11 @@ Forbidden scope:
 
 - AC-6: Agent packages differ by role and remain derived guidance only.
 
-#### Implementation Notes
-
-- Sync-back applied from run `20260512-013` (2026-05-12T13:06:25.469Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-5.md`, `artifacts/validation-PHASE6.10-5.md`, `artifacts/acceptance-coverage-PHASE6.10-5.md`.
-
 ### PHASE6.10-6: Add non-authoritative log worker boundary
 
 ```sdd-task
 id: PHASE6.10-6
-status: completed
+status: pending
 wave: 4
 depends_on:
   - PHASE6.10-3
@@ -392,15 +372,11 @@ Forbidden scope:
 
 - AC-7/AC-8: Worker summaries can help context only and cannot satisfy PASS evidence.
 
-#### Implementation Notes
-
-- Sync-back applied from run `20260512-014` (2026-05-12T13:07:46.071Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-6.md`, `artifacts/validation-PHASE6.10-6.md`, `artifacts/acceptance-coverage-PHASE6.10-6.md`.
-
 ### PHASE6.10-7: Add output budget regression tests
 
 ```sdd-task
 id: PHASE6.10-7
-status: completed
+status: pending
 wave: 5
 depends_on:
   - PHASE6.10-2
@@ -448,15 +424,11 @@ Forbidden scope:
 
 - AC-9: Budget tests preserve compact output and critical facts.
 
-#### Implementation Notes
-
-- Sync-back applied from run `20260512-015` (2026-05-12T13:08:49.993Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-7.md`, `artifacts/validation-PHASE6.10-7.md`, `artifacts/acceptance-coverage-PHASE6.10-7.md`.
-
 ### PHASE6.10-8: Validate installed CLI workflow
 
 ```sdd-task
 id: PHASE6.10-8
-status: completed
+status: pending
 wave: 5
 depends_on:
   - PHASE6.10-6
@@ -518,7 +490,3 @@ Forbidden scope:
 #### Acceptance
 
 - AC-10: Built and installed CLI proves Phase 6.10 behavior end-to-end.
-
-#### Implementation Notes
-
-- Sync-back applied from run `20260512-016` (2026-05-12T13:12:29.610Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-8.md`, `artifacts/validation-PHASE6.10-8.md`, `artifacts/acceptance-coverage-PHASE6.10-8.md`.

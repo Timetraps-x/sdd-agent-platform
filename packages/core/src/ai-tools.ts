@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 
-export const SDD_VERSION = '0.2.0';
+export const SDD_VERSION = '0.3.0';
 export const AI_ENTRY_CONTRACT = 'sdd-ai-entry-v1';
 export const CLAUDE_CODE_TOOL_ID = 'claude-code';
 
@@ -332,7 +332,7 @@ async function applyEntry(projectRoot: string, projected: ProjectedAiEntry, chec
     return statusReport(projected, 'conflict', `Managed AI entry contract mismatch: ${current.contract ?? 'missing'}.`, 'Review the file before running sdd update.');
   }
 
-  if (current.hash === projected.hash && current.bodyHash === projected.hash) {
+  if (current.version === SDD_VERSION && current.hash === projected.hash && current.bodyHash === projected.hash) {
     return statusReport(projected, 'unchanged', 'Managed AI entry is current.');
   }
 
@@ -348,11 +348,12 @@ async function applyEntry(projectRoot: string, projected: ProjectedAiEntry, chec
   return statusReport(projected, 'drifted', 'Managed AI entry template drifted from the platform projection.', 'Run sdd update.');
 }
 
-function inspectManagedEntry(content: string): { managed: boolean; contract: string | null; hash: string | null; bodyHash: string } {
+function inspectManagedEntry(content: string): { managed: boolean; contract: string | null; version: string | null; hash: string | null; bodyHash: string } {
   const body = content.replace(/^---\n[\s\S]*?\n---\n\n?/, '');
   return {
     managed: /^sdd_managed:\s*true\s*$/m.test(content),
     contract: readFrontmatterScalar(content, 'sdd_contract'),
+    version: readFrontmatterScalar(content, 'sdd_version')?.replace(/^"|"$/g, '') ?? null,
     hash: readFrontmatterScalar(content, 'sdd_hash')?.replace(/^sha256:/, '') ?? null,
     bodyHash: hashManagedBody(body)
   };

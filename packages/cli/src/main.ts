@@ -1,5 +1,8 @@
 #!/usr/bin/env node
+import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   writeArtifact,
   archiveRun,
@@ -8,6 +11,8 @@ import {
   createWorktreeLifecycle,
   createRun,
   doctor,
+  buildContextBuildPackage,
+  buildEvidenceSummaryProjection,
   evaluateLifecycleDecisionGate,
   extractLifecycleRiskSignalsFromText,
   evaluateGovernancePolicy,
@@ -64,6 +69,7 @@ import {
   readRunState,
   resolveSddContext,
   recordLifecycleDecision,
+  parseContextProfile,
   renderDoctorReport,
   renderGoalVerifyResult,
   renderLifecycleDecisionGate,
@@ -147,7 +153,10 @@ import {
   type ResidentWorkerRuntimeHeartbeatResult,
   type ResidentWorkerRuntimeInspection,
   type ResidentWorkerRuntimeList,
-  type InitProjectResult
+  type InitProjectResult,
+  type ContextBuildMode,
+  type ContextBuildPackage,
+  type EvidenceSummaryProjection
 } from '../../core/src/index.js';
 import { readOption, readPositiveIntegerOption, readRepeatedOption, readRepeatedOptions } from './options.js';
 
@@ -156,6 +165,14 @@ interface CliResult {
   output?: string;
   error?: string;
 }
+
+interface CliIdentity {
+  version: string;
+  cliEntryPath: string;
+  packageRoot: string | null;
+  packageJsonPath: string | null;
+}
+
 
 async function main(args: string[]): Promise<CliResult> {
   const projectRoot = process.cwd();
@@ -175,10 +192,11 @@ async function main(args: string[]): Promise<CliResult> {
     };
   }
 
-  if (command === '--version' || command === '-v') {
+  if (command === '--version' || command === '-v' || command === 'version') {
+    const identity = getCliIdentity();
     return {
       exitCode: 0,
-      output: SDD_VERSION
+      output: wantsJson(args) ? jsonOutput(identity, args) : identity.version
     };
   }
 
@@ -223,12 +241,13 @@ async function main(args: string[]): Promise<CliResult> {
     if (doctorArgs.includes('--latest-only') && doctorArgs.includes('--all-runs')) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd doctor [--latest-only] [--all-runs] (choose only one scope flag)'
+        error: 'Usage: sdd doctor [--latest-only] [--all-runs] [--branch <branch>] (choose only one scope flag)'
       };
     }
     const report = await doctor(projectRoot, {
       latestOnly: doctorArgs.includes('--latest-only'),
-      allRuns: doctorArgs.includes('--all-runs')
+      allRuns: doctorArgs.includes('--all-runs'),
+      branch: readBranchOption(doctorArgs)
     });
     const json = wantsJson(doctorArgs);
     return {
@@ -352,6 +371,50 @@ async function main(args: string[]): Promise<CliResult> {
     };
   }
 
+
+  if (command === 'evidence' && subcommand === 'summary') {
+    const runId = rest.find((item) => !item.startsWith('--'));
+    if (!runId) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd evidence summary <run_id> [--task <task_id>] [--json|--compact-json]'
+      };
+    }
+    const summary = await buildEvidenceSummaryProjection(projectRoot, {
+      runId,
+      taskId: readOption(rest, '--task') ?? undefined
+    });
+    const json = wantsJson(rest);
+    return {
+      exitCode: 0,
+      output: json ? jsonOutput(summary, rest) : renderEvidenceSummaryProjection(summary)
+    };
+  }
+
+  if (command === 'context' && subcommand === 'build') {
+    const taskId = readOption(rest, '--task') ?? undefined;
+    const mode = readContextBuildMode(rest, '--mode');
+    if (!taskId || !mode) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd context build --task <task_id> --mode do|verify|sync-back|doctor [--agent <agent>] [--branch <branch>] [--profile brief|normal|forensic] [--json|--compact-json]'
+      };
+    }
+    const contextPackage = await buildContextBuildPackage(projectRoot, {
+      taskId,
+      branch: readBranchOption(rest),
+      mode,
+      agent: readOption(rest, '--agent') ?? undefined,
+      profile: parseContextProfile(readOption(rest, '--profile'))
+    });
+    const json = wantsJson(rest);
+    return {
+      exitCode: 0,
+      output: json ? jsonOutput(contextPackage, rest) : renderContextBuildPackage(contextPackage)
+    };
+  }
+
+
   if (command === 'sync-back' && subcommand === 'inspect') {
     const runId = readOptionalPositionalArgument(rest);
     const taskId = readOption(rest, '--task') ?? undefined;
@@ -438,13 +501,15 @@ async function main(args: string[]): Promise<CliResult> {
     if (!taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd tasks route <task_id> [--branch <branch>] [--team-mode [auto|force|off]] [--no-team-mode] [--json]'
+        error: 'Usage: sdd tasks route <task_id> [--branch <branch>] [--team-mode [auto|force|off]] [--no-team-mode] [--profile] [--cache] [--json]'
       };
     }
     const decision = await routeSddTask(projectRoot, {
       taskId,
       branch: readBranchOption(rest),
-      teamModeActivation: readTeamModeActivation(rest)
+      teamModeActivation: readTeamModeActivation(rest),
+      profile: rest.includes('--profile'),
+      cache: rest.includes('--cache'),
     });
     return {
       exitCode: decision.blockedReason ? 1 : 0,
@@ -1184,14 +1249,15 @@ async function main(args: string[]): Promise<CliResult> {
         error: 'Usage: sdd artifact template <artifacts/path.md> --task <task_id> --agent <agent> [--run <run_id> --write] [--branch <branch>] [--status <status>]'
       };
     }
+    const runId = readOption(rest, '--run');
     const template = await renderSddResultArtifactTemplate(projectRoot, {
       artifactPath,
       taskId,
       agent,
       branch: readBranchOption(rest),
+      runId: runId ?? undefined,
       status: readSddResultStatus(rest, '--status') ?? 'PASS'
     });
-    const runId = readOption(rest, '--run');
     if (rest.includes('--write')) {
       if (!runId) {
         return {
@@ -1298,6 +1364,8 @@ Evidence helpers:
   sdd run index rebuild|inspect|query [options] [--json|--compact-json]
   sdd artifact template <path> --task <task_id> --agent <agent> [--run <run_id> --write]
   sdd artifact validate <run_id> <path> [--task <task_id>] [--agent <agent>] [--json|--compact-json]
+  sdd evidence summary <run_id> [--task <task_id>] [--json|--compact-json]
+  sdd context build --task <task_id> --mode do|verify|sync-back|doctor [--agent <agent>] [--branch <branch>] [--profile brief|normal|forensic] [--json|--compact-json]
 
 Generated AI entries:
   sdd update [--check] [--ai <mode>]
@@ -1375,6 +1443,110 @@ function wantsJson(args: string[]): boolean {
 function jsonOutput(value: unknown, args: string[]): string {
   return JSON.stringify(value, null, args.includes('--compact-json') ? 0 : 2);
 }
+
+
+function getCliIdentity(): CliIdentity {
+  const cliEntryPath = fileURLToPath(import.meta.url);
+  const packageRoot = findPackageRoot(path.dirname(cliEntryPath));
+  const packageJsonPath = packageRoot ? path.join(packageRoot, 'package.json') : null;
+  return {
+    version: readPackageVersion(packageJsonPath) ?? SDD_VERSION,
+    cliEntryPath,
+    packageRoot,
+    packageJsonPath
+  };
+}
+
+function findPackageRoot(startDir: string): string | null {
+  let current = startDir;
+  while (true) {
+    const packageJsonPath = path.join(current, 'package.json');
+    if (existsSync(packageJsonPath) && isCliPackageRoot(packageJsonPath)) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return null;
+    }
+    current = parent;
+  }
+}
+
+function isCliPackageRoot(packageJsonPath: string): boolean {
+  try {
+    const parsed = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { name?: unknown };
+    return parsed.name === '@sdd-agent-platform/cli' || parsed.name === 'sdd-agent-platform';
+  } catch {
+    return false;
+  }
+}
+
+
+function readPackageVersion(packageJsonPath: string | null): string | null {
+  if (!packageJsonPath) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { version?: unknown };
+    return typeof parsed.version === 'string' ? parsed.version : null;
+  } catch {
+    return null;
+  }
+}
+
+function readContextBuildMode(args: string[], name: string): ContextBuildMode | null {
+  const value = readOption(args, name);
+  return value === 'do' || value === 'verify' || value === 'sync-back' || value === 'doctor' ? value : null;
+}
+
+function renderEvidenceSummaryProjection(summary: EvidenceSummaryProjection): string {
+  const lines = [`Evidence summary ${summary.runId}`];
+  lines.push(`task=${summary.taskId ?? 'none'} authoritative=${summary.authoritative} usable_for_pass=${summary.usableForPass}`);
+  lines.push(`pass=${summary.passCount} blocked=${summary.blockedCount} fail=${summary.failCount} issues=${summary.issueCodes.join(',') || 'none'}`);
+  lines.push('highlights');
+  for (const highlight of summary.highlights.slice(0, 8)) {
+    lines.push(`- ${highlight}`);
+  }
+  lines.push('sources');
+  for (const source of summary.sources.slice(0, 12)) {
+    lines.push(`- ${source.kind}:${source.path} hash=${source.hash.slice(0, 12)}`);
+  }
+  if (summary.sources.length > 12) {
+    lines.push(`- omitted_sources=${summary.sources.length - 12}`);
+  }
+  return lines.join('\n');
+}
+
+function renderContextBuildPackage(contextPackage: ContextBuildPackage): string {
+  const lines = [`Context package ${contextPackage.taskId}`];
+  lines.push(`mode=${contextPackage.mode} agent=${contextPackage.agent ?? 'none'} profile=${contextPackage.profile} branch=${contextPackage.branch}`);
+  lines.push(`authoritative=${contextPackage.authoritative} usable_for_pass=${contextPackage.usableForPass}`);
+  renderContextRefs(lines, 'must_read', contextPackage.mustRead, 10);
+  renderContextRefs(lines, 'optional_read', contextPackage.optionalRead, 8);
+  renderContextRefs(lines, 'deferred', contextPackage.doNotReadUnlessNeeded, 6);
+  lines.push('next_commands');
+  for (const command of contextPackage.nextCommands) {
+    lines.push(`- ${command}`);
+  }
+  if (contextPackage.warnings.length > 0) {
+    lines.push('warnings');
+    for (const warning of contextPackage.warnings.slice(0, 6)) {
+      lines.push(`- ${warning}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function renderContextRefs(lines: string[], label: string, refs: ContextBuildPackage['mustRead'], limit: number): void {
+  lines.push(label);
+  for (const ref of refs.slice(0, limit)) {
+    lines.push(`- ${ref.kind}:${ref.path} hash=${ref.hash.slice(0, 12)}`);
+  }
+  if (refs.length > limit) {
+    lines.push(`- omitted_${label}=${refs.length - limit}`);
+  }
+}
+
 
 function renderTextOrJson<T>(args: string[], value: T, renderText: (value: T) => string): string {
   return wantsJson(args) ? jsonOutput(value, args) : renderText(value);
@@ -1728,8 +1900,21 @@ function renderAgentRouterDecision(decision: AgentRouterDecision): string {
     lines.push(`approval=${decision.toolPermission.approvalPolicy}`);
   }
   lines.push(`model_policy=${decision.modelPolicy.id} category=${decision.modelPolicy.category}`);
-  lines.push(`team_mode=${decision.teamMode.decision} mode=${decision.teamMode.mode} activation=${decision.teamMode.activation} cost=${decision.teamMode.costClass} waves=${decision.teamMode.waveRecommendation.join(',') || 'none'}`);
+  lines.push(`team_mode=${decision.teamMode.decision} mode=${decision.teamMode.mode} activation=${decision.teamMode.activation} cost=${decision.teamMode.costClass} cost_route=${decision.teamMode.costRoute} waves=${decision.teamMode.waveRecommendation.join(',') || 'none'}`);
   lines.push(`team_mode_reason=${decision.teamMode.reason}`);
+  if (decision.teamMode.downgradeReason) {
+    lines.push(`team_mode_downgrade=${decision.teamMode.downgradeReason}`);
+  }
+  lines.push(`trust_policy_enforced=${decision.teamMode.trustPolicyEnforced}`);
+  if (decision.cache) {
+    lines.push(`route_cache=${decision.cache.status} key=${decision.cache.key} authoritative=${decision.cache.authoritative}`);
+  }
+  if (decision.profile && decision.profile.length > 0) {
+    lines.push('profile');
+    for (const span of decision.profile) {
+      lines.push(`- ${span.name}: ${span.durationMs}ms`);
+    }
+  }
   lines.push(`required_artifacts=${decision.requiredArtifacts.join(',') || 'none'}`);
   if (decision.blockedReason) {
     lines.push(`blocked_reason=${decision.blockedReason}`);

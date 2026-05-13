@@ -1,8 +1,11 @@
 {
   "name": "@sdd-agent-platform/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "exports": {
     ".": "./src/index.ts"
   }

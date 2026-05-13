@@ -1,7 +1,7 @@
 ---
 sdd_managed: true
 sdd_contract: sdd-ai-entry-v1
-sdd_version: "0.2.0"
+sdd_version: "0.3.0"
 sdd_tool: claude-code
 sdd_artifact_kind: command
 sdd_artifact_id: sdd-update

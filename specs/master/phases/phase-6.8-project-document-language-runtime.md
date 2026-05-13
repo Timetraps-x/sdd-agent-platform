@@ -7,8 +7,8 @@ Phase 6.8 在 Phase 6.7 output profile 收敛后，补齐 SDD 文档 prose 的�
 ## 2. 依赖
 
 - depends_on: Phase 6.7 Token Budget and Output Dedup Runtime
-- blocks: Phase 7.0 Code Knowledge Graph Baseline
-- required_by: Phase 7.0
+- blocks: Phase 6.9 Runtime Trust Layer and Fast Path Hardening
+- required_by: Phase 6.9
 
 ## 3. 范围
 

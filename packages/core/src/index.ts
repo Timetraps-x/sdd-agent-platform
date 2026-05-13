@@ -53,6 +53,48 @@ export const EVIDENCE_INGESTION_CONTRACT_VERSION = 'phase-6.0-evidence-ingestion
 export const AGENT_EXECUTION_RECORD_CONTRACT_VERSION = 'phase-6.0-agent-execution-record-v1';
 export const TEAM_SESSION_RECORD_CONTRACT_VERSION = 'phase-6.0-team-session-record-v1';
 export const RESIDENT_WORKER_RUNTIME_CONTRACT_VERSION = 'phase-6.1-resident-worker-runtime-v1';
+export const SDD_EVIDENCE_CONTRACT = 'sdd-evidence-v1';
+export const SDD_EVIDENCE_VERSION = '1.0.0';
+export const ACCEPTANCE_POLICY_RULESET_VERSION = 'acceptance-policy-v1';
+export const INVOCATION_LEDGER_CONTRACT_VERSION = 'phase-6.9-invocation-ledger-v1';
+export const ROUTE_CACHE_CONTRACT_VERSION = 'phase-6.9-route-cache-v1';
+export const RUNTIME_PROFILE_CONTRACT_VERSION = 'phase-6.9-runtime-profile-v1';
+export const CONTEXT_BUDGET_CONTRACT_VERSION = 'phase-6.10-context-budget-v1';
+export const COMMAND_OUTPUT_SUMMARY_CONTRACT_VERSION = 'sdd-command-output-summary-v1';
+export const EVIDENCE_SUMMARY_CONTRACT_VERSION = 'sdd-evidence-summary-v1';
+export const CONTEXT_PACKAGE_CONTRACT_VERSION = 'sdd-context-package-v1';
+export const LOG_WORKER_SUMMARY_CONTRACT_VERSION = 'sdd-log-worker-summary-v1';
+const RUNTIME_STORE_SCHEMA_VERSION = 1;
+const RUNTIME_STORE_CONTRACT_VERSION = 'phase-6.11-runtime-store-v1';
+
+type RuntimeStoreIssueCode = 'STORE_UNAVAILABLE' | 'SCHEMA_MISMATCH' | 'LEGACY_IMPORT_FAILED';
+
+type RuntimeStoreDatabase = {
+  exec(sql: string): unknown;
+  prepare(sql: string): {
+    run: (...params: unknown[]) => unknown;
+    get: (...params: unknown[]) => unknown;
+    all: (...params: unknown[]) => unknown[];
+  };
+  close: () => void;
+};
+
+type RuntimeStoreConstructor = new (filename: string) => RuntimeStoreDatabase;
+
+interface RuntimeStoreHandle {
+  path: string;
+  db: RuntimeStoreDatabase;
+}
+
+class RuntimeStoreError extends Error {
+  constructor(readonly code: RuntimeStoreIssueCode, message: string, options?: { cause?: unknown }) {
+    super(message);
+    this.name = 'RuntimeStoreError';
+    this.cause = options?.cause;
+  }
+}
+
+let runtimeStoreConstructorPromise: Promise<RuntimeStoreConstructor> | null = null;
 const DEFAULT_RESIDENT_WORKER_LEASE_SECONDS = 900;
 export type DoctorLevel = 'PASS' | 'WARN' | 'FAIL';
 export type RunStatus = 'created' | 'running' | 'completed' | 'blocked' | 'failed' | 'archived';
@@ -64,6 +106,12 @@ export type DelegationStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 
 export type GoalVerifyStatus = 'PASS' | 'PASS_WITH_GAPS' | 'FAIL' | 'BLOCKED';
 export type HarnessVerifyStatus = 'PASS' | 'GAPS' | 'BLOCKED' | 'HUMAN_NEEDED';
 export type ArtifactResultIngestionStatus = 'accepted' | 'rejected';
+export type EvidenceCoverageStatus = 'PASS' | 'FAIL' | 'BLOCKED' | 'REFERENCED_ONLY' | 'MISSING';
+export type EvidenceQualityIssue = 'EMPTY_EVIDENCE' | 'TODO_PLACEHOLDER' | 'TEMPLATE_TEXT' | 'MENTION_ONLY' | 'UNSOURCED_PASS' | 'MISSING_COMMAND_OUTPUT' | 'MISSING_ARTIFACT_REFERENCE' | 'MISSING_MATERIAL_REFERENCE' | 'PROVENANCE_GAP' | 'POLICY_RULE_FAILED' | 'DERIVED_SOURCE_EVIDENCE' | 'PARTITION_SCOPE_VIOLATION';
+export type ContextProfile = 'brief' | 'normal' | 'forensic';
+export type ContextBuildMode = 'do' | 'verify' | 'sync-back' | 'doctor';
+export type ContextSourceKind = 'artifact' | 'run_state' | 'ledger' | 'document' | 'command_output' | 'derived';
+export type ContextSummaryStatus = 'PASS' | 'FAIL' | 'BLOCKED' | 'UNKNOWN';
 
 export type DetectionConfidence = 'high' | 'medium' | 'low';
 
@@ -495,6 +543,8 @@ export interface RunState {
   syncBack: {
     mode: 'proposal';
     proposalPath: string | null;
+    proposalDigest?: string | null;
+    sourceVerifyStatus?: GoalVerifyStatus | SingleTaskLoopStatus | null;
     status: 'not_created' | 'proposed' | 'applied';
   };
 }
@@ -968,6 +1018,7 @@ export type TeamModeDecisionStatus = 'disabled' | 'enabled' | 'blocked';
 export type TeamModeActivation = 'auto' | 'force' | 'off';
 export type TeamModeSelection = 'off' | 'inspect' | 'review-lite' | 'hyperplan' | 'security-research';
 export type TeamModeCostClass = 'none' | 'low' | 'medium' | 'high';
+export type TeamModeCostRoute = 'not_applicable' | 'downgraded' | 'no_downgrade' | 'blocked';
 export type AgentExecutionRecordStatus = 'claimed' | 'completed' | 'failed' | 'blocked' | 'skipped';
 export type TeamSessionRecordStatus = 'created' | 'completed' | 'blocked' | 'disabled';
 
@@ -1120,6 +1171,9 @@ export interface TeamModePolicy {
   activation: TeamModeActivation;
   costClass: TeamModeCostClass;
   reason: string;
+  costRoute: TeamModeCostRoute;
+  downgradeReason: string | null;
+  trustPolicyEnforced: boolean;
   chiefProfile: AgentProfileId;
   memberProfiles: AgentProfileId[];
   allowedWaves: DelegationWavePolicy[];
@@ -1157,6 +1211,7 @@ export interface AgentExecutionRecord {
   queueItemId: string | null;
   ingestionStatus: ArtifactResultIngestionStatus | null;
   resultStatus: SddResultStatus | null;
+  routeId: string;
   routeDecision: Pick<AgentRouterDecision, 'version' | 'category' | 'recommendedProfile' | 'autonomyCeiling' | 'requiredCapabilities' | 'blockedReason'>;
   evidenceSummary: string;
   createdAt: string;
@@ -1219,6 +1274,24 @@ export interface AgentRouterDecision {
   routingRuleHits?: string[];
   quarantineWarnings?: string[];
   adapterMapping?: AgentRuntimeAdapterMapping | null;
+  cache?: RouteCacheMetadata;
+  profile?: RuntimeProfileSpan[];
+}
+
+export interface RouteCacheMetadata {
+  contract: typeof ROUTE_CACHE_CONTRACT_VERSION;
+  key: string;
+  status: 'hit' | 'miss' | 'stored';
+  source: 'content_addressed_derived_route';
+  authoritative: false;
+}
+
+export interface RuntimeProfileSpan {
+  contract: typeof RUNTIME_PROFILE_CONTRACT_VERSION;
+  name: string;
+  startedAt: string;
+  endedAt: string;
+  durationMs: number;
 }
 
 export interface AgentSkillTeamRuntimeInspection {
@@ -1361,10 +1434,204 @@ export interface SddResultValidationReport {
   valid: boolean;
   result: SddResult | null;
   issues: ContractValidationIssue[];
+  trust?: ArtifactTrustValidationReport;
 }
+
+export interface EvidenceItem {
+  kind: string;
+  ref: string;
+  summary: string | null;
+}
+
+export interface EvidenceClaim {
+  contract: typeof SDD_EVIDENCE_CONTRACT;
+  version: typeof SDD_EVIDENCE_VERSION;
+  task: string;
+  acceptance: string;
+  status: EvidenceCoverageStatus;
+  claim: string;
+  sourceArtifact: string;
+  evidence: EvidenceItem[];
+  provenance: string[];
+  policy: string[];
+  rawMetadata: Record<string, string | string[]>;
+}
+
+export interface EvidenceReasoning {
+  summary: string;
+  ruleIds: string[];
+  issueCodes: EvidenceQualityIssue[];
+}
+
+export interface PolicyRuleSet {
+  id: typeof ACCEPTANCE_POLICY_RULESET_VERSION;
+  version: string;
+  ruleIds: string[];
+}
+
+export interface PolicyDecision {
+  status: EvidenceCoverageStatus;
+  ruleSet: PolicyRuleSet;
+  passedRules: string[];
+  failedRules: string[];
+  issueCodes: EvidenceQualityIssue[];
+}
+
+export interface EvidenceCoverage {
+  acceptanceId: string;
+  status: EvidenceCoverageStatus;
+  claim?: EvidenceClaim;
+  evidence: EvidenceItem[];
+  reasoning?: EvidenceReasoning;
+  policyDecision: PolicyDecision;
+}
+
+export interface ProvenanceEntity {
+  id: string;
+  kind: 'spec' | 'plan' | 'tasks' | 'artifact' | 'command_output' | 'run_state' | 'material' | string;
+  hash?: string;
+  path?: string;
+}
+
+export interface ProvenanceActivity {
+  id: string;
+  kind: 'inspect' | 'route' | 'do' | 'verify' | 'artifact_validate' | 'sync_back' | 'policy_evaluate' | 'cache' | string;
+  startedAt?: string;
+  endedAt?: string;
+}
+
+export interface ProvenanceAgent {
+  id: string;
+  kind: 'runtime' | 'implementer' | 'reviewer' | 'validator' | 'tool' | string;
+}
+
+export interface ProvenanceLink {
+  relation: 'used' | 'wasGeneratedBy' | 'wasAssociatedWith' | 'wasDerivedFrom' | string;
+  from: string;
+  to: string;
+}
+
+export interface SddEvidenceAttestation {
+  subject: string;
+  materials: ProvenanceEntity[];
+  invocation: ProvenanceActivity;
+  builder: ProvenanceAgent;
+}
+
+export interface ArtifactTrustValidationReport {
+  valid: boolean;
+  claims: EvidenceClaim[];
+  issues: ContractValidationIssue[];
+}
+
+export type InvocationLedgerKind = 'command' | 'tool_invocation' | 'agent' | 'skill' | 'material' | 'policy_evaluation' | 'cache' | 'artifact_hash';
+
+export interface InvocationLedgerEntry {
+  contract: 'sdd-invocation-ledger-v1';
+  version: typeof INVOCATION_LEDGER_CONTRACT_VERSION;
+  entryId: string;
+  runId: string;
+  taskId: string | null;
+  branch: string | null;
+  kind: InvocationLedgerKind;
+  ref: string;
+  status: string;
+  timestamp: string;
+  artifactPath?: string | null;
+  inputHash?: string | null;
+  outputHash?: string | null;
+  materialRefs: string[];
+  metadata: Record<string, string | number | boolean | null>;
+}
+
+export interface ContextBudget {
+  contract: typeof CONTEXT_BUDGET_CONTRACT_VERSION;
+  profile: ContextProfile;
+  maxBytes: number;
+  preserve: string[];
+}
+
+export interface ContextSourceRef {
+  path: string;
+  hash: string;
+  kind: ContextSourceKind;
+}
+
+export interface CommandOutputSummary {
+  contract: typeof COMMAND_OUTPUT_SUMMARY_CONTRACT_VERSION;
+  authoritative: false;
+  usableForPass: false;
+  source: ContextSourceRef;
+  status: ContextSummaryStatus;
+  highlights: string[];
+  omittedLines: number;
+}
+
+export interface EvidenceSummaryProjection {
+  contract: typeof EVIDENCE_SUMMARY_CONTRACT_VERSION;
+  authoritative: false;
+  usableForPass: false;
+  runId: string;
+  taskId: string | null;
+  sources: ContextSourceRef[];
+  passCount: number;
+  blockedCount: number;
+  failCount: number;
+  issueCodes: EvidenceQualityIssue[];
+  policyRefs: string[];
+  highlights: string[];
+}
+
+export interface ContextBuildPackage {
+  contract: typeof CONTEXT_PACKAGE_CONTRACT_VERSION;
+  profile: ContextProfile;
+  mode: ContextBuildMode;
+  agent: string | null;
+  authoritative: false;
+  usableForPass: false;
+  taskId: string;
+  branch: string;
+  mustRead: ContextSourceRef[];
+  optionalRead: ContextSourceRef[];
+  doNotReadUnlessNeeded: ContextSourceRef[];
+  nextCommands: string[];
+  warnings: string[];
+}
+
+export interface LogWorkerSummary {
+  contract: typeof LOG_WORKER_SUMMARY_CONTRACT_VERSION;
+  authoritative: false;
+  usableForPass: false;
+  runId: string;
+  taskId: string | null;
+  workerId: string;
+  sources: ContextSourceRef[];
+  highlights: string[];
+  forbiddenAuthority: string[];
+}
+
+export interface EvidenceSummaryOptions {
+  runId: string;
+  taskId?: string;
+}
+
+export interface ContextBuildOptions {
+  taskId: string;
+  branch?: string;
+  mode: ContextBuildMode;
+  agent?: string;
+  profile?: ContextProfile;
+}
+
+export interface LogWorkerSummaryValidation {
+  valid: boolean;
+  issues: ContractValidationIssue[];
+}
+
 
 export interface SddResultArtifactTemplateOptions {
   branch?: string;
+  runId?: string;
   taskId: string;
   agent: string;
   artifactPath: string;
@@ -1434,8 +1701,10 @@ export interface GoalVerifyOptions {
 
 export interface AcceptanceCoverageItem {
   acceptance: string;
-  status: GoalVerifyStatus | 'GAP';
+  status: EvidenceCoverageStatus;
   evidence: string;
+  policyDecision?: PolicyDecision;
+  issueCodes?: EvidenceQualityIssue[];
 }
 
 export interface GoalVerifyResult {
@@ -1558,6 +1827,7 @@ export interface TaskRunEvidenceContract {
   validation: RunState['validation'];
   gaps: SddTaskGap[];
   syncBackProposal: string | null;
+  invocationLedger: InvocationLedgerEntry[];
   agentExecutions: AgentExecutionRecord[];
   teamSessions: TeamSessionRecord[];
   workerRuntimes: ResidentWorkerRuntimeRecord[];
@@ -1577,6 +1847,7 @@ export interface RunInspection {
   tasks: Record<string, unknown>;
   taskRunEvidence: TaskRunEvidenceContract;
   agentExecutions: AgentExecutionRecord[];
+  invocationLedger: InvocationLedgerEntry[];
   teamSessions: TeamSessionRecord[];
   workerRuntimes: ResidentWorkerRuntimeRecord[];
 }
@@ -1643,6 +1914,8 @@ export interface SyncBackInspection {
   reasons: string[];
   proposalPath: string | null;
   proposal: string | null;
+  proposalDigest: string | null;
+  proposalDigestValid: boolean | null;
   runTaskStatus: string | null;
   markdownTask: SddTask | null;
   markdownStatus: SddTaskStatus | null;
@@ -1690,6 +1963,10 @@ export function getLocalRunIndexPath(projectRoot: string): string {
   return path.join(getSddDir(projectRoot), 'run-index.json');
 }
 
+export function getRuntimeStorePath(projectRoot: string): string {
+  return path.join(getSddDir(projectRoot), 'runtime.sqlite');
+}
+
 export function getRunDir(projectRoot: string, runId: string): string {
   assertSafePathSegment(runId, 'runId');
   return path.join(getRunsDir(projectRoot), runId);
@@ -1709,6 +1986,324 @@ export function getTeamSessionsDir(projectRoot: string, runId: string): string {
 
 export function getWorkerRuntimesDir(projectRoot: string, runId: string): string {
   return path.join(getRunDir(projectRoot, runId), 'worker-runtimes');
+}
+
+export function getInvocationLedgerPath(projectRoot: string, runId: string): string {
+  return path.join(getRunDir(projectRoot, runId), 'invocations.jsonl');
+}
+
+export function getRouteCacheDir(projectRoot: string): string {
+  return path.join(getSddDir(projectRoot), 'cache', 'routes');
+}
+
+function getRouteCachePath(projectRoot: string, key: string): string {
+  assertSafePathSegment(key, 'routeCacheKey');
+  return path.join(getRouteCacheDir(projectRoot), `${key}.json`);
+}
+
+async function loadRuntimeStoreConstructor(): Promise<RuntimeStoreConstructor> {
+  runtimeStoreConstructorPromise ??= importNodeSqlite()
+    .then((sqlite) => sqlite.DatabaseSync as RuntimeStoreConstructor)
+    .catch((error: unknown) => {
+      throw new RuntimeStoreError('STORE_UNAVAILABLE', `node:sqlite is unavailable: ${messageFromError(error)}`, { cause: error });
+    });
+  return runtimeStoreConstructorPromise;
+}
+
+async function importNodeSqlite(): Promise<{ DatabaseSync: RuntimeStoreConstructor }> {
+  const emitWarning = process.emitWarning;
+  const forwardWarning = emitWarning as unknown as (warning: string | Error, ...args: unknown[]) => void;
+  process.emitWarning = ((warning: string | Error, ...args: unknown[]) => {
+    const message = warning instanceof Error ? warning.message : warning;
+    if (typeof message === 'string' && message.includes('SQLite is an experimental feature')) {
+      return;
+    }
+    return forwardWarning.call(process, warning, ...args);
+  }) as typeof process.emitWarning;
+  try {
+    return await import('node:sqlite') as { DatabaseSync: RuntimeStoreConstructor };
+  } finally {
+    process.emitWarning = emitWarning;
+  }
+}
+
+async function openRuntimeStore(projectRoot: string): Promise<RuntimeStoreHandle> {
+  await mkdir(getSddDir(projectRoot), { recursive: true });
+  const DatabaseSync = await loadRuntimeStoreConstructor();
+  const storePath = getRuntimeStorePath(projectRoot);
+  let db: RuntimeStoreDatabase;
+  try {
+    db = new DatabaseSync(storePath);
+  } catch (error) {
+    throw new RuntimeStoreError('STORE_UNAVAILABLE', `Cannot open runtime store ${storePath}: ${messageFromError(error)}`, { cause: error });
+  }
+  try {
+    db.exec('PRAGMA foreign_keys = ON');
+    db.exec('PRAGMA busy_timeout = 5000');
+    db.exec('PRAGMA journal_mode = WAL');
+    initializeRuntimeStoreSchema(db);
+    return { path: storePath, db };
+  } catch (error) {
+    db.close();
+    throw new RuntimeStoreError('SCHEMA_MISMATCH', `Cannot initialize runtime store ${storePath}: ${messageFromError(error)}`, { cause: error });
+  }
+}
+
+async function withRuntimeStore<T>(projectRoot: string, fn: (store: RuntimeStoreHandle) => T | Promise<T>): Promise<T> {
+  const store = await openRuntimeStore(projectRoot);
+  try {
+    return await fn(store);
+  } finally {
+    store.db.close();
+  }
+}
+
+function initializeRuntimeStoreSchema(db: RuntimeStoreDatabase): void {
+  const currentVersion = readRuntimeStoreSchemaVersion(db);
+  if (currentVersion > RUNTIME_STORE_SCHEMA_VERSION) {
+    throw new RuntimeStoreError('SCHEMA_MISMATCH', `Runtime store schema ${currentVersion} is newer than supported schema ${RUNTIME_STORE_SCHEMA_VERSION}.`);
+  }
+  db.exec(`
+CREATE TABLE IF NOT EXISTS runtime_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS runs (run_id TEXT PRIMARY KEY, status TEXT NOT NULL, phase TEXT, current_task TEXT, partition TEXT, git_branch TEXT, task_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, state_json TEXT NOT NULL, state_hash TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS events (event_id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, event_time TEXT NOT NULL, event_name TEXT NOT NULL, event_hash TEXT NOT NULL, event_json TEXT NOT NULL, source TEXT NOT NULL DEFAULT 'runtime', FOREIGN KEY(run_id) REFERENCES runs(run_id) ON DELETE CASCADE, UNIQUE(run_id, event_hash));
+CREATE TABLE IF NOT EXISTS attempts (attempt_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, task_id TEXT, status TEXT, payload_json TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY(run_id) REFERENCES runs(run_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS activities (activity_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, task_id TEXT, branch TEXT, kind TEXT NOT NULL, ref TEXT NOT NULL, status TEXT, created_at TEXT NOT NULL, payload_json TEXT NOT NULL, FOREIGN KEY(run_id) REFERENCES runs(run_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS artifacts (artifact_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, path TEXT NOT NULL, kind TEXT NOT NULL, task_id TEXT, agent TEXT, content_hash TEXT NOT NULL, bytes INTEGER NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, payload_json TEXT NOT NULL, FOREIGN KEY(run_id) REFERENCES runs(run_id) ON DELETE CASCADE, UNIQUE(run_id, path, content_hash));
+CREATE TABLE IF NOT EXISTS artifact_ingestions (ingestion_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, delegation_id TEXT NOT NULL, task_id TEXT NOT NULL, agent TEXT NOT NULL, artifact_path TEXT NOT NULL, status TEXT NOT NULL, result_status TEXT, ingested_at TEXT NOT NULL, payload_json TEXT NOT NULL, FOREIGN KEY(run_id) REFERENCES runs(run_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS policy_decisions (decision_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, task_id TEXT, acceptance_id TEXT, status TEXT NOT NULL, issue_codes TEXT NOT NULL, created_at TEXT NOT NULL, payload_json TEXT NOT NULL, FOREIGN KEY(run_id) REFERENCES runs(run_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS evidence_claims (claim_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, partition TEXT, task_id TEXT NOT NULL, acceptance_id TEXT NOT NULL, coverage_status TEXT NOT NULL, source_artifact TEXT NOT NULL, is_derived INTEGER NOT NULL, created_at TEXT NOT NULL, payload_json TEXT NOT NULL, FOREIGN KEY(run_id) REFERENCES runs(run_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS gaps (gap_id TEXT PRIMARY KEY, run_id TEXT, task_id TEXT, severity TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS recovery_actions (action_id TEXT PRIMARY KEY, run_id TEXT, task_id TEXT, status TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS source_snapshots (snapshot_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, partition TEXT, spec_hash TEXT, plan_hash TEXT, tasks_hash TEXT, created_at TEXT NOT NULL, payload_json TEXT NOT NULL, FOREIGN KEY(run_id) REFERENCES runs(run_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS projections (projection_id TEXT PRIMARY KEY, projection_type TEXT NOT NULL, scope_key TEXT NOT NULL, generated_at TEXT NOT NULL, payload_json TEXT NOT NULL, UNIQUE(projection_type, scope_key));
+CREATE TABLE IF NOT EXISTS legacy_imports (import_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, entity_type TEXT NOT NULL, content_hash TEXT NOT NULL, imported_at TEXT NOT NULL, status TEXT NOT NULL, issue TEXT, UNIQUE(run_id, entity_type));
+CREATE INDEX IF NOT EXISTS idx_runs_partition_task_updated ON runs(partition, task_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_events_run_time ON events(run_id, event_time, event_id);
+CREATE INDEX IF NOT EXISTS idx_artifacts_run_path ON artifacts(run_id, path);
+CREATE INDEX IF NOT EXISTS idx_evidence_claims_run_task ON evidence_claims(run_id, task_id, acceptance_id);
+`);
+  db.exec(`PRAGMA user_version = ${RUNTIME_STORE_SCHEMA_VERSION}`);
+  const now = new Date().toISOString();
+  db.prepare('INSERT OR REPLACE INTO runtime_meta (key, value, updated_at) VALUES (?, ?, ?)').run('contract', RUNTIME_STORE_CONTRACT_VERSION, now);
+  db.prepare('INSERT OR REPLACE INTO runtime_meta (key, value, updated_at) VALUES (?, ?, ?)').run('schema_version', String(RUNTIME_STORE_SCHEMA_VERSION), now);
+}
+
+function readRuntimeStoreSchemaVersion(db: RuntimeStoreDatabase): number {
+  const row = db.prepare('PRAGMA user_version').get() as { user_version?: unknown } | undefined;
+  return typeof row?.user_version === 'number' ? row.user_version : 0;
+}
+
+async function upsertRuntimeRunState(projectRoot: string, state: RunState, serializedState: string): Promise<void> {
+  await withRuntimeStore(projectRoot, ({ db }) => {
+    db.prepare(`INSERT INTO runs (run_id, status, phase, current_task, partition, git_branch, task_id, created_at, updated_at, state_json, state_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(run_id) DO UPDATE SET status=excluded.status, phase=excluded.phase, current_task=excluded.current_task, partition=excluded.partition, git_branch=excluded.git_branch, task_id=excluded.task_id, updated_at=excluded.updated_at, state_json=excluded.state_json, state_hash=excluded.state_hash`)
+      .run(state.runId, state.status, state.phase, state.currentTask, state.partition, state.gitBranch, state.taskId, state.createdAt, state.updatedAt, serializedState, hashDocumentContent(serializedState));
+  });
+}
+
+async function readRuntimeRunState(projectRoot: string, runId: string): Promise<RunState | null> {
+  return withRuntimeStore(projectRoot, ({ db }) => {
+    const row = db.prepare('SELECT state_json FROM runs WHERE run_id = ?').get(runId) as { state_json?: string } | undefined;
+    return row?.state_json ? normalizeRunState(JSON.parse(row.state_json) as Partial<RunState>) : null;
+  });
+}
+
+async function importLegacyRunStateIfNeeded(projectRoot: string, runId: string, statePath: string): Promise<RunState | null> {
+  if (!await exists(statePath)) {
+    return null;
+  }
+  try {
+    const raw = await readFile(statePath, 'utf8');
+    const contentHash = hashDocumentContent(raw);
+    return await withRuntimeStore(projectRoot, ({ db }) => {
+      const legacy = db.prepare('SELECT content_hash FROM legacy_imports WHERE run_id = ? AND entity_type = ?').get(runId, 'state') as { content_hash?: string } | undefined;
+      const row = db.prepare('SELECT state_json, state_hash FROM runs WHERE run_id = ?').get(runId) as { state_json?: string; state_hash?: string } | undefined;
+      if (legacy?.content_hash === contentHash && row?.state_json && row.state_hash === contentHash) {
+        return normalizeRunState(JSON.parse(row.state_json) as Partial<RunState>);
+      }
+      const state = normalizeRunState(JSON.parse(raw) as Partial<RunState>);
+      db.prepare(`INSERT INTO runs (run_id, status, phase, current_task, partition, git_branch, task_id, created_at, updated_at, state_json, state_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(run_id) DO UPDATE SET status=excluded.status, phase=excluded.phase, current_task=excluded.current_task, partition=excluded.partition, git_branch=excluded.git_branch, task_id=excluded.task_id, created_at=excluded.created_at, updated_at=excluded.updated_at, state_json=excluded.state_json, state_hash=excluded.state_hash`)
+        .run(state.runId, state.status, state.phase, state.currentTask, state.partition, state.gitBranch, state.taskId, state.createdAt, state.updatedAt, raw, contentHash);
+      for (const artifact of state.artifacts) {
+        const payload = JSON.stringify({ ...artifact, status: 'legacy_imported' });
+        db.prepare('INSERT OR REPLACE INTO artifacts (artifact_id, run_id, path, kind, task_id, agent, content_hash, bytes, status, created_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+          .run(runtimeScopedId(state.runId, artifact.path, hashDocumentContent(payload)), state.runId, artifact.path, artifact.kind, artifact.task, artifact.agent, hashDocumentContent(payload), Buffer.byteLength(payload, 'utf8'), 'legacy_imported', artifact.createdAt, payload);
+      }
+      for (const record of Object.values(state.artifactIngestions ?? {})) {
+        db.prepare('INSERT OR REPLACE INTO artifact_ingestions (ingestion_id, run_id, delegation_id, task_id, agent, artifact_path, status, result_status, ingested_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+          .run(runtimeScopedId(record.runId, record.delegationId, record.artifactPath), record.runId, record.delegationId, record.task, record.agent, record.artifactPath, record.status, record.resultStatus, record.ingestedAt, JSON.stringify(record));
+      }
+      db.prepare('INSERT OR REPLACE INTO legacy_imports (import_id, run_id, entity_type, content_hash, imported_at, status, issue) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .run(legacyImportId(runId, 'state'), runId, 'state', contentHash, new Date().toISOString(), 'imported', null);
+      return state;
+    });
+  } catch (error) {
+    await recordLegacyImportFailure(projectRoot, runId, 'state', error);
+    throw new RuntimeStoreError('LEGACY_IMPORT_FAILED', `Cannot import legacy state for ${runId}: ${messageFromError(error)}`, { cause: error });
+  }
+}
+
+async function recordRuntimeEvent(projectRoot: string, event: RuntimeEvent, source = 'runtime'): Promise<void> {
+  const eventJson = JSON.stringify(event);
+  await withRuntimeStore(projectRoot, ({ db }) => {
+    db.prepare('INSERT OR IGNORE INTO events (run_id, event_time, event_name, event_hash, event_json, source) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(event.runId, event.time, event.event, hashDocumentContent(eventJson), eventJson, source);
+  });
+}
+
+async function importLegacyRunEventsIfNeeded(projectRoot: string, runId: string, eventPath: string): Promise<void> {
+  if (!await exists(eventPath)) {
+    return;
+  }
+  try {
+    const raw = await readFile(eventPath, 'utf8');
+    const contentHash = hashDocumentContent(raw);
+    await withRuntimeStore(projectRoot, ({ db }) => {
+      const legacy = db.prepare('SELECT content_hash FROM legacy_imports WHERE run_id = ? AND entity_type = ?').get(runId, 'events') as { content_hash?: string } | undefined;
+      if (legacy?.content_hash === contentHash) {
+        return;
+      }
+      for (const line of raw.split(/\r?\n/).filter((item) => item.trim().length > 0)) {
+        const event = JSON.parse(line) as RuntimeEvent;
+        const eventJson = JSON.stringify(event);
+        db.prepare('INSERT OR IGNORE INTO events (run_id, event_time, event_name, event_hash, event_json, source) VALUES (?, ?, ?, ?, ?, ?)')
+          .run(event.runId, event.time, event.event, hashDocumentContent(eventJson), eventJson, 'legacy');
+      }
+      db.prepare('INSERT OR REPLACE INTO legacy_imports (import_id, run_id, entity_type, content_hash, imported_at, status, issue) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .run(legacyImportId(runId, 'events'), runId, 'events', contentHash, new Date().toISOString(), 'imported', null);
+    });
+  } catch (error) {
+    await recordLegacyImportFailure(projectRoot, runId, 'events', error);
+    throw new RuntimeStoreError('LEGACY_IMPORT_FAILED', `Cannot import legacy events for ${runId}: ${messageFromError(error)}`, { cause: error });
+  }
+}
+
+async function readRuntimeRunEvents(projectRoot: string, runId: string): Promise<RuntimeEvent[]> {
+  return withRuntimeStore(projectRoot, ({ db }) => {
+    const rows = db.prepare('SELECT event_json FROM events WHERE run_id = ? ORDER BY event_time ASC, event_id ASC').all(runId) as Array<{ event_json: string }>;
+    return rows.map((row) => JSON.parse(row.event_json) as RuntimeEvent);
+  });
+}
+
+async function recordRuntimeArtifact(projectRoot: string, input: { runId: string; path: string; content: string; status: string; taskId?: string | null; agent?: string | null }): Promise<void> {
+  const contentHash = hashDocumentContent(input.content);
+  const now = new Date().toISOString();
+  const payload = JSON.stringify({ path: input.path, status: input.status, taskId: input.taskId ?? null, agent: input.agent ?? null });
+  await withRuntimeStore(projectRoot, ({ db }) => {
+    db.prepare('INSERT OR REPLACE INTO artifacts (artifact_id, run_id, path, kind, task_id, agent, content_hash, bytes, status, created_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(runtimeScopedId(input.runId, input.path, contentHash), input.runId, input.path, artifactKind(input.path), input.taskId ?? null, input.agent ?? null, contentHash, Buffer.byteLength(input.content, 'utf8'), input.status, now, payload);
+  });
+}
+
+async function recordRuntimeActivity(projectRoot: string, entry: InvocationLedgerEntry): Promise<void> {
+  await withRuntimeStore(projectRoot, ({ db }) => {
+    db.prepare('INSERT OR REPLACE INTO activities (activity_id, run_id, task_id, branch, kind, ref, status, created_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(entry.entryId, entry.runId, entry.taskId ?? null, entry.branch ?? null, entry.kind, entry.ref, entry.status ?? null, entry.timestamp, JSON.stringify(entry));
+  });
+}
+
+async function recordRuntimeArtifactIngestion(projectRoot: string, record: ArtifactResultIngestionRecord): Promise<void> {
+  await withRuntimeStore(projectRoot, ({ db }) => {
+    db.prepare('INSERT OR REPLACE INTO artifact_ingestions (ingestion_id, run_id, delegation_id, task_id, agent, artifact_path, status, result_status, ingested_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(runtimeScopedId(record.runId, record.delegationId, record.artifactPath), record.runId, record.delegationId, record.task, record.agent, record.artifactPath, record.status, record.resultStatus, record.ingestedAt, JSON.stringify(record));
+  });
+}
+
+async function recordRuntimeEvidenceAdmission(projectRoot: string, state: RunState, ingestion: ArtifactResultIngestionRecord, trust: ArtifactTrustValidationReport | undefined): Promise<void> {
+  const now = new Date().toISOString();
+  await withRuntimeStore(projectRoot, ({ db }) => {
+    for (const claim of trust?.claims ?? []) {
+      db.prepare('INSERT OR REPLACE INTO evidence_claims (claim_id, run_id, partition, task_id, acceptance_id, coverage_status, source_artifact, is_derived, created_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(runtimeScopedId(ingestion.runId, claim.task, claim.acceptance, claim.sourceArtifact), ingestion.runId, state.partition, claim.task, claim.acceptance, claim.status, claim.sourceArtifact, isDerivedEvidenceRef(claim.sourceArtifact) ? 1 : 0, now, JSON.stringify(claim));
+    }
+    const issueCodes = uniqueEvidenceIssueCodes(trust?.issues ?? ingestion.issues);
+    if ((trust?.issues.length ?? ingestion.issues.length) > 0 || ingestion.status === 'rejected') {
+      db.prepare('INSERT OR REPLACE INTO policy_decisions (decision_id, run_id, task_id, acceptance_id, status, issue_codes, created_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(runtimeScopedId(ingestion.runId, ingestion.delegationId, ingestion.artifactPath, 'admission'), ingestion.runId, ingestion.task, null, ingestion.status, issueCodes.join(','), now, JSON.stringify({ ingestion, trust: trust ?? null }));
+    }
+  });
+}
+
+async function readRuntimeEvidenceClaims(projectRoot: string, runId: string, taskId: string | null): Promise<EvidenceClaim[]> {
+  return withRuntimeStore(projectRoot, ({ db }) => {
+    const rows = taskId
+      ? db.prepare('SELECT c.payload_json FROM evidence_claims c JOIN runs r ON r.run_id = c.run_id WHERE c.run_id = ? AND c.task_id = ? AND (c.partition IS NULL OR r.partition IS NULL OR c.partition = r.partition) ORDER BY c.created_at ASC, c.claim_id ASC').all(runId, taskId)
+      : db.prepare('SELECT c.payload_json FROM evidence_claims c JOIN runs r ON r.run_id = c.run_id WHERE c.run_id = ? AND (c.partition IS NULL OR r.partition IS NULL OR c.partition = r.partition) ORDER BY c.created_at ASC, c.claim_id ASC').all(runId);
+    return (rows as Array<{ payload_json: string }>).map((row) => JSON.parse(row.payload_json) as EvidenceClaim);
+  });
+}
+
+async function hasRuntimeEvidenceScopeViolation(projectRoot: string, runId: string, taskId: string | null): Promise<boolean> {
+  return withRuntimeStore(projectRoot, ({ db }) => {
+    const row = taskId
+      ? db.prepare('SELECT COUNT(*) AS count FROM evidence_claims c JOIN runs r ON r.run_id = c.run_id WHERE c.run_id = ? AND c.task_id = ? AND c.partition IS NOT NULL AND r.partition IS NOT NULL AND c.partition <> r.partition').get(runId, taskId)
+      : db.prepare('SELECT COUNT(*) AS count FROM evidence_claims c JOIN runs r ON r.run_id = c.run_id WHERE c.run_id = ? AND c.partition IS NOT NULL AND r.partition IS NOT NULL AND c.partition <> r.partition').get(runId);
+    return ((row as { count?: number } | undefined)?.count ?? 0) > 0;
+  });
+}
+
+
+async function recordRuntimeProjection(projectRoot: string, projectionType: string, scopeKey: string, payload: unknown): Promise<void> {
+  const now = new Date().toISOString();
+  await withRuntimeStore(projectRoot, ({ db }) => {
+    db.prepare('INSERT OR REPLACE INTO projections (projection_id, projection_type, scope_key, generated_at, payload_json) VALUES (?, ?, ?, ?, ?)')
+      .run(runtimeScopedId(projectionType, scopeKey), projectionType, scopeKey, now, JSON.stringify(payload));
+  });
+}
+
+async function recordLegacyImportFailure(projectRoot: string, runId: string, entityType: string, error: unknown): Promise<void> {
+  try {
+    await withRuntimeStore(projectRoot, ({ db }) => {
+      db.prepare('INSERT OR REPLACE INTO legacy_imports (import_id, run_id, entity_type, content_hash, imported_at, status, issue) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .run(legacyImportId(runId, entityType), runId, entityType, 'unavailable', new Date().toISOString(), 'failed', messageFromError(error));
+    });
+  } catch {
+    return;
+  }
+}
+
+function runtimeScopedId(...parts: string[]): string {
+  return createHash('sha256').update(parts.join('\0'), 'utf8').digest('hex').slice(0, 32);
+}
+
+function legacyImportId(runId: string, entityType: string): string {
+  return runtimeScopedId(runId, entityType);
+}
+
+async function inspectRuntimeStoreEvidence(projectRoot: string): Promise<DoctorCheck[]> {
+  try {
+    return await withRuntimeStore(projectRoot, ({ path: storePath, db }) => {
+      const versionRow = db.prepare('PRAGMA user_version').get() as { user_version?: number } | undefined;
+      const integrityRow = db.prepare('PRAGMA integrity_check').get() as { integrity_check?: string } | undefined;
+      const schemaVersion = versionRow?.user_version ?? 0;
+      if (schemaVersion !== RUNTIME_STORE_SCHEMA_VERSION) {
+        return [{ level: 'FAIL', check: 'runtime_store', message: `Runtime store schema version ${schemaVersion} does not match expected ${RUNTIME_STORE_SCHEMA_VERSION}.`, action: 'Run a compatible sdd version or rebuild the runtime store from legacy .sdd/runs.' }];
+      }
+      if (integrityRow?.integrity_check !== 'ok') {
+        return [{ level: 'FAIL', check: 'runtime_store', message: `Runtime store integrity check failed: ${integrityRow?.integrity_check ?? 'unknown'}.`, action: 'Rebuild runtime projections from legacy .sdd/runs after preserving the database for debugging.' }];
+      }
+      const checks: DoctorCheck[] = [{ level: 'PASS', check: 'runtime_store', message: `${RUNTIME_STORE_CONTRACT_VERSION} is available at ${storePath} with schema ${schemaVersion}.` }];
+      const scopeLeak = db.prepare('SELECT COUNT(*) AS count FROM evidence_claims c JOIN runs r ON r.run_id = c.run_id WHERE c.partition IS NOT NULL AND r.partition IS NOT NULL AND c.partition <> r.partition').get() as { count?: number } | undefined;
+      checks.push(((scopeLeak?.count ?? 0) > 0)
+        ? { level: 'FAIL', check: 'runtime_partition_scope', message: `Runtime store has ${scopeLeak?.count ?? 0} cross-partition evidence claim(s).`, action: 'Reingest validator artifacts for the correct run partition; mismatched claims cannot satisfy PASS evidence.' }
+        : { level: 'PASS', check: 'runtime_partition_scope', message: 'Runtime evidence claims match their run partition scope.' });
+      const freshness = db.prepare('SELECT (SELECT MAX(updated_at) FROM runs) AS latest_run, (SELECT MAX(generated_at) FROM projections) AS latest_projection').get() as { latest_run?: string | null; latest_projection?: string | null } | undefined;
+      checks.push(freshness?.latest_run && freshness?.latest_projection && freshness.latest_projection < freshness.latest_run
+        ? { level: 'PASS', check: 'runtime_projection_freshness', message: `Latest runtime projection ${freshness.latest_projection} is older than latest run update ${freshness.latest_run}; views can be refreshed on demand.` }
+        : { level: 'PASS', check: 'runtime_projection_freshness', message: freshness?.latest_projection ? 'Runtime projections are current with known run updates.' : 'No runtime projections have been materialized yet.' });
+      const legacy = db.prepare("SELECT status, COUNT(*) AS count FROM legacy_imports GROUP BY status").all() as Array<{ status: string; count: number }>;
+      const failedLegacy = legacy.find((row) => row.status === 'failed')?.count ?? 0;
+      const importedLegacy = legacy.find((row) => row.status === 'imported')?.count ?? 0;
+      checks.push(failedLegacy > 0
+        ? { level: 'FAIL', check: 'runtime_legacy_import', message: `${failedLegacy} legacy import record(s) failed.`, action: 'Inspect legacy .sdd/runs files and repair malformed state/events/invocation evidence before verify or sync-back.' }
+        : importedLegacy > 0
+          ? { level: 'PASS', check: 'runtime_legacy_import', message: `${importedLegacy} legacy runtime record(s) imported non-destructively; trust debt was preserved, not upgraded.` }
+          : { level: 'PASS', check: 'runtime_legacy_import', message: 'No legacy runtime import debt detected.' });
+      return checks;
+    });
+  } catch (error) {
+    return [{ level: 'FAIL', check: 'runtime_store', message: `Runtime store unavailable: ${messageFromError(error)}`, action: 'Use a Node runtime with node:sqlite support and writable .sdd/runtime.sqlite.' }];
+  }
 }
 
 export function getWorkerRuntimeRecordPath(projectRoot: string, runId: string, runtimeId: string): string {
@@ -1752,11 +2347,122 @@ export async function writeArtifact(projectRoot: string, runId: string, artifact
   const absolutePath = getArtifactPath(projectRoot, runId, normalized);
   await mkdir(path.dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, content, 'utf8');
-  return { absolutePath, runRelativePath: getRunRelativeArtifactPath(normalized) };
+  const runRelativePath = getRunRelativeArtifactPath(normalized);
+  await appendArtifactHashLedgerEntry(projectRoot, {
+    runId,
+    artifactPath: runRelativePath,
+    content,
+    status: 'written'
+  });
+  await recordRuntimeArtifact(projectRoot, { runId, path: runRelativePath, content, status: 'written' });
+  return { absolutePath, runRelativePath };
 }
 
 export async function readArtifact(projectRoot: string, runId: string, artifactRootRelativePath: string): Promise<string> {
   return readFile(getArtifactPath(projectRoot, runId, normalizeArtifactRootRelativePath(artifactRootRelativePath)), 'utf8');
+}
+
+export async function appendInvocationLedgerEntry(projectRoot: string, input: Omit<InvocationLedgerEntry, 'contract' | 'version' | 'entryId' | 'timestamp'>): Promise<InvocationLedgerEntry> {
+  const timestamp = new Date().toISOString();
+  const entry: InvocationLedgerEntry = {
+    contract: 'sdd-invocation-ledger-v1',
+    version: INVOCATION_LEDGER_CONTRACT_VERSION,
+    entryId: createHash('sha256').update(`${input.runId}:${input.kind}:${input.ref}:${timestamp}`).digest('hex').slice(0, 16),
+    timestamp,
+    ...input
+  };
+  await appendFile(getInvocationLedgerPath(projectRoot, input.runId), `${JSON.stringify(entry)}\n`, 'utf8');
+  await recordRuntimeActivity(projectRoot, entry);
+  return entry;
+}
+
+async function importLegacyInvocationLedgerIfNeeded(projectRoot: string, runId: string, ledgerPath: string): Promise<void> {
+  if (!await exists(ledgerPath)) {
+    return;
+  }
+  try {
+    const raw = await readFile(ledgerPath, 'utf8');
+    const contentHash = hashDocumentContent(raw);
+    await withRuntimeStore(projectRoot, ({ db }) => {
+      const legacy = db.prepare('SELECT content_hash FROM legacy_imports WHERE run_id = ? AND entity_type = ?').get(runId, 'invocations') as { content_hash?: string } | undefined;
+      if (legacy?.content_hash === contentHash) {
+        return;
+      }
+      for (const line of raw.split(/\r?\n/).filter(Boolean)) {
+        const entry = JSON.parse(line) as InvocationLedgerEntry;
+        db.prepare('INSERT OR REPLACE INTO activities (activity_id, run_id, task_id, branch, kind, ref, status, created_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+          .run(entry.entryId, entry.runId, entry.taskId ?? null, entry.branch ?? null, entry.kind, entry.ref, entry.status ?? null, entry.timestamp, JSON.stringify(entry));
+      }
+      db.prepare('INSERT OR REPLACE INTO legacy_imports (import_id, run_id, entity_type, content_hash, imported_at, status, issue) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .run(legacyImportId(runId, 'invocations'), runId, 'invocations', contentHash, new Date().toISOString(), 'imported', null);
+    });
+  } catch (error) {
+    await recordLegacyImportFailure(projectRoot, runId, 'invocations', error);
+    throw new RuntimeStoreError('LEGACY_IMPORT_FAILED', `Cannot import legacy invocation ledger for ${runId}: ${messageFromError(error)}`, { cause: error });
+  }
+}
+
+export async function listInvocationLedgerEntries(projectRoot: string, runId: string): Promise<InvocationLedgerEntry[]> {
+  const ledgerPath = getInvocationLedgerPath(projectRoot, runId);
+  if (!await exists(ledgerPath)) {
+    return [];
+  }
+  await importLegacyInvocationLedgerIfNeeded(projectRoot, runId, ledgerPath);
+  const raw = await readFile(ledgerPath, 'utf8');
+  return raw.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line) as InvocationLedgerEntry);
+}
+
+async function appendArtifactHashLedgerEntry(projectRoot: string, input: { runId: string; taskId?: string | null; branch?: string | null; artifactPath: string; content: string; status?: string }): Promise<InvocationLedgerEntry> {
+  return appendUniqueInvocationLedgerEntry(projectRoot, {
+    runId: input.runId,
+    taskId: input.taskId ?? null,
+    branch: input.branch ?? null,
+    kind: 'artifact_hash',
+    ref: input.artifactPath,
+    status: input.status ?? 'observed',
+    artifactPath: input.artifactPath,
+    outputHash: hashDocumentContent(input.content),
+    materialRefs: [],
+    metadata: { bytes: Buffer.byteLength(input.content, 'utf8') }
+  });
+}
+
+async function appendUniqueInvocationLedgerEntry(projectRoot: string, input: Omit<InvocationLedgerEntry, 'contract' | 'version' | 'entryId' | 'timestamp'>): Promise<InvocationLedgerEntry> {
+  const existing = await findMatchingInvocationLedgerEntry(projectRoot, input);
+  if (existing) {
+    return existing;
+  }
+  return appendInvocationLedgerEntry(projectRoot, input);
+}
+
+async function findMatchingInvocationLedgerEntry(projectRoot: string, input: Omit<InvocationLedgerEntry, 'contract' | 'version' | 'entryId' | 'timestamp'>): Promise<InvocationLedgerEntry | null> {
+  const ledgerPath = getInvocationLedgerPath(projectRoot, input.runId);
+  if (!await exists(ledgerPath)) {
+    return null;
+  }
+  const raw = await readFile(ledgerPath, 'utf8');
+  for (const line of raw.split(/\r?\n/).filter(Boolean)) {
+    const entry = JSON.parse(line) as InvocationLedgerEntry;
+    if (entry.kind === input.kind && entry.ref === input.ref && entry.status === input.status && entry.outputHash === input.outputHash) {
+      return entry;
+    }
+  }
+  return null;
+}
+
+async function appendDeclaredCommandLedgerEntries(projectRoot: string, input: { runId: string; taskId: string; branch: string; commands: string[] }): Promise<void> {
+  for (const command of input.commands) {
+    await appendUniqueInvocationLedgerEntry(projectRoot, {
+      runId: input.runId,
+      taskId: input.taskId,
+      branch: input.branch,
+      kind: 'command',
+      ref: command,
+      status: 'declared',
+      materialRefs: [],
+      metadata: { source: 'task.validation' }
+    });
+  }
 }
 
 export async function writeAgentExecutionRecord(projectRoot: string, record: AgentExecutionRecord): Promise<AgentExecutionRecord> {
@@ -2426,8 +3132,15 @@ export async function createRun(projectRoot: string, options: { runId?: string; 
 
 export async function readRunState(projectRoot: string, runId: string): Promise<RunState> {
   const statePath = path.join(getRunDir(projectRoot, runId), 'state.json');
-  const raw = await readFile(statePath, 'utf8');
-  return normalizeRunState(JSON.parse(raw) as Partial<RunState>);
+  const legacyState = await importLegacyRunStateIfNeeded(projectRoot, runId, statePath);
+  if (legacyState) {
+    return legacyState;
+  }
+  const storedState = await readRuntimeRunState(projectRoot, runId);
+  if (storedState) {
+    return storedState;
+  }
+  throw new Error(`Run state not found for ${runId}.`);
 }
 
 export async function writeRunState(projectRoot: string, state: RunState): Promise<void> {
@@ -2436,7 +3149,9 @@ export async function writeRunState(projectRoot: string, state: RunState): Promi
     updatedAt: new Date().toISOString()
   });
   const statePath = path.join(getRunDir(projectRoot, state.runId), 'state.json');
-  await writeFile(statePath, `${JSON.stringify(nextState, null, 2)}\n`, 'utf8');
+  const serializedState = `${JSON.stringify(nextState, null, 2)}\n`;
+  await writeFile(statePath, serializedState, 'utf8');
+  await upsertRuntimeRunState(projectRoot, nextState, serializedState);
 }
 
 function normalizeRunState(state: Partial<RunState>): RunState {
@@ -2487,6 +3202,7 @@ export async function appendEvent(projectRoot: string, runId: string, event: Omi
   };
   const eventPath = path.join(getRunDir(projectRoot, runId), 'events.jsonl');
   await appendFile(eventPath, `${JSON.stringify(nextEvent)}\n`, 'utf8');
+  await recordRuntimeEvent(projectRoot, nextEvent);
   return nextEvent;
 }
 
@@ -2546,6 +3262,7 @@ export async function listRuns(projectRoot: string): Promise<RunSummary[]> {
 export async function rebuildLocalRunIndex(projectRoot: string): Promise<LocalRunIndex> {
   const index = await buildLocalRunIndexSnapshot(projectRoot);
   await writeFile(getLocalRunIndexPath(projectRoot), `${JSON.stringify(index, null, 2)}\n`, 'utf8');
+  await recordRuntimeProjection(projectRoot, 'local_run_index', 'all', index);
   return index;
 }
 
@@ -2562,7 +3279,7 @@ export async function queryLocalRunIndex(projectRoot: string, query: LocalRunInd
     .filter((run) => !query.taskId || run.taskIds.includes(query.taskId))
     .filter((run) => !query.artifact || index.artifacts.some((artifact) => artifact.runId === run.runId && artifact.path === query.artifact))
     .map((run) => run.runId));
-  return {
+  const result = {
     ...index,
     runs: index.runs.filter((run) => runIds.has(run.runId)),
     tasks: index.tasks.filter((task) => runIds.has(task.runId) && (!query.taskId || task.taskId === query.taskId) && (!query.partition || task.partition === query.partition)),
@@ -2572,6 +3289,8 @@ export async function queryLocalRunIndex(projectRoot: string, query: LocalRunInd
     latestByPartitionTask: index.latestByPartitionTask.filter((entry) => runIds.has(entry.runId) && (!query.partition || entry.partition === query.partition) && (!query.taskId || entry.taskId === query.taskId)),
     activeByAffectedFile: index.activeByAffectedFile.filter((entry) => runIds.has(entry.runId) && (!query.partition || entry.partition === query.partition) && (!query.taskId || entry.taskId === query.taskId))
   };
+  await recordRuntimeProjection(projectRoot, 'local_run_index_query', hashDocumentContent(JSON.stringify(query)), result);
+  return result;
 }
 
 export async function inspectLocalRunIndex(projectRoot: string): Promise<LocalRunIndexInspection> {
@@ -2752,11 +3471,12 @@ function isActiveRunForAffectedFile(state: RunState): boolean {
 
 export async function inspectRun(projectRoot: string, runId: string): Promise<RunInspection> {
   const state = await readRunState(projectRoot, runId);
-  const [events, agentExecutions, teamSessions, workerRuntimes] = await Promise.all([
+  const [events, agentExecutions, teamSessions, workerRuntimes, invocationLedger] = await Promise.all([
     readRunEvents(projectRoot, runId),
     listAgentExecutionRecords(projectRoot, runId),
     listTeamSessionRecords(projectRoot, runId),
-    listResidentWorkerRuntimeRecords(projectRoot, runId)
+    listResidentWorkerRuntimeRecords(projectRoot, runId),
+    listInvocationLedgerEntries(projectRoot, runId)
   ]);
   return {
     summary: summarizeRunState(state),
@@ -2769,15 +3489,16 @@ export async function inspectRun(projectRoot: string, runId: string): Promise<Ru
     worktrees: Object.values(state.worktrees ?? {}),
     validation: state.validation,
     syncBack: state.syncBack,
-    taskRunEvidence: buildTaskRunEvidence(state, events, agentExecutions, teamSessions, workerRuntimes),
+    taskRunEvidence: buildTaskRunEvidence(state, events, agentExecutions, teamSessions, workerRuntimes, invocationLedger),
     tasks: state.tasks,
     agentExecutions,
     teamSessions,
-    workerRuntimes
+    workerRuntimes,
+    invocationLedger
   };
 }
 
-function buildTaskRunEvidence(state: RunState, events: RuntimeEvent[], agentExecutions: AgentExecutionRecord[] = [], teamSessions: TeamSessionRecord[] = [], workerRuntimes: ResidentWorkerRuntimeRecord[] = []): TaskRunEvidenceContract {
+function buildTaskRunEvidence(state: RunState, events: RuntimeEvent[], agentExecutions: AgentExecutionRecord[] = [], teamSessions: TeamSessionRecord[] = [], workerRuntimes: ResidentWorkerRuntimeRecord[] = [], invocationLedger: InvocationLedgerEntry[] = []): TaskRunEvidenceContract {
   return {
     version: TASK_RUN_EVIDENCE_CONTRACT_VERSION,
     runId: state.runId,
@@ -2797,9 +3518,263 @@ function buildTaskRunEvidence(state: RunState, events: RuntimeEvent[], agentExec
     syncBackProposal: state.syncBack.proposalPath,
     agentExecutions,
     teamSessions,
-    workerRuntimes
+    workerRuntimes,
+    invocationLedger
   };
 }
+
+export function parseContextProfile(value: string | null | undefined): ContextProfile {
+  if (!value || value === 'brief') {
+    return 'brief';
+  }
+  if (value === 'normal' || value === 'forensic') {
+    return value;
+  }
+  throw new Error(`Unsupported context profile: ${value}`);
+}
+
+export function contextBudgetForProfile(profile: ContextProfile): ContextBudget {
+  if (profile === 'forensic') {
+    return { contract: CONTEXT_BUDGET_CONTRACT_VERSION, profile, maxBytes: 64 * 1024, preserve: ['blockers', 'failures', 'source_refs', 'complete_evidence'] };
+  }
+  if (profile === 'normal') {
+    return { contract: CONTEXT_BUDGET_CONTRACT_VERSION, profile, maxBytes: 12 * 1024, preserve: ['blockers', 'failures', 'source_refs', 'next_action'] };
+  }
+  return { contract: CONTEXT_BUDGET_CONTRACT_VERSION, profile, maxBytes: 2 * 1024, preserve: ['blockers', 'current_task', 'next_action', 'source_refs'] };
+}
+
+export function summarizeCommandOutput(rawOutput: string, source: ContextSourceRef, profile: ContextProfile = 'brief'): CommandOutputSummary {
+  const lines = rawOutput.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const failureLines = lines.filter((line) => /\b(fail(?:ed|ure)?|error|blocked|exception|traceback|timed out|timeout)\b/i.test(line));
+  const successLines = lines.filter((line) => /\b(pass(?:ed)?|success|completed|ok)\b/i.test(line));
+  let maxHighlights = 5;
+  if (profile === 'normal') {
+    maxHighlights = 12;
+  } else if (profile === 'forensic') {
+    maxHighlights = lines.length;
+  }
+  const selected = [...failureLines, ...successLines, ...lines].filter((line, index, all) => all.indexOf(line) === index).slice(0, maxHighlights);
+  let status: ContextSummaryStatus = 'UNKNOWN';
+  if (failureLines.some((line) => /\bblocked\b/i.test(line))) {
+    status = 'BLOCKED';
+  } else if (failureLines.length > 0) {
+    status = 'FAIL';
+  } else if (successLines.length > 0) {
+    status = 'PASS';
+  }
+  return {
+    contract: COMMAND_OUTPUT_SUMMARY_CONTRACT_VERSION,
+    authoritative: false,
+    usableForPass: false,
+    source,
+    status,
+    highlights: selected,
+    omittedLines: Math.max(0, lines.length - selected.length)
+  };
+}
+
+export async function buildEvidenceSummaryProjection(projectRoot: string, options: EvidenceSummaryOptions): Promise<EvidenceSummaryProjection> {
+  const state = await readRunState(projectRoot, options.runId);
+  const [events, invocationLedger] = await Promise.all([
+    readRunEvents(projectRoot, options.runId),
+    listInvocationLedgerEntries(projectRoot, options.runId)
+  ]);
+  const taskId = options.taskId ?? state.currentTask ?? state.taskId;
+  const admittedClaims = await readRuntimeEvidenceClaims(projectRoot, state.runId, taskId ?? null);
+  const artifactIngestions = Object.values(state.artifactIngestions ?? {}).filter((record) => !taskId || record.task === taskId);
+  const artifacts = state.artifacts.filter((artifact) => !taskId || artifact.task === taskId);
+  const ledgerArtifactRefs = invocationLedger
+    .filter((entry) => entry.kind === 'artifact_hash' && entry.artifactPath)
+    .map((entry) => ({ path: entry.artifactPath as string, kind: 'artifact' as const }));
+  const artifactSourceRefs = [
+    ...artifacts.map((artifact) => ({ path: `.sdd/runs/${state.runId}/${artifact.path}`, kind: 'artifact' as const })),
+    ...ledgerArtifactRefs.map((artifact) => ({ path: `.sdd/runs/${state.runId}/${artifact.path}`, kind: artifact.kind }))
+  ];
+  const sources = await uniqueContextSourceRefs([
+    await contextSourceRefForProjectPath(projectRoot, `.sdd/runs/${state.runId}/state.json`, 'run_state'),
+    await contextSourceRefForProjectPath(projectRoot, `.sdd/runs/${state.runId}/events.jsonl`, 'command_output'),
+    await contextSourceRefForProjectPath(projectRoot, `.sdd/runs/${state.runId}/invocations.jsonl`, 'ledger'),
+    ...(await Promise.all(artifactSourceRefs.map((artifact) => contextSourceRefForProjectPath(projectRoot, artifact.path, artifact.kind))))
+  ]);
+  const issueCodes = uniqueEvidenceIssueCodes(artifactIngestions.flatMap((record) => record.issues));
+  const passCount = Math.max(admittedClaims.filter((claim) => claim.status === 'PASS').length, artifactIngestions.filter((record) => record.status === 'accepted' && (record.resultStatus === 'PASS' || record.resultStatus === 'PASS_WITH_GAPS')).length);
+  const failCount = Math.max(admittedClaims.filter((claim) => claim.status === 'FAIL').length, artifactIngestions.filter((record) => record.status === 'rejected' || record.resultStatus === 'FAIL').length);
+  const blockedCount = Math.max(admittedClaims.filter((claim) => claim.status === 'BLOCKED').length, artifactIngestions.filter((record) => record.resultStatus === 'BLOCKED' || record.resultStatus === 'TIMED_OUT' || record.resultStatus === 'CANCELLED' || record.gaps.length > 0).length);
+  const highlights = [
+    `run=${state.runId} status=${state.status} phase=${state.phase ?? 'none'}`,
+    `task=${taskId ?? 'none'} validation=${state.validation.status} sync_back=${state.syncBack.status}`,
+    `artifacts=${artifacts.length} ingestions=${artifactIngestions.length} admitted_claims=${admittedClaims.length} events=${events.length} ledger=${invocationLedger.length}`,
+    `pass=${passCount} blocked=${blockedCount} fail=${failCount}`
+  ];
+  if (issueCodes.length > 0) {
+    highlights.push(`issues=${issueCodes.join(',')}`);
+  }
+  const projection: EvidenceSummaryProjection = {
+    contract: EVIDENCE_SUMMARY_CONTRACT_VERSION,
+    authoritative: false,
+    usableForPass: false,
+    runId: state.runId,
+    taskId: taskId ?? null,
+    sources,
+    passCount,
+    blockedCount,
+    failCount,
+    issueCodes,
+    policyRefs: [
+      `${ACCEPTANCE_POLICY_RULESET_VERSION}:require-source-evidence`,
+      `${ACCEPTANCE_POLICY_RULESET_VERSION}:require-provenance`,
+      `${ACCEPTANCE_POLICY_RULESET_VERSION}:reject-derived-source-evidence`
+    ],
+    highlights
+  };
+  await recordRuntimeProjection(projectRoot, 'evidence_summary', `${state.runId}:${taskId ?? 'all'}`, projection);
+  return projection;
+}
+
+export async function buildContextBuildPackage(projectRoot: string, options: ContextBuildOptions): Promise<ContextBuildPackage> {
+  const profile = options.profile ?? 'brief';
+  const branch = options.branch ?? (await resolveSddContext(projectRoot)).partition;
+  const model = await parseSddBranch(projectRoot, branch);
+  const inspected = inspectSddTask(model, options.taskId);
+  if (!inspected.task) {
+    throw new Error(`Task not found: ${options.taskId}`);
+  }
+  const task = inspected.task;
+  const docRefs = await Promise.all([
+    contextSourceRefForAbsolutePath(projectRoot, model.tasksPath, 'document'),
+    contextSourceRefForAbsolutePath(projectRoot, model.planPath, 'document'),
+    contextSourceRefForAbsolutePath(projectRoot, model.specPath, 'document')
+  ]);
+  const affectedRefs = await Promise.all(task.affectedFiles.map((file) => contextSourceRefForProjectPath(projectRoot, file, 'document')));
+  const artifactRefs = await Promise.all(task.requiredArtifacts.map((artifact) => contextSourceRefForProjectPath(projectRoot, artifact, 'artifact')));
+  const routeRef = await contextSourceRefForProjectPath(projectRoot, `.sdd/cache/routes`, 'derived');
+  const runIndexRef = await contextSourceRefForProjectPath(projectRoot, `.sdd/run-index.json`, 'derived');
+  const mustRead = uniqueContextSourceRefs(contextMustReadRefs(options.mode, docRefs, affectedRefs, artifactRefs));
+  const optionalRead = uniqueContextSourceRefs(contextOptionalRefs(options.mode, docRefs, affectedRefs, artifactRefs, routeRef, runIndexRef, options.agent ?? null));
+  const doNotReadUnlessNeeded = uniqueContextSourceRefs(contextDeferredRefs(options.mode, docRefs, affectedRefs, artifactRefs, routeRef, runIndexRef));
+  const contextPackage: ContextBuildPackage = {
+    contract: CONTEXT_PACKAGE_CONTRACT_VERSION,
+    profile,
+    mode: options.mode,
+    agent: options.agent ?? null,
+    authoritative: false,
+    usableForPass: false,
+    taskId: task.id,
+    branch,
+    mustRead,
+    optionalRead,
+    doNotReadUnlessNeeded,
+    nextCommands: contextNextCommands(task.id, branch, options.mode, options.agent),
+    warnings: [
+      'Context package is derived guidance only and cannot satisfy PASS evidence.',
+      ...inspected.gaps.map((gap) => `${gap.field}: ${gap.message}`)
+    ]
+  };
+  await recordRuntimeProjection(projectRoot, 'context_build', `${branch}:${task.id}:${options.mode}:${options.agent ?? 'none'}:${profile}`, contextPackage);
+  return contextPackage;
+}
+
+export function validateLogWorkerSummary(summary: LogWorkerSummary): LogWorkerSummaryValidation {
+  const issues: ContractValidationIssue[] = [];
+  const candidate = summary as LogWorkerSummary & Record<string, unknown>;
+  if (candidate.contract !== LOG_WORKER_SUMMARY_CONTRACT_VERSION) {
+    issues.push(contractIssue('contract', 'Log worker summary contract is invalid.', `Use ${LOG_WORKER_SUMMARY_CONTRACT_VERSION}.`));
+  }
+  if (candidate.authoritative !== false) {
+    issues.push(contractIssue('authoritative', 'Log worker summary must be non-authoritative.', 'Set authoritative=false and keep workflow decisions in core runtime.'));
+  }
+  if (candidate.usableForPass !== false) {
+    issues.push(contractIssue('usableForPass', 'Log worker summary cannot be used for PASS evidence.', 'Set usableForPass=false and reference source artifacts for PASS evidence.'));
+  }
+  const forbiddenAuthority = Array.isArray(candidate.forbiddenAuthority) ? candidate.forbiddenAuthority.filter((item) => typeof item === 'string') : [];
+  if (forbiddenAuthority.length > 0) {
+    issues.push(contractIssue('forbiddenAuthority', `Log worker summary claims forbidden workflow authority: ${forbiddenAuthority.join(', ')}.`, 'Remove PASS/BLOCKED/route/doctor/sync-back decisions from worker summaries.'));
+  }
+  for (const field of ['status', 'verdict', 'routeDecision', 'doctorVerdict', 'syncBackReady']) {
+    if (field in candidate) {
+      issues.push(contractIssue(field, `Log worker summary must not expose workflow decision field ${field}.`, 'Keep decision fields in core runtime outputs only.'));
+    }
+  }
+  return { valid: issues.length === 0, issues };
+}
+
+async function contextSourceRefForProjectPath(projectRoot: string, relativePath: string, kind: ContextSourceKind): Promise<ContextSourceRef> {
+  const normalized = normalizePortablePath(relativePath);
+  return contextSourceRefForAbsolutePath(projectRoot, path.join(projectRoot, normalized), kind, normalized);
+}
+
+async function contextSourceRefForAbsolutePath(projectRoot: string, absolutePath: string, kind: ContextSourceKind, displayPath?: string): Promise<ContextSourceRef> {
+  const relativePath = displayPath ?? normalizePortablePath(path.relative(projectRoot, absolutePath));
+  if (!relativePath || relativePath.startsWith('../') || path.isAbsolute(relativePath)) {
+    return { path: normalizePortablePath(absolutePath), hash: hashDocumentContent(`external:${absolutePath}`), kind };
+  }
+  if (!await exists(absolutePath)) {
+    return { path: relativePath, hash: hashDocumentContent(`missing:${relativePath}`), kind };
+  }
+  const fileStat = await stat(absolutePath);
+  if (fileStat.isDirectory()) {
+    return { path: relativePath, hash: hashDocumentContent(`directory:${relativePath}`), kind };
+  }
+  return { path: relativePath, hash: hashDocumentContent(await readFile(absolutePath, 'utf8')), kind };
+}
+
+function uniqueContextSourceRefs(refs: ContextSourceRef[]): ContextSourceRef[] {
+  return [...new Map(refs.map((ref) => [`${ref.kind}:${ref.path}`, ref])).values()];
+}
+
+function uniqueEvidenceIssueCodes(issues: ContractValidationIssue[]): EvidenceQualityIssue[] {
+  const known: EvidenceQualityIssue[] = ['EMPTY_EVIDENCE', 'TODO_PLACEHOLDER', 'TEMPLATE_TEXT', 'MENTION_ONLY', 'UNSOURCED_PASS', 'MISSING_COMMAND_OUTPUT', 'MISSING_ARTIFACT_REFERENCE', 'MISSING_MATERIAL_REFERENCE', 'PROVENANCE_GAP', 'POLICY_RULE_FAILED', 'DERIVED_SOURCE_EVIDENCE', 'PARTITION_SCOPE_VIOLATION'];
+  return known.filter((code) => issues.some((issue) => issue.message.includes(code)));
+}
+
+function contextMustReadRefs(mode: ContextBuildMode, docs: ContextSourceRef[], affected: ContextSourceRef[], artifacts: ContextSourceRef[]): ContextSourceRef[] {
+  if (mode === 'do') {
+    return [docs[0], docs[1], ...affected];
+  }
+  if (mode === 'verify') {
+    return [docs[0], ...artifacts];
+  }
+  if (mode === 'sync-back') {
+    return [docs[0], ...affected];
+  }
+  return [docs[0]];
+}
+
+function contextOptionalRefs(mode: ContextBuildMode, docs: ContextSourceRef[], affected: ContextSourceRef[], artifacts: ContextSourceRef[], routeRef: ContextSourceRef, runIndexRef: ContextSourceRef, agent: string | null): ContextSourceRef[] {
+  const refs = mode === 'doctor' ? [docs[1], docs[2], runIndexRef, routeRef, ...artifacts] : [docs[2], ...artifacts];
+  if (agent === 'implementer') {
+    refs.push(...affected);
+  }
+  if (agent === 'reviewer' || agent === 'validator') {
+    refs.push(runIndexRef);
+  }
+  return refs;
+}
+
+function contextDeferredRefs(mode: ContextBuildMode, docs: ContextSourceRef[], affected: ContextSourceRef[], artifacts: ContextSourceRef[], routeRef: ContextSourceRef, runIndexRef: ContextSourceRef): ContextSourceRef[] {
+  if (mode === 'doctor') {
+    return [...affected];
+  }
+  if (mode === 'verify') {
+    return [...affected, routeRef];
+  }
+  return [runIndexRef, ...artifacts, docs[2]];
+}
+
+function contextNextCommands(taskId: string, branch: string, mode: ContextBuildMode, agent?: string): string[] {
+  if (mode === 'do') {
+    return [`sdd do task ${taskId} --branch ${branch}`];
+  }
+  if (mode === 'verify') {
+    return [`sdd verify task ${taskId} --branch ${branch}`, `sdd evidence summary <run_id> --task ${taskId} --json`];
+  }
+  if (mode === 'sync-back') {
+    return [`sdd sync-back inspect --branch ${branch} --task ${taskId}`];
+  }
+  const agentSuffix = agent ? ` --agent ${agent}` : '';
+  return [`sdd doctor --latest-only --branch ${branch}`, `sdd context build --task ${taskId} --branch ${branch} --mode verify${agentSuffix} --json`];
+}
+
 
 function stringData(data: Record<string, unknown> | undefined, key: string): string | null {
   const value = data?.[key];
@@ -3187,12 +4162,21 @@ export async function inspectSyncBack(projectRoot: string, options: { runId?: st
   }
 
   const proposalPath = state.syncBack.proposalPath;
+  const expectedProposalDigest = state.syncBack.proposalDigest ?? null;
   let proposal: string | null = null;
+  let proposalDigestValid: boolean | null = null;
   if (!proposalPath) {
     reasons.push('Run has no sync-back proposal.');
   } else {
     try {
       proposal = await readArtifact(projectRoot, state.runId, toArtifactRootRelativePath(proposalPath));
+      if (expectedProposalDigest) {
+        const actualProposalDigest = hashDocumentContent(proposal);
+        proposalDigestValid = actualProposalDigest === expectedProposalDigest;
+        if (!proposalDigestValid) {
+          reasons.push(`Sync-back proposal ${proposalPath} digest changed from ${expectedProposalDigest} to ${actualProposalDigest}.`);
+        }
+      }
     } catch (error) {
       reasons.push(`Cannot read sync-back proposal ${proposalPath}: ${messageFromError(error)}`);
     }
@@ -3223,6 +4207,8 @@ export async function inspectSyncBack(projectRoot: string, options: { runId?: st
     reasons,
     proposalPath,
     proposal,
+    proposalDigest: expectedProposalDigest,
+    proposalDigestValid,
     runTaskStatus: runtimeTaskStatus(state.tasks[taskId]),
     markdownTask,
     markdownStatus: markdownTask?.status ?? null,
@@ -3305,7 +4291,7 @@ export async function applySyncBack(projectRoot: string, options: { runId?: stri
   };
 }
 
-export async function doctor(projectRoot: string, options: { allRuns?: boolean; latestOnly?: boolean } = {}): Promise<DoctorReport> {
+export async function doctor(projectRoot: string, options: { allRuns?: boolean; latestOnly?: boolean; branch?: string | null } = {}): Promise<DoctorReport> {
   const checks: DoctorCheck[] = [];
   const gitRoot = await getGitRoot(projectRoot);
   checks.push(gitRoot
@@ -3324,6 +4310,7 @@ export async function doctor(projectRoot: string, options: { allRuns?: boolean; 
     checks.push({ level: 'FAIL', check: 'project_config', message: '.sdd/project.yml is missing.', action: 'Run sdd init.' });
   }
 
+  checks.push(...await inspectRuntimeStoreEvidence(projectRoot));
   const runsDir = getRunsDir(projectRoot);
   if (await exists(runsDir)) {
     try {
@@ -3343,7 +4330,7 @@ export async function doctor(projectRoot: string, options: { allRuns?: boolean; 
     ? { level: 'PASS', check: 'specs_dir', message: 'specs directory exists.' }
     : { level: 'WARN', check: 'specs_dir', message: 'specs directory is missing.', action: 'Create specs/<branch>/ documents before full SDD execution.' });
 
-  checks.push(...await inspectDocumentChainEvidence(projectRoot));
+  checks.push(...await inspectDocumentChainEvidence(projectRoot, options.branch ?? undefined));
   if (await exists(configPath)) {
     checks.push(...await inspectAiToolEntryEvidence(projectRoot));
   }
@@ -3576,7 +4563,8 @@ export function parseSddTasksMarkdown(raw: string, options: { branch?: string; t
 }
 
 export async function renderSddResultArtifactTemplate(projectRoot: string, options: SddResultArtifactTemplateOptions): Promise<string> {
-  const branch = options.branch ?? (await resolveSddContext(projectRoot)).branch;
+  const runState = options.runId ? await readRunState(projectRoot, options.runId).catch(() => null) : null;
+  const branch = options.branch ?? runState?.partition ?? runState?.gitBranch ?? (await resolveSddContext(projectRoot)).branch;
   const status = options.status ?? 'PASS';
   if (!isSddResultStatus(status)) {
     throw new Error(`Unsupported sdd-result status ${status}.`);
@@ -3654,11 +4642,16 @@ export async function validateSddResultArtifact(projectRoot: string, runId: stri
   }
   const parsed = parseSddResultMarkdown(raw);
   issues.push(...parsed.issues);
+  let trust: ArtifactTrustValidationReport | undefined;
   if (parsed.result) {
     issues.push(...validateSddResult(parsed.result, { ...options, runRelativeArtifactPath }));
+    trust = validateArtifactTrust(raw, parsed.result, runRelativeArtifactPath, options);
+    if (!trust.valid) {
+      issues.push(...trust.issues);
+    }
   }
 
-  return { valid: issues.length === 0 && parsed.result !== null, result: parsed.result, issues };
+  return { valid: issues.length === 0 && parsed.result !== null, result: parsed.result, issues, trust };
 }
 
 export function parseSddResultMarkdown(raw: string): SddResultValidationReport {
@@ -3688,6 +4681,189 @@ export function validateSddResult(result: SddResult, options: { expectedTask?: s
     issues.push(contractIssue('artifacts', `sdd-result artifacts does not include its own path ${options.runRelativeArtifactPath}.`, `Add the current artifact path exactly: ${options.runRelativeArtifactPath}.`));
   }
   return issues;
+}
+
+export function parseSddEvidenceMarkdown(raw: string, options: { expectedTask?: string; sourceArtifact?: string } = {}): ArtifactTrustValidationReport {
+  const matches = Array.from(raw.matchAll(/^\s*```sdd-evidence\s*\r?\n([\s\S]*?)\r?^\s*```\s*$/gm));
+  const claims: EvidenceClaim[] = [];
+  const issues: ContractValidationIssue[] = [];
+  for (const match of matches) {
+    const metadata = parseSimpleYamlBlock(match[1] ?? '');
+    const built = buildEvidenceClaim(metadata, options.sourceArtifact);
+    issues.push(...built.issues);
+    if (built.claim) {
+      claims.push(built.claim);
+      issues.push(...validateEvidenceClaim(built.claim, options));
+    }
+  }
+  return { valid: claims.length > 0 && issues.length === 0, claims, issues };
+}
+
+function validateArtifactTrust(raw: string, result: SddResult, runRelativeArtifactPath: string, options: { expectedTask?: string; expectedAgent?: string } = {}): ArtifactTrustValidationReport {
+  const expectedAgent = options.expectedAgent ?? result.agent;
+  const expectedTask = options.expectedTask ?? result.task;
+  const requiresTrust = expectedAgent === 'validator' && (result.status === 'PASS' || result.status === 'PASS_WITH_GAPS');
+  const parsed = parseSddEvidenceMarkdown(raw, { expectedTask, sourceArtifact: runRelativeArtifactPath });
+  const issues = requiresTrust || parsed.claims.length > 0 ? [...parsed.issues] : [];
+
+  if (requiresTrust) {
+    issues.push(...validateArtifactBodyTrust(raw));
+    if (parsed.claims.length === 0) {
+      issues.push(evidenceIssue('UNSOURCED_PASS', 'sdd-evidence', `Validator ${result.status} artifact ${runRelativeArtifactPath} has no structured ${SDD_EVIDENCE_CONTRACT} evidence block.`, 'Add policy-backed sdd-evidence with acceptance, claim, source artifact, evidence refs, provenance refs, and policy refs.'));
+    }
+  }
+
+  return { valid: issues.length === 0 && (!requiresTrust || parsed.claims.length > 0), claims: parsed.claims, issues };
+}
+
+function buildEvidenceClaim(metadata: Record<string, string | string[]>, sourceArtifact: string | undefined): { claim: EvidenceClaim | null; issues: ContractValidationIssue[] } {
+  const issues: ContractValidationIssue[] = [];
+  const contract = scalarValue(metadata.contract);
+  const version = scalarValue(metadata.version);
+  const task = scalarValue(metadata.task);
+  const acceptance = scalarValue(metadata.acceptance);
+  const status = scalarValue(metadata.status);
+  const claimText = scalarValue(metadata.claim);
+  const claimSourceArtifact = scalarValue(metadata.source_artifact) ?? scalarValue(metadata.sourceArtifact) ?? sourceArtifact ?? null;
+  if (!contract) {
+    issues.push(evidenceIssue('POLICY_RULE_FAILED', 'sdd-evidence.contract', 'sdd-evidence contract is missing.', `Set contract: ${SDD_EVIDENCE_CONTRACT}.`));
+  }
+  if (!version) {
+    issues.push(evidenceIssue('POLICY_RULE_FAILED', 'sdd-evidence.version', 'sdd-evidence version is missing.', `Set version: ${SDD_EVIDENCE_VERSION}.`));
+  }
+  if (!task) {
+    issues.push(evidenceIssue('POLICY_RULE_FAILED', 'sdd-evidence.task', 'sdd-evidence task is missing.', 'Set task to the delegated task id.'));
+  }
+  if (!acceptance) {
+    issues.push(evidenceIssue('POLICY_RULE_FAILED', 'sdd-evidence.acceptance', 'sdd-evidence acceptance is missing.', 'Set acceptance to the AC id or acceptance text being proven.'));
+  }
+  if (!status || !isEvidenceCoverageStatus(status)) {
+    issues.push(evidenceIssue('POLICY_RULE_FAILED', 'sdd-evidence.status', `sdd-evidence status ${status ?? 'missing'} is not supported.`, 'Use PASS, FAIL, BLOCKED, REFERENCED_ONLY, or MISSING.'));
+  }
+  if (!claimText) {
+    issues.push(evidenceIssue('UNSOURCED_PASS', 'sdd-evidence.claim', 'sdd-evidence claim is missing.', 'Add a concise claim that states what acceptance is proven.'));
+  }
+  if (!claimSourceArtifact) {
+    issues.push(evidenceIssue('MISSING_ARTIFACT_REFERENCE', 'sdd-evidence.source_artifact', 'sdd-evidence source artifact is missing.', 'Set source_artifact to the run-relative artifact path.'));
+  }
+  if (!task || !acceptance || !status || !isEvidenceCoverageStatus(status) || !claimText || !claimSourceArtifact || contract !== SDD_EVIDENCE_CONTRACT || version !== SDD_EVIDENCE_VERSION) {
+    return { claim: null, issues };
+  }
+  const evidence = listValue(metadata.evidence_refs ?? metadata.evidence_ref ?? metadata.evidence).map(parseEvidenceItem);
+  const provenance = listValue(metadata.provenance_refs ?? metadata.provenance_ref ?? metadata.provenance);
+  const policy = listValue(metadata.policy_refs ?? metadata.policy_ref ?? metadata.policy);
+  return {
+    claim: {
+      contract: SDD_EVIDENCE_CONTRACT,
+      version: SDD_EVIDENCE_VERSION,
+      task,
+      acceptance,
+      status,
+      claim: claimText,
+      sourceArtifact: claimSourceArtifact,
+      evidence,
+      provenance,
+      policy,
+      rawMetadata: metadata
+    },
+    issues
+  };
+}
+
+function validateEvidenceClaim(claim: EvidenceClaim, options: { expectedTask?: string }): ContractValidationIssue[] {
+  const issues: ContractValidationIssue[] = [];
+  if (options.expectedTask && claim.task !== options.expectedTask) {
+    issues.push(evidenceIssue('POLICY_RULE_FAILED', 'sdd-evidence.task', `sdd-evidence task ${claim.task} does not match expected task ${options.expectedTask}.`, 'Use the same task id as the delegated artifact.'));
+  }
+  if (containsTemplatePlaceholder(claim.claim)) {
+    issues.push(evidenceIssue('TODO_PLACEHOLDER', 'sdd-evidence.claim', 'sdd-evidence claim contains placeholder text.', 'Replace TODO/template text with actual validation evidence.'));
+  }
+  if (isDerivedEvidenceRef(claim.sourceArtifact)) {
+    issues.push(evidenceIssue('DERIVED_SOURCE_EVIDENCE', 'sdd-evidence.source_artifact', `sdd-evidence source artifact ${claim.sourceArtifact} is derived output, not source evidence.`, 'Reference the validator/reviewer/source artifact that contains the evidence, not coverage, cache, proposal, or summary output.'));
+  }
+  if (claim.status === 'PASS') {
+    if (claim.evidence.length === 0) {
+      issues.push(evidenceIssue('UNSOURCED_PASS', 'sdd-evidence.evidence', `PASS claim ${claim.acceptance} has no evidence refs.`, 'Add at least one command, artifact, file, test, or review evidence ref.'));
+    }
+    if (claim.provenance.length === 0) {
+      issues.push(evidenceIssue('PROVENANCE_GAP', 'sdd-evidence.provenance', `PASS claim ${claim.acceptance} has no provenance refs.`, 'Add provenance refs for the artifact, command, run state, or material used by this claim.'));
+    }
+    if (claim.policy.length === 0) {
+      issues.push(evidenceIssue('POLICY_RULE_FAILED', 'sdd-evidence.policy', `PASS claim ${claim.acceptance} has no policy refs.`, `Add ${ACCEPTANCE_POLICY_RULESET_VERSION}:<rule-id> policy refs.`));
+    }
+  }
+  for (const item of claim.evidence) {
+    if (!item.ref) {
+      issues.push(evidenceIssue('MISSING_ARTIFACT_REFERENCE', 'sdd-evidence.evidence', `Evidence item for ${claim.acceptance} has an empty ref.`, `Provide a non-empty evidence ref.`));
+    }
+    if (containsTemplatePlaceholder(item.ref) || containsTemplatePlaceholder(item.summary ?? '')) {
+      issues.push(evidenceIssue('TODO_PLACEHOLDER', 'sdd-evidence.evidence', `Evidence item for ${claim.acceptance} contains placeholder text.`, `Replace TODO/template text with real evidence.`));
+    }
+    if (isDerivedEvidenceRef(item.ref)) {
+      issues.push(evidenceIssue('DERIVED_SOURCE_EVIDENCE', 'sdd-evidence.evidence', `Evidence ref ${item.ref} is derived output, not source evidence.`, `Use source artifacts, commands, files, tests, or material refs.`));
+    }
+  }
+  for (const ref of claim.provenance) {
+    if (isDerivedEvidenceRef(ref)) {
+      issues.push(evidenceIssue('DERIVED_SOURCE_EVIDENCE', 'sdd-evidence.provenance', `Provenance ref ${ref} is derived output, not source evidence.`, `Use source artifact, command, run-state, or material provenance refs.`));
+    }
+  }
+  return issues;
+}
+
+function validateArtifactBodyTrust(raw: string): ContractValidationIssue[] {
+  const issues: ContractValidationIssue[] = [];
+  if (raw.trim().length === 0) {
+    issues.push(evidenceIssue('EMPTY_EVIDENCE', 'evidence', 'Artifact body is empty.', 'Write non-empty evidence and an sdd-result block.'));
+  }
+  if (containsTemplatePlaceholder(raw)) {
+    issues.push(evidenceIssue('TODO_PLACEHOLDER', 'evidence', 'Artifact still contains TODO/template placeholder text.', 'Replace scaffold text with real evidence before claiming PASS.'));
+  }
+  if (/^\s*-\s*\[PASS\]\s*(?:Acceptance\s+)?(?:AC[-\w.]+|[^\r\n]+)\s*$/im.test(raw) && !/^\s*```sdd-evidence\s*$/im.test(raw)) {
+    issues.push(evidenceIssue('MENTION_ONLY', 'acceptance_coverage', 'Validator PASS artifact only mentions an acceptance target without structured source evidence.', `Add ${SDD_EVIDENCE_CONTRACT} claim/evidence/provenance/policy records.`));
+  }
+  if (/Mentioned in artifacts\//i.test(raw)) {
+    issues.push(evidenceIssue('MENTION_ONLY', 'acceptance_coverage', 'Artifact cites generated mention-only coverage text.', 'Use source evidence, not generated coverage summaries.'));
+  }
+  return issues;
+}
+
+function parseEvidenceItem(value: string): EvidenceItem {
+  const separator = value.indexOf(':');
+  if (separator > 0) {
+    const kind = value.slice(0, separator).trim();
+    const ref = value.slice(separator + 1).trim();
+    if (/^[A-Za-z0-9_-]+$/.test(kind)) {
+      return { kind, ref, summary: null };
+    }
+  }
+  return { kind: value.startsWith('artifacts/') ? 'artifact' : 'text', ref: value, summary: null };
+}
+
+function isEvidenceCoverageStatus(value: string): value is EvidenceCoverageStatus {
+  return value === 'PASS' || value === 'FAIL' || value === 'BLOCKED' || value === 'REFERENCED_ONLY' || value === 'MISSING';
+}
+
+function containsTemplatePlaceholder(value: string): boolean {
+  return /\bTODO\b|template placeholder|TODO\.|Add validation evidence|TODO run validation command|TODO cite files/i.test(value);
+}
+
+function isDerivedEvidenceRef(value: string): boolean {
+  const normalized = normalizePortablePath(value).toLowerCase();
+  return normalized.includes('acceptance-coverage-')
+    || normalized.endsWith('sync-back-proposal.md')
+    || normalized.includes('/cache/')
+    || normalized.includes('/profile')
+    || normalized.endsWith('run-index.json')
+    || normalized.includes('command-output-summary')
+    || normalized.includes('evidence-summary')
+    || normalized.includes('context-package')
+    || normalized.includes('context-build')
+    || normalized.includes('log-worker-summary');
+}
+
+function evidenceIssue(code: EvidenceQualityIssue, field: string, message: string, recommendation: string): ContractValidationIssue {
+  return contractIssue(field, `${code}: ${message}`, recommendation);
 }
 
 export function createDelegationRecord(input: { delegationId: string; task: string; agent: string; expectedArtifact: string; runMode?: DelegationRunMode; blocking?: boolean; requiredForPhaseExit?: boolean; startedAt?: string; timeoutSeconds?: number; status?: DelegationStatus }): DelegationRecord {
@@ -3811,6 +4987,8 @@ export async function ingestArtifactResult(projectRoot: string, runId: string, i
       [key]: record
     }
   });
+  await recordRuntimeArtifactIngestion(projectRoot, record);
+  await recordRuntimeEvidenceAdmission(projectRoot, state, record, report.trust);
 
   if (!accepted && delegation.status === 'RUNNING' && !report.valid) {
     await appendEvent(projectRoot, runId, { event: 'artifact_invalid', runId, summary: `Artifact ingestion rejected for ${delegation.delegationId}`, data: { delegationId: delegation.delegationId, artifact: artifactPath, issues } });
@@ -4108,6 +5286,7 @@ export async function runSingleTaskLoop(projectRoot: string, options: SingleTask
       taskState: { status: 'blocked', gaps: allGaps, artifacts: [gapArtifact.runRelativePath] },
       validationStatus: 'blocked',
       syncBackProposalPath: proposal.runRelativePath,
+      syncBackProposalDigest: proposal.digest,
       artifacts: [{ path: gapArtifact.runRelativePath, kind: 'gap-report', task: options.taskId, agent: 'runtime' }]
     });
     await appendEvent(projectRoot, runId, {
@@ -4154,6 +5333,7 @@ export async function runSingleTaskLoop(projectRoot: string, options: SingleTask
   let validationStatus: RunState['validation']['status'] = 'pass';
 
   for (const step of steps) {
+    const stepRouteDecision = await routeSddTask(projectRoot, { taskId: options.taskId, branch, agent: step.agent, teamModeEnabled: options.teamModeEnabled, teamModeActivation: options.teamModeActivation });
     if (!step.suppliedArtifact) {
       if (!step.required) {
         await appendEvent(projectRoot, runId, {
@@ -4166,7 +5346,7 @@ export async function runSingleTaskLoop(projectRoot: string, options: SingleTask
           runId,
           taskId: options.taskId,
           agent: step.agent,
-          route: routeDecision,
+          route: stepRouteDecision,
           status: 'skipped',
           delegationId: `B-${options.taskId}-${step.agent}-001`,
           evidenceSummary: `${step.agent} artifact was not supplied and the step is optional.`
@@ -4185,7 +5365,7 @@ export async function runSingleTaskLoop(projectRoot: string, options: SingleTask
         runId,
         taskId: options.taskId,
         agent: step.agent,
-        route: routeDecision,
+        route: stepRouteDecision,
         status: 'blocked',
         delegationId: `B-${options.taskId}-${step.agent}-001`,
         evidenceSummary: `${step.agent} artifact was not supplied; execution is blocked before host invocation.`
@@ -4268,6 +5448,7 @@ export async function runSingleTaskLoop(projectRoot: string, options: SingleTask
     taskState: { status: terminalStatus, gaps, artifacts: acceptedArtifacts },
     validationStatus,
     syncBackProposalPath: proposal.runRelativePath,
+    syncBackProposalDigest: proposal.digest,
     artifacts: acceptedArtifacts.map((artifactPath) => ({ path: artifactPath, kind: artifactKind(artifactPath), task: options.taskId, agent: agentFromArtifactPath(artifactPath) }))
   });
   await appendEvent(projectRoot, runId, {
@@ -4327,6 +5508,7 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
   const acceptedArtifacts: string[] = [];
   let reviewStatus: SddResultStatus | null = null;
   let validationStatus: SddResultStatus | null = null;
+  let validationTrust: ArtifactTrustValidationReport | null = null;
 
   await appendEvent(projectRoot, runId, {
     event: 'phase_started',
@@ -4358,6 +5540,7 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
     gaps.push(taskGap(options.taskId, 'validation_artifact', 'No validator artifact was supplied or found in run state.', 'Run validation first or pass --validation-artifact artifacts/<file>.'));
   } else {
     const validationReport = await validateSddResultArtifact(projectRoot, runId, validationArtifact, { expectedTask: options.taskId, expectedAgent: 'validator' });
+    validationTrust = validationReport.trust ?? null;
     if (!validationReport.valid || !validationReport.result) {
       gaps.push(taskGap(options.taskId, 'validation_artifact', `Validator artifact ${validationArtifact} is invalid: ${validationReport.issues.map((issue) => issue.message).join('; ')}`, 'Fix validator artifact contract before goal-level verify.'));
     } else {
@@ -4371,15 +5554,50 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
 
   if (inspected.task) {
     const validationRaw = validationArtifact ? await readArtifactIfExists(projectRoot, runId, validationArtifact) : '';
+    const reviewRaw = reviewArtifact ? await readArtifactIfExists(projectRoot, runId, reviewArtifact) : '';
+    if (reviewArtifact && reviewRaw.length > 0) {
+      await appendArtifactHashLedgerEntry(projectRoot, { runId, taskId: options.taskId, branch, artifactPath: reviewArtifact, content: reviewRaw });
+    }
+    if (validationArtifact && validationRaw.length > 0) {
+      await appendArtifactHashLedgerEntry(projectRoot, { runId, taskId: options.taskId, branch, artifactPath: validationArtifact, content: validationRaw });
+    }
+    await appendDeclaredCommandLedgerEntries(projectRoot, { runId, taskId: options.taskId, branch, commands: inspected.task.validation });
+    const invocationLedger = await listInvocationLedgerEntries(projectRoot, runId);
+    const admittedClaims = await readRuntimeEvidenceClaims(projectRoot, runId, options.taskId);
+    const scopeViolation = await hasRuntimeEvidenceScopeViolation(projectRoot, runId, options.taskId);
+    if (scopeViolation) {
+      gaps.push(taskGap(options.taskId, 'runtime_scope', 'PARTITION_SCOPE_VIOLATION: Runtime evidence claims do not match the run partition.', 'Reingest validator evidence in the correct branch/partition before verify.'));
+    }
     for (const target of taskAcceptanceCoverageTargets(inspected.task)) {
-      const covered = target.matchTexts.some((text) => validationRaw.toLowerCase().includes(text.toLowerCase()));
-      acceptanceCoverage.push({
-        acceptance: target.label,
-        status: covered ? statusFromValidation(validationStatus) : 'GAP',
-        evidence: covered ? `Mentioned in ${validationArtifact}.` : 'No matching acceptance evidence found in validator artifact.'
+      const coverage = scopeViolation
+        ? acceptanceCoverageDecision(target.label, 'BLOCKED', 'Runtime evidence scope violation blocks acceptance coverage.', ['PARTITION_SCOPE_VIOLATION'], [], ['require-partition-scope'])
+        : evaluateAcceptanceCoverageTarget(target, {
+          taskId: options.taskId,
+          validationArtifact,
+          validationRaw,
+          claims: admittedClaims.length > 0 ? admittedClaims : validationTrust?.claims ?? [],
+          validationStatus,
+          invocationLedger
+        });
+      await appendInvocationLedgerEntry(projectRoot, {
+        runId,
+        taskId: options.taskId,
+        branch,
+        kind: 'policy_evaluation',
+        ref: `${ACCEPTANCE_POLICY_RULESET_VERSION}:${target.label}`,
+        status: coverage.status,
+        artifactPath: validationArtifact,
+        inputHash: validationRaw.length > 0 ? hashDocumentContent(validationRaw) : null,
+        materialRefs: [],
+        metadata: {
+          passedRules: coverage.policyDecision?.passedRules.join(',') ?? '',
+          failedRules: coverage.policyDecision?.failedRules.join(',') ?? '',
+          issueCodes: coverage.issueCodes?.join(',') ?? ''
+        }
       });
-      if (!covered) {
-        gaps.push(taskGap(options.taskId, 'acceptance_coverage', `Acceptance target is not covered by validator evidence: ${target.label}`, 'Update the validator artifact so it includes the acceptance ref or exact Acceptance text, preferably under ## Acceptance Mapping; use sdd artifact template to generate the mapping skeleton.'));
+      acceptanceCoverage.push(coverage);
+      if (coverage.status !== 'PASS') {
+        gaps.push(taskGap(options.taskId, 'acceptance_coverage', `Acceptance target ${target.label} is ${coverage.status}: ${coverage.evidence}`, `Add ${SDD_EVIDENCE_CONTRACT} claim/evidence/provenance/policy records for ${target.label}; mention-only acceptance refs cannot pass.`));
       }
     }
   }
@@ -4397,6 +5615,7 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
     commands: inspected.task?.validation ?? [],
     evidence: allArtifacts,
     syncBackProposalPath: proposal.runRelativePath,
+    syncBackProposalDigest: proposal.digest,
     artifacts: allArtifacts.map((artifactPath) => ({ path: artifactPath, kind: artifactKind(artifactPath), task: options.taskId, agent: agentFromArtifactPath(artifactPath) }))
   });
   await appendEvent(projectRoot, runId, {
@@ -4863,7 +6082,7 @@ export async function runBackgroundExecutor(projectRoot: string, options: Backgr
   }
 
 
-  const route = await routeSddTask(projectRoot, { taskId: options.taskId, branch });
+  const route = await routeSddTask(projectRoot, { taskId: options.taskId, branch, agent });
   if (!inspected.task || inspected.gaps.some((gap) => gap.severity === 'blocking')) {
     issues.push(...inspected.gaps.map((gap) => contractIssue(gap.field, gap.message, gap.recommendation)));
   }
@@ -5571,7 +6790,16 @@ async function persistDelegation(projectRoot: string, runId: string, delegation:
   });
 }
 
-async function persistLoopState(projectRoot: string, runId: string, input: { status: SingleTaskLoopStatus; phase: string; taskId: string; taskState: unknown; validationStatus: RunState['validation']['status']; syncBackProposalPath: string; artifacts: Array<{ path: string; kind: string; task: string; agent: string }> }): Promise<void> {
+async function persistLoopState(projectRoot: string, runId: string, input: {
+  status: SingleTaskLoopStatus;
+  phase: string;
+  taskId: string;
+  taskState: unknown;
+  validationStatus: RunState['validation']['status'];
+  syncBackProposalPath: string;
+  syncBackProposalDigest: string;
+  artifacts: Array<{ path: string; kind: string; task: string; agent: string }>;
+}): Promise<void> {
   const state = await readRunState(projectRoot, runId);
   const now = new Date().toISOString();
   const knownArtifactPaths = new Set(state.artifacts.map((artifact) => artifact.path));
@@ -5596,12 +6824,23 @@ async function persistLoopState(projectRoot: string, runId: string, input: { sta
     syncBack: {
       mode: 'proposal',
       proposalPath: input.syncBackProposalPath,
-      status: 'proposed'
+      proposalDigest: input.syncBackProposalDigest,
+      sourceVerifyStatus: input.status,
+      status: state.syncBack.status === 'applied' ? 'applied' : 'proposed'
     }
   });
 }
 
-async function persistVerifyState(projectRoot: string, runId: string, input: { status: GoalVerifyStatus; taskId: string; taskState: unknown; commands: string[]; evidence: string[]; syncBackProposalPath: string; artifacts: Array<{ path: string; kind: string; task: string; agent: string }> }): Promise<void> {
+async function persistVerifyState(projectRoot: string, runId: string, input: {
+  status: GoalVerifyStatus;
+  taskId: string;
+  taskState: unknown;
+  commands: string[];
+  evidence: string[];
+  syncBackProposalPath: string;
+  syncBackProposalDigest: string;
+  artifacts: Array<{ path: string; kind: string; task: string; agent: string }>;
+}): Promise<void> {
   const state = await readRunState(projectRoot, runId);
   const now = new Date().toISOString();
   const knownArtifactPaths = new Set(state.artifacts.map((artifact) => artifact.path));
@@ -5626,14 +6865,17 @@ async function persistVerifyState(projectRoot: string, runId: string, input: { s
     syncBack: {
       mode: 'proposal',
       proposalPath: input.syncBackProposalPath,
-      status: 'proposed'
+      proposalDigest: input.syncBackProposalDigest,
+      sourceVerifyStatus: input.status,
+      status: state.syncBack.status === 'applied' ? 'applied' : 'proposed'
     }
   });
 }
 
-async function writeSyncBackProposal(projectRoot: string, runId: string, taskId: string, status: string, artifacts: string[], gaps: SddTaskGap[], summary: string): Promise<{ absolutePath: string; runRelativePath: string }> {
+async function writeSyncBackProposal(projectRoot: string, runId: string, taskId: string, status: string, artifacts: string[], gaps: SddTaskGap[], summary: string): Promise<{ absolutePath: string; runRelativePath: string; digest: string }> {
   const content = `# Sync-back Proposal\n\n## ${taskId}\n\n- status: ${status}\n- summary: ${summary}\n- artifacts:\n${artifacts.length > 0 ? artifacts.map((artifact) => `  - ${artifact}`).join('\n') : '  - none'}\n- gaps:\n${gaps.length > 0 ? gaps.map((gap) => `  - [${gap.severity}] ${gap.type} ${gap.field}: ${gap.message}`).join('\n') : '  - none'}\n\n## Boundaries\n\n- Proposal only; tasks.md/spec.md/plan.md were not modified by runtime.\n- Runtime modeled agent/verify steps through supplied artifacts and contract validation; no external agent API was invoked.\n`;
-  return writeArtifact(projectRoot, runId, 'sync-back-proposal.md', content);
+  const written = await writeArtifact(projectRoot, runId, 'sync-back-proposal.md', content);
+  return { ...written, digest: hashDocumentContent(content) };
 }
 
 function toSafeRecordId(value: string): string {
@@ -5650,6 +6892,23 @@ function routeRecordSnapshot(route: AgentRouterDecision): AgentExecutionRecord['
     requiredCapabilities: route.requiredCapabilities,
     blockedReason: route.blockedReason
   };
+}
+
+function routeRecordId(route: AgentRouterDecision, profile: AgentProfileId): string {
+  const content = JSON.stringify({
+    version: route.version,
+    taskId: route.taskId,
+    branch: route.branch,
+    category: route.category,
+    profile,
+    recommendedProfile: route.recommendedProfile,
+    autonomyCeiling: route.autonomyCeiling,
+    requiredCapabilities: route.requiredCapabilities,
+    toolPermissionProfile: route.toolPermission?.profile ?? null,
+    toolPermissionPolicy: route.toolPermission?.policy ?? null,
+    blockedReason: route.blockedReason
+  });
+  return createHash('sha256').update(content).digest('hex').slice(0, 16);
 }
 
 function sourceAttributionForCapabilities(capabilityIds: string[], route?: AgentRouterDecision): string[] {
@@ -5691,6 +6950,7 @@ function buildAgentExecutionRecord(input: { runId: string; taskId: string; agent
     queueItemId: input.queueItemId ?? null,
     ingestionStatus: input.ingestion?.status ?? null,
     resultStatus: input.ingestion?.resultStatus ?? null,
+    routeId: routeRecordId(input.route, profile),
     routeDecision: routeRecordSnapshot(input.route),
     evidenceSummary: input.evidenceSummary,
     createdAt: now,
@@ -5733,7 +6993,181 @@ function renderLoopGapReport(taskId: string, gaps: SddTaskGap[]): string {
 }
 
 function renderAcceptanceCoverageArtifact(taskId: string, status: GoalVerifyStatus, task: SddTask | null, reviewArtifact: string | null, validationArtifact: string | null, coverage: AcceptanceCoverageItem[], gaps: SddTaskGap[]): string {
-  return `# Acceptance Coverage ${taskId}\n\n\`\`\`sdd-result\ncontract: ${SDD_RESULT_CONTRACT}\nversion: ${SDD_RESULT_VERSION}\nagent: validator\ntask: ${taskId}\nstatus: ${status}\nartifacts:\n  - artifacts/acceptance-coverage-${taskId}.md\n\`\`\`\n\n## Source Evidence\n\n- review_artifact: ${reviewArtifact ?? 'missing'}\n- validation_artifact: ${validationArtifact ?? 'missing'}\n- task_source: ${task ? sourceLocationEvidence(task.source) : 'missing'}\n\n## Commands Declared\n\n${task && task.validation.length > 0 ? task.validation.map((command) => `- ${command}`).join('\n') : '- none'}\n\n## Acceptance Mapping\n\n${coverage.length > 0 ? coverage.map((item) => `- [${item.status}] ${item.acceptance} Evidence: ${item.evidence}`).join('\n') : '- No acceptance items available.'}\n\n## Gaps\n\n${gaps.length > 0 ? gaps.map((gap) => `- [${gap.severity}] ${gap.type} ${gap.field}: ${gap.message} Recommendation: ${gap.recommendation}`).join('\n') : '- none'}\n`;
+  return `# Acceptance Coverage ${taskId}\n\n\`\`\`sdd-result\ncontract: ${SDD_RESULT_CONTRACT}\nversion: ${SDD_RESULT_VERSION}\nagent: validator\ntask: ${taskId}\nstatus: ${status}\nartifacts:\n  - artifacts/acceptance-coverage-${taskId}.md\n\`\`\`\n\n## Source Evidence\n\n- review_artifact: ${reviewArtifact ?? 'missing'}\n- validation_artifact: ${validationArtifact ?? 'missing'}\n- task_source: ${task ? sourceLocationEvidence(task.source) : 'missing'}\n\n## Commands Declared\n\n${task && task.validation.length > 0 ? task.validation.map((command) => `- ${command}`).join('\n') : '- none'}\n\n## Acceptance Mapping\n\n${coverage.length > 0 ? coverage.map((item) => `- [${item.status}] ${item.acceptance} Evidence: ${item.evidence}`).join('\n') : '- No acceptance items available.'}\n\n## Policy Decisions\n\n${coverage.length > 0 ? coverage.map((item) => `- ${item.acceptance}: status=${item.policyDecision?.status ?? item.status}; ruleset=${item.policyDecision?.ruleSet.id ?? ACCEPTANCE_POLICY_RULESET_VERSION}; passed=${item.policyDecision?.passedRules.join(',') || 'none'}; failed=${item.policyDecision?.failedRules.join(',') || 'none'}; issues=${item.issueCodes?.join(',') || 'none'}`).join('\n') : '- none'}\n\n## Gaps\n\n${gaps.length > 0 ? gaps.map((gap) => `- [${gap.severity}] ${gap.type} ${gap.field}: ${gap.message} Recommendation: ${gap.recommendation}`).join('\n') : '- none'}\n`;
+}
+
+function evaluateAcceptanceCoverageTarget(target: AcceptanceCoverageTarget, input: { taskId: string; validationArtifact: string | null; validationRaw: string; claims: EvidenceClaim[]; validationStatus: SddResultStatus | null; invocationLedger: InvocationLedgerEntry[] }): AcceptanceCoverageItem {
+  const matchingClaims = input.claims.filter((claim) => claim.task === input.taskId && acceptanceMatchesTarget(target, claim.acceptance));
+  const issueCodes: EvidenceQualityIssue[] = [];
+  const failedRules: string[] = [];
+  if (matchingClaims.length === 0) {
+    if (target.matchTexts.some((text) => text.length > 0 && input.validationRaw.toLowerCase().includes(text.toLowerCase()))) {
+      issueCodes.push('MENTION_ONLY');
+      failedRules.push('require-structured-evidence');
+      return acceptanceCoverageDecision(target.label, 'REFERENCED_ONLY', `Referenced ${target.label} in ${input.validationArtifact ?? 'validator artifact'} without policy-backed evidence.`, issueCodes, [], failedRules);
+    }
+    issueCodes.push('MISSING_ARTIFACT_REFERENCE');
+    failedRules.push('require-acceptance-claim');
+    return acceptanceCoverageDecision(target.label, 'MISSING', 'No policy-backed acceptance evidence found in validator artifact.', issueCodes, [], failedRules);
+  }
+
+  let best = matchingClaims[0];
+  for (const claim of matchingClaims.slice(1)) {
+    if (coverageRank(claim.status) > coverageRank(best.status)) {
+      best = claim;
+    }
+  }
+
+  if (best.status === 'PASS') {
+    if (best.evidence.length === 0) {
+      issueCodes.push('UNSOURCED_PASS');
+      failedRules.push('require-source-evidence');
+    }
+    if (best.provenance.length === 0) {
+      issueCodes.push('PROVENANCE_GAP');
+      failedRules.push('require-provenance');
+    }
+    if (best.policy.length === 0) {
+      issueCodes.push('POLICY_RULE_FAILED');
+      failedRules.push('require-policy-rule');
+    }
+    if (input.validationStatus !== 'PASS') {
+      issueCodes.push('POLICY_RULE_FAILED');
+      failedRules.push('require-validator-pass');
+    }
+    const ledgerDecision = evaluateClaimLedgerCorroboration(best, input.invocationLedger);
+    issueCodes.push(...ledgerDecision.issueCodes);
+    failedRules.push(...ledgerDecision.failedRules);
+    if (issueCodes.length === 0) {
+      return acceptanceCoverageDecision(target.label, 'PASS', `Policy-proven by ${SDD_EVIDENCE_CONTRACT} claim for ${best.acceptance} in ${best.sourceArtifact}; evidence=${best.evidence.map((item) => `${item.kind}:${item.ref}`).join(', ')}; provenance=${best.provenance.join(', ')}; policy=${best.policy.join(', ')}.`, [], ['require-source-evidence', 'require-provenance', 'require-policy-rule', 'require-validator-pass', 'require-ledger-corroboration'], []);
+    }
+    return acceptanceCoverageDecision(target.label, 'BLOCKED', `PASS claim for ${best.acceptance} is missing required policy/provenance corroboration.`, issueCodes, [], failedRules);
+  }
+
+  if (best.status === 'FAIL') {
+    return acceptanceCoverageDecision(target.label, 'FAIL', `Explicit FAIL claim for ${best.acceptance}: ${best.claim}`, [], ['explicit-fail-overrides-pass'], []);
+  }
+  if (best.status === 'BLOCKED') {
+    return acceptanceCoverageDecision(target.label, 'BLOCKED', `Explicit BLOCKED claim for ${best.acceptance}: ${best.claim}`, [], ['explicit-blocked-overrides-pass'], []);
+  }
+  if (best.status === 'REFERENCED_ONLY') {
+    return acceptanceCoverageDecision(target.label, 'REFERENCED_ONLY', `Structured evidence references ${best.acceptance} but does not prove PASS.`, ['MENTION_ONLY'], [], ['require-pass-claim']);
+  }
+  return acceptanceCoverageDecision(target.label, 'MISSING', `Structured evidence marks ${best.acceptance} missing.`, ['MISSING_ARTIFACT_REFERENCE'], [], ['require-pass-claim']);
+}
+
+function evaluateClaimLedgerCorroboration(claim: EvidenceClaim, entries: InvocationLedgerEntry[]): { issueCodes: EvidenceQualityIssue[]; failedRules: string[] } {
+  const issueCodes: EvidenceQualityIssue[] = [];
+  const failedRules: string[] = [];
+  const commandRefs = invocationLedgerRefs(entries, 'command');
+  const artifactRefs = invocationLedgerRefs(entries, 'artifact_hash');
+  const materialRefs = ledgerMaterialRefs(entries);
+  const addIssue = (code: EvidenceQualityIssue, rule: string): void => {
+    if (!issueCodes.includes(code)) {
+      issueCodes.push(code);
+    }
+    if (!failedRules.includes(rule)) {
+      failedRules.push(rule);
+    }
+  };
+
+  if (!artifactRefs.has(claim.sourceArtifact)) {
+    addIssue('MISSING_ARTIFACT_REFERENCE', 'require-source-artifact-hash');
+  }
+  for (const item of claim.evidence) {
+    if (item.kind === 'command' && !commandRefs.has(item.ref)) {
+      addIssue('MISSING_COMMAND_OUTPUT', 'require-command-ledger');
+    }
+    if (item.kind === 'artifact' && !artifactRefs.has(item.ref)) {
+      addIssue('MISSING_ARTIFACT_REFERENCE', 'require-artifact-hash');
+    }
+    if (item.kind === 'material' && !materialRefs.has(item.ref)) {
+      addIssue('MISSING_MATERIAL_REFERENCE', 'require-material-ledger');
+    }
+  }
+  for (const ref of claim.provenance) {
+    const typed = parseTypedLedgerRef(ref);
+    if (!typed) {
+      continue;
+    }
+    if (typed.kind === 'command' && !commandRefs.has(typed.ref)) {
+      addIssue('PROVENANCE_GAP', 'require-command-provenance-ledger');
+    }
+    if (typed.kind === 'artifact' && !artifactRefs.has(typed.ref)) {
+      addIssue('PROVENANCE_GAP', 'require-artifact-provenance-ledger');
+    }
+    if (typed.kind === 'material' && !materialRefs.has(typed.ref)) {
+      addIssue('PROVENANCE_GAP', 'require-material-provenance-ledger');
+    }
+  }
+  return { issueCodes, failedRules };
+}
+
+function invocationLedgerRefs(entries: InvocationLedgerEntry[], kind: InvocationLedgerKind): Set<string> {
+  const refs = new Set<string>();
+  for (const entry of entries) {
+    if (entry.kind === kind) {
+      refs.add(entry.ref);
+      if (entry.artifactPath) {
+        refs.add(entry.artifactPath);
+      }
+    }
+  }
+  return refs;
+}
+
+function parseTypedLedgerRef(value: string): { kind: string; ref: string } | null {
+  const separator = value.indexOf(':');
+  if (separator <= 0) {
+    return null;
+  }
+  const kind = value.slice(0, separator).trim();
+  const ref = value.slice(separator + 1).trim();
+  if (!/^[A-Za-z0-9_-]+$/.test(kind) || !ref) {
+    return null;
+  }
+  return { kind, ref };
+}
+
+function acceptanceMatchesTarget(target: AcceptanceCoverageTarget, acceptance: string): boolean {
+  const normalizedAcceptance = acceptance.toLowerCase();
+  return target.matchTexts.some((text) => text.toLowerCase() === normalizedAcceptance) || target.label.toLowerCase() === normalizedAcceptance;
+}
+
+function coverageRank(status: EvidenceCoverageStatus): number {
+  if (status === 'FAIL') {
+    return 5;
+  }
+  if (status === 'BLOCKED') {
+    return 4;
+  }
+  if (status === 'PASS') {
+    return 3;
+  }
+  if (status === 'REFERENCED_ONLY') {
+    return 2;
+  }
+  return 1;
+}
+
+function acceptanceCoverageDecision(acceptance: string, status: EvidenceCoverageStatus, evidence: string, issueCodes: EvidenceQualityIssue[], passedRules: string[], failedRules: string[]): AcceptanceCoverageItem {
+  return {
+    acceptance,
+    status,
+    evidence,
+    issueCodes,
+    policyDecision: {
+      status,
+      ruleSet: {
+        id: ACCEPTANCE_POLICY_RULESET_VERSION,
+        version: SDD_EVIDENCE_VERSION,
+        ruleIds: ['require-structured-evidence', 'require-source-evidence', 'require-provenance', 'require-policy-rule']
+      },
+      passedRules,
+      failedRules,
+      issueCodes
+    }
+  };
 }
 
 interface AcceptanceCoverageTarget {
@@ -5760,21 +7194,7 @@ function taskAcceptanceCoverageTargets(task: SddTask): AcceptanceCoverageTarget[
   }));
 }
 
-function statusFromValidation(status: SddResultStatus | null): GoalVerifyStatus | 'GAP' {
-  if (status === 'PASS') {
-    return 'PASS';
-  }
-  if (status === 'PASS_WITH_GAPS') {
-    return 'PASS_WITH_GAPS';
-  }
-  if (status === 'FAIL') {
-    return 'FAIL';
-  }
-  if (status === 'BLOCKED' || status === 'TIMED_OUT' || status === 'CANCELLED') {
-    return 'BLOCKED';
-  }
-  return 'GAP';
-}
+
 
 function deriveGoalVerifyStatus(reviewStatus: SddResultStatus | null, validationStatus: SddResultStatus | null, gaps: SddTaskGap[]): GoalVerifyStatus {
   if (gaps.length > 0) {
@@ -7296,17 +8716,35 @@ export async function inspectTeamModePolicy(projectRoot: string, options: { task
   return buildTeamModePolicy({ activation, task, category, risk: task?.risk ?? [], autonomyCeiling, blockedReason: blockingGap?.message ?? null });
 }
 
-export async function routeSddTask(projectRoot: string, options: { taskId: string; branch?: string; teamModeEnabled?: boolean; teamModeActivation?: TeamModeActivation }): Promise<AgentRouterDecision> {
+export async function routeSddTask(projectRoot: string, options: { taskId: string; branch?: string; agent?: string; teamModeEnabled?: boolean; teamModeActivation?: TeamModeActivation; profile?: boolean; cache?: boolean } = { taskId: '' }): Promise<AgentRouterDecision> {
+  const profileSpans: RuntimeProfileSpan[] = [];
+  const routeStart = Date.now();
+  const routeStartedAt = new Date(routeStart).toISOString();
   const registry = await buildAgentSkillRuntimeRegistry(projectRoot);
+  profileSpans.push(runtimeProfileSpan('agent_runtime_registry', routeStart));
+  const branchStart = Date.now();
   const branch = options.branch ?? (await resolveSddContext(projectRoot)).branch;
   const model = await parseSddBranch(projectRoot, branch);
+  profileSpans.push(runtimeProfileSpan('document_parse', branchStart));
+  const cacheKey = routeCacheKey({ taskId: options.taskId, branch, agent: options.agent ?? null, teamModeActivation: resolveTeamModeActivation(options, 'auto'), documents: model.documents });
+  const cachedDecision = options.cache ? await readRouteCache(projectRoot, cacheKey) : null;
+  if (cachedDecision) {
+    return {
+      ...cachedDecision,
+      cache: { contract: ROUTE_CACHE_CONTRACT_VERSION, key: cacheKey, status: 'hit', source: 'content_addressed_derived_route', authoritative: false },
+      profile: options.profile ? [...(cachedDecision.profile ?? []), runtimeProfileSpan('route_total', routeStart, routeStartedAt)] : undefined
+    };
+  }
+  const computeStart = Date.now();
   const inspected = inspectSddTask(model, options.taskId);
   const task = inspected.task;
   const blockingGap = inspected.gaps.find((gap) => gap.severity === 'blocking');
   const matchedRules = task && !blockingGap ? matchRoutingRules(task, registry) : [];
   const profileSelection = task && !blockingGap ? deriveAllowedProfiles(task, registry, matchedRules) : { profiles: [], resolvedAliases: [] };
-  const allowedProfiles = profileSelection.profiles;
-  const recommendedProfile = task && !blockingGap ? chooseRecommendedProfile(task, allowedProfiles, registry, matchedRules) : null;
+  const delegatedProfile = task && !blockingGap && options.agent ? toAgentProfileId(options.agent, registry) : null;
+  const allowedProfiles = delegatedProfile && !profileSelection.profiles.includes(delegatedProfile) ? [...profileSelection.profiles, delegatedProfile] : profileSelection.profiles;
+  const taskRecommendedProfile = task && !blockingGap ? chooseRecommendedProfile(task, allowedProfiles, registry, matchedRules) : null;
+  const recommendedProfile = delegatedProfile ?? taskRecommendedProfile;
   const category = task ? routeCategory(task, blockingGap, allowedProfiles, matchedRules) : 'blocked';
   const autonomyCeiling = task ? taskAutonomyCeiling(task) : 'research_before_implementation';
   const requiredCapabilities = task && recommendedProfile ? selectRequiredSkillCapabilities(task, recommendedProfile, registry, matchedRules) : [];
@@ -7316,7 +8754,7 @@ export async function routeSddTask(projectRoot: string, options: { taskId: strin
   const routedCategory = blockedReason ? 'blocked' : category;
   const registrySources = routeRegistrySources(registry, recommendedProfile, requiredCapabilities);
   const adapterMapping = recommendedProfile ? adapterMappingForProfile(registry, recommendedProfile) : null;
-  return {
+  const decision: AgentRouterDecision = {
     version: AGENT_ROUTER_CONTRACT_VERSION,
     taskId: options.taskId,
     branch,
@@ -7345,8 +8783,70 @@ export async function routeSddTask(projectRoot: string, options: { taskId: strin
     resolvedAliases: profileSelection.resolvedAliases,
     routingRuleHits: matchedRules.map((rule) => rule.id),
     quarantineWarnings: quarantineWarningsForSources(registrySources),
-    adapterMapping
+    adapterMapping,
+    cache: options.cache ? { contract: ROUTE_CACHE_CONTRACT_VERSION, key: cacheKey, status: 'miss', source: 'content_addressed_derived_route', authoritative: false } : undefined
   };
+  profileSpans.push(runtimeProfileSpan('route_compute', computeStart));
+  if (options.cache) {
+    await writeRouteCache(projectRoot, cacheKey, decision);
+    decision.cache = { contract: ROUTE_CACHE_CONTRACT_VERSION, key: cacheKey, status: 'stored', source: 'content_addressed_derived_route', authoritative: false };
+  }
+  if (options.profile) {
+    decision.profile = [...profileSpans, runtimeProfileSpan('route_total', routeStart, routeStartedAt)];
+  }
+  return decision;
+}
+
+function runtimeProfileSpan(name: string, startedAtMs: number, startedAt = new Date(startedAtMs).toISOString()): RuntimeProfileSpan {
+  const endedAtMs = Date.now();
+  return {
+    contract: RUNTIME_PROFILE_CONTRACT_VERSION,
+    name,
+    startedAt,
+    endedAt: new Date(endedAtMs).toISOString(),
+    durationMs: Math.max(0, endedAtMs - startedAtMs)
+  };
+}
+
+function routeCacheKey(input: { taskId: string; branch: string; agent: string | null; teamModeActivation: TeamModeActivation; documents: SddTaskModel['documents'] }): string {
+  return createHash('sha256')
+    .update(JSON.stringify({
+      contract: ROUTE_CACHE_CONTRACT_VERSION,
+      router: AGENT_ROUTER_CONTRACT_VERSION,
+      teamMode: TEAM_MODE_POLICY_VERSION,
+      policy: ACCEPTANCE_POLICY_RULESET_VERSION,
+      runtime: AGENT_SKILL_TEAM_RUNTIME_CONTRACT_VERSION,
+      capabilities: TOOL_CAPABILITY_REGISTRY_VERSION,
+      plugins: TOOL_PLUGIN_CONTRACT_REGISTRY_VERSION,
+      workers: WORKER_ADAPTER_CONTRACT_REGISTRY_VERSION,
+      taskId: input.taskId,
+      branch: input.branch,
+      agent: input.agent,
+      teamModeActivation: input.teamModeActivation,
+      specHash: input.documents.specHash ?? null,
+      planHash: input.documents.planHash ?? null,
+      tasksHash: input.documents.tasksHash ?? null,
+      planBasedOnSpecHash: input.documents.planBasedOnSpecHash ?? null,
+      tasksBasedOnPlanHash: input.documents.tasksBasedOnPlanHash ?? null
+    }))
+    .digest('hex')
+    .slice(0, 32);
+}
+
+async function readRouteCache(projectRoot: string, key: string): Promise<AgentRouterDecision | null> {
+  const cachePath = getRouteCachePath(projectRoot, key);
+  if (!await exists(cachePath)) {
+    return null;
+  }
+  const parsed = JSON.parse(await readFile(cachePath, 'utf8')) as AgentRouterDecision;
+  return parsed.version === AGENT_ROUTER_CONTRACT_VERSION ? parsed : null;
+}
+
+async function writeRouteCache(projectRoot: string, key: string, decision: AgentRouterDecision): Promise<void> {
+  const cachePath = getRouteCachePath(projectRoot, key);
+  await mkdir(path.dirname(cachePath), { recursive: true });
+  const { cache: _cache, profile: _profile, ...cacheable } = decision;
+  await writeFile(cachePath, `${JSON.stringify(cacheable, null, 2)}\n`, 'utf8');
 }
 
 export async function inspectQueryStatusContract(projectRoot: string): Promise<QueryStatusContract> {
@@ -8016,6 +9516,9 @@ function baseTeamModePolicy(input: {
   decision: TeamModeDecisionStatus;
   costClass: TeamModeCostClass;
   reason: string;
+  costRoute?: TeamModeCostRoute;
+  downgradeReason?: string | null;
+  trustPolicyEnforced?: boolean;
   allowedWaves?: DelegationWavePolicy[];
   memberProfiles?: AgentProfileId[];
   maxMembers?: number;
@@ -8031,6 +9534,9 @@ function baseTeamModePolicy(input: {
     activation: input.activation,
     costClass: input.costClass,
     reason: input.reason,
+    costRoute: input.costRoute ?? 'not_applicable',
+    downgradeReason: input.downgradeReason ?? null,
+    trustPolicyEnforced: input.trustPolicyEnforced ?? true,
     chiefProfile: 'orchestrator',
     memberProfiles,
     allowedWaves,
@@ -8059,7 +9565,9 @@ function buildTeamModePolicy(options: { activation: TeamModeActivation; task?: S
       decision: 'blocked',
       costClass: 'none',
       reason: options.blockedReason,
-      blockedReason: options.blockedReason
+      blockedReason: options.blockedReason,
+      costRoute: 'blocked',
+      trustPolicyEnforced: true
     });
   }
   if (activation === 'off') {
@@ -8069,7 +9577,9 @@ function buildTeamModePolicy(options: { activation: TeamModeActivation; task?: S
       enabled: false,
       decision: 'disabled',
       costClass: 'none',
-      reason: 'Team-mode automation disabled for this route.'
+      reason: 'Team-mode automation disabled for this route.',
+      costRoute: 'not_applicable',
+      trustPolicyEnforced: true
     });
   }
 
@@ -8088,6 +9598,8 @@ function buildTeamModePolicy(options: { activation: TeamModeActivation; task?: S
       decision: 'enabled',
       costClass: 'high',
       reason: 'Security-sensitive task automatically requires bounded security-research team evidence.',
+      costRoute: 'no_downgrade',
+      trustPolicyEnforced: true,
       allowedWaves: selectTeamWaves(['security_research', 'validation']),
       memberProfiles: ['security', 'reviewer', 'validator'],
       maxMembers: 3
@@ -8102,6 +9614,8 @@ function buildTeamModePolicy(options: { activation: TeamModeActivation; task?: S
       decision: 'enabled',
       costClass: highRisk ? 'high' : 'medium',
       reason: 'High-risk or research-before-implementation task automatically requires adversarial planning/review evidence.',
+      costRoute: 'no_downgrade',
+      trustPolicyEnforced: true,
       allowedWaves: selectTeamWaves(['hyperplan', 'implementation_review', 'validation']),
       memberProfiles: ['architect', 'reviewer', 'security', 'validator'],
       maxMembers: 4
@@ -8116,6 +9630,9 @@ function buildTeamModePolicy(options: { activation: TeamModeActivation; task?: S
       decision: 'enabled',
       costClass: 'low',
       reason: activation === 'force' ? 'Team-mode was forced, so router selects the lowest-cost review-lite team.' : 'Task metadata indicates review or validation evidence is useful, so router selects review-lite.',
+      costRoute: activation === 'force' ? 'no_downgrade' : 'downgraded',
+      downgradeReason: activation === 'force' ? null : 'Low-cost review-lite route keeps reviewer/validator artifacts and policy-backed verify mandatory.',
+      trustPolicyEnforced: true,
       allowedWaves: selectTeamWaves(['implementation_review', 'validation']),
       memberProfiles: ['reviewer', 'validator'],
       maxMembers: 2
@@ -8128,7 +9645,10 @@ function buildTeamModePolicy(options: { activation: TeamModeActivation; task?: S
     enabled: false,
     decision: 'disabled',
     costClass: 'none',
-    reason: 'Low-risk task does not need an agent team.'
+    reason: 'Low-risk task does not need an agent team.',
+    costRoute: 'downgraded',
+    downgradeReason: 'Low-risk task uses no team automation, but artifact trust policy and policy-backed verify remain mandatory.',
+    trustPolicyEnforced: true
   });
 }
 
@@ -9297,9 +10817,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-async function inspectDocumentChainEvidence(projectRoot: string): Promise<DoctorCheck[]> {
+async function inspectDocumentChainEvidence(projectRoot: string, branch?: string | null): Promise<DoctorCheck[]> {
   try {
-    const context = await resolveSddContext(projectRoot);
+    const context = await resolveSddContext(projectRoot, branch ? { branch, branchSource: 'cli_option' } : {});
     const model = await parseSddBranch(projectRoot, context.branch);
     if (!model.documents.specExists || !model.documents.tasksExists) {
       return [{
@@ -9465,7 +10985,125 @@ function routePreflightNeedsTeamSession(event: RuntimeEvent): boolean {
   return isRecord(teamMode) && (teamMode.decision === 'enabled' || teamMode.decision === 'blocked');
 }
 
-async function inspectRunEvidence(projectRoot: string, options: { allRuns?: boolean; latestOnly?: boolean } = {}): Promise<DoctorCheck[]> {
+function acceptanceCoverageEntries(taskState: unknown): Array<Record<string, unknown>> {
+  if (!isRecord(taskState) || !Array.isArray(taskState.acceptanceCoverage)) {
+    return [];
+  }
+  return taskState.acceptanceCoverage.filter(isRecord);
+}
+
+function ledgerMaterialRefs(entries: InvocationLedgerEntry[]): Set<string> {
+  const refs = new Set<string>();
+  for (const entry of entries) {
+    if (entry.kind === 'material') {
+      refs.add(entry.ref);
+    }
+    for (const ref of entry.materialRefs) {
+      refs.add(ref);
+    }
+  }
+  return refs;
+}
+
+function claimMaterialRefs(claim: EvidenceClaim): string[] {
+  const refs: string[] = [];
+  for (const item of claim.evidence) {
+    if (item.kind === 'material') {
+      refs.push(item.ref);
+    }
+  }
+  for (const ref of claim.provenance) {
+    if (ref.startsWith('material:')) {
+      refs.push(ref.slice('material:'.length));
+    }
+  }
+  return refs;
+}
+
+async function inspectRunTrustEvidence(projectRoot: string, state: RunState, invocationLedger: InvocationLedgerEntry[]): Promise<DoctorCheck[]> {
+  const checks: DoctorCheck[] = [];
+  const runId = state.runId;
+  const materials = ledgerMaterialRefs(invocationLedger);
+  let inspectedTrustArtifacts = 0;
+
+  if (state.syncBack.status !== 'not_created') {
+    if (!state.syncBack.proposalPath) {
+      checks.push({ level: 'FAIL', check: 'sync_back_monotonicity', message: `${runId}: sync-back status is ${state.syncBack.status} but proposalPath is missing.`, action: 'Keep sync-back transitions monotonic and preserve the proposal path from verify/apply.' });
+    } else if (!state.syncBack.proposalDigest) {
+      checks.push({ level: 'WARN', check: 'sync_back_proposal_digest', message: `${runId}: sync-back proposal ${state.syncBack.proposalPath} has no recorded digest.`, action: 'Re-run verify with the Phase 6.9 runtime so inspect/apply can detect proposal drift.' });
+    } else {
+      try {
+        const proposal = await readArtifact(projectRoot, runId, toArtifactRootRelativePath(state.syncBack.proposalPath));
+        const digest = hashDocumentContent(proposal);
+        if (digest !== state.syncBack.proposalDigest) {
+          checks.push({ level: 'FAIL', check: 'sync_back_proposal_digest', message: `${runId}: sync-back proposal ${state.syncBack.proposalPath} digest changed from ${state.syncBack.proposalDigest} to ${digest}.`, action: 'Restore the verified proposal or re-run verify before sync-back apply.' });
+        }
+      } catch (error) {
+        checks.push({ level: 'FAIL', check: 'sync_back_proposal_digest', message: `${runId}: cannot read sync-back proposal ${state.syncBack.proposalPath}: ${messageFromError(error)}`, action: 'Restore the proposal artifact before sync-back inspect/apply.' });
+      }
+    }
+  }
+
+  for (const [taskId, taskState] of Object.entries(state.tasks)) {
+    for (const coverage of acceptanceCoverageEntries(taskState)) {
+      if (coverage.status === 'PASS') {
+        const evidence = typeof coverage.evidence === 'string' ? coverage.evidence : '';
+        const issueCodes = Array.isArray(coverage.issueCodes) ? coverage.issueCodes.join(',') : '';
+        if (/Mentioned in artifacts\//i.test(evidence) || !isRecord(coverage.policyDecision) || issueCodes.includes('MENTION_ONLY')) {
+          checks.push({ level: 'FAIL', check: 'acceptance_trust', message: `${runId}/${taskId}: acceptance ${String(coverage.acceptance ?? 'unknown')} is PASS without policy-backed source evidence.`, action: `Use ${SDD_EVIDENCE_CONTRACT} claims; mention-only acceptance coverage cannot satisfy PASS.` });
+        }
+        if (containsTemplatePlaceholder(evidence)) {
+          checks.push({ level: 'FAIL', check: 'acceptance_trust', message: `${runId}/${taskId}: acceptance ${String(coverage.acceptance ?? 'unknown')} PASS evidence contains template placeholder text.`, action: 'Replace generated TODO/template acceptance text with real source evidence.' });
+        }
+      }
+    }
+  }
+
+  for (const artifact of state.artifacts) {
+    const looksLikeValidatorArtifact = artifact.agent === 'validator' || /(?:^|\/)validation-[^/]+\.md$/i.test(artifact.path);
+    if (!looksLikeValidatorArtifact) {
+      continue;
+    }
+    try {
+      const artifactRootRelativePath = toArtifactRootRelativePath(artifact.path);
+      const raw = await readArtifact(projectRoot, runId, artifactRootRelativePath);
+      const parsed = parseSddResultMarkdown(raw);
+      if (!parsed.result || parsed.result.agent !== 'validator' || (parsed.result.status !== 'PASS' && parsed.result.status !== 'PASS_WITH_GAPS')) {
+        continue;
+      }
+      inspectedTrustArtifacts += 1;
+      const trust = validateArtifactTrust(raw, parsed.result, artifact.path, { expectedTask: artifact.task ?? parsed.result.task, expectedAgent: 'validator' });
+      if (!trust.valid) {
+        for (const issue of trust.issues) {
+          checks.push({ level: 'FAIL', check: 'artifact_trust', message: `${runId}/${artifact.path}: ${issue.message}`, action: issue.recommendation });
+        }
+      }
+      for (const claim of trust.claims) {
+        for (const ref of claimMaterialRefs(claim)) {
+          if (!materials.has(ref)) {
+            checks.push({ level: 'FAIL', check: 'material_provenance', message: `${runId}/${artifact.path}: material evidence ${ref} has no matching invocation ledger entry.`, action: 'Record material/tool/command provenance in invocations.jsonl before using the material as source evidence.' });
+          }
+        }
+      }
+    } catch (error) {
+      checks.push({ level: 'FAIL', check: 'artifact_trust', message: `${runId}/${artifact.path}: cannot inspect validator artifact: ${messageFromError(error)}`, action: 'Restore the validator artifact or remove it from accepted run evidence.' });
+    }
+  }
+
+  if (inspectedTrustArtifacts > 0 && !checks.some((check) => check.check === 'artifact_trust' || check.check === 'material_provenance')) {
+    checks.push({ level: 'PASS', check: 'artifact_trust', message: `${runId}: inspected ${inspectedTrustArtifacts} validator trust artifact(s).` });
+  }
+  return checks;
+}
+
+function runStateMatchesPartition(state: RunState, partition: string): boolean {
+  if (state.partition === partition) {
+    return true;
+  }
+  return state.gitBranch ? branchToSafePartition(state.gitBranch) === partition : false;
+}
+
+async function inspectRunEvidence(projectRoot: string, options: { allRuns?: boolean; latestOnly?: boolean; branch?: string | null } = {}): Promise<DoctorCheck[]> {
   const runsDir = getRunsDir(projectRoot);
   const entries = await readdir(runsDir, { withFileTypes: true });
   const runDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
@@ -9482,14 +11120,18 @@ async function inspectRunEvidence(projectRoot: string, options: { allRuns?: bool
     }
   }
 
-  const nonArchived = states.filter((entry) => entry.state.status !== 'archived');
-  let inspected = options.allRuns ? states : nonArchived;
+  const branchPartition = options.branch ? branchToSafePartition(options.branch) : null;
+  const scopedStates = branchPartition
+    ? states.filter((entry) => runStateMatchesPartition(entry.state, branchPartition))
+    : states;
+  const nonArchived = scopedStates.filter((entry) => entry.state.status !== 'archived');
+  let inspected = options.allRuns ? scopedStates : nonArchived;
   if (!options.allRuns && options.latestOnly && inspected.length > 0) {
     inspected = [inspected.slice().sort((left, right) => Date.parse(right.state.updatedAt) - Date.parse(left.state.updatedAt))[0]];
   }
   const inspectedRunIds = new Set(inspected.map((entry) => entry.runId));
-  const skippedArchived = states.length - nonArchived.length;
-  const skippedByScope = states.filter((entry) => !inspectedRunIds.has(entry.runId) && entry.state.status !== 'archived').length;
+  const skippedArchived = scopedStates.length - nonArchived.length;
+  const skippedByScope = scopedStates.filter((entry) => !inspectedRunIds.has(entry.runId) && entry.state.status !== 'archived').length;
 
   if (skippedArchived > 0 && !options.allRuns) {
     checks.push({ level: 'PASS', check: 'run_evidence_scope', message: `Skipped ${skippedArchived} archived run(s); use sdd doctor --all-runs for historical audit.` });
@@ -9523,10 +11165,23 @@ async function inspectRunEvidence(projectRoot: string, options: { allRuns?: bool
       const teamSessionRecords = await listTeamSessionRecords(projectRoot, runId);
       const workerRuntimeList = await listResidentWorkerRuntimes(projectRoot, { runId });
       const routePreflightEvents = events.filter((event) => event.event === 'agent_router_preflight');
+      const invocationLedger = await listInvocationLedgerEntries(projectRoot, runId);
       for (const record of agentExecutionRecords) {
         for (const issue of validateAgentExecutionRecordShape(runId, record)) {
           issueCount += 1;
           checks.push({ level: 'FAIL', check: 'agent_execution_record', message: `${runId}/${record.executionId ?? 'unknown'}: ${issue.message}`, action: issue.recommendation });
+        }
+        const delegation = record.delegationId ? state.delegations[record.delegationId] : null;
+        if (delegation) {
+          const expectedProfile = toAgentProfileId(delegation.agent);
+          if (record.taskId !== delegation.task) {
+            issueCount += 1;
+            checks.push({ level: 'FAIL', check: 'agent_route_consistency', message: `${runId}/${record.executionId}: execution task ${record.taskId} does not match delegation task ${delegation.task}.`, action: 'Persist per-delegation execution records from the matching route decision.' });
+          }
+          if (expectedProfile && (record.profile !== expectedProfile || record.toolPermission?.profile !== expectedProfile || record.routeDecision.recommendedProfile !== expectedProfile)) {
+            issueCount += 1;
+            checks.push({ level: 'FAIL', check: 'agent_route_consistency', message: `${runId}/${record.executionId}: execution profile/tool-permission/route does not match delegation agent ${delegation.agent}.`, action: 'Route each delegation independently and persist matching profile, tool permission, and route decision.' });
+          }
         }
       }
       for (const record of teamSessionRecords) {
@@ -9558,6 +11213,10 @@ async function inspectRunEvidence(projectRoot: string, options: { allRuns?: bool
       }
       if (agentExecutionRecords.length > 0 || teamSessionRecords.length > 0 || routePreflightEvents.length > 0) {
         checks.push({ level: 'PASS', check: 'agent_team_execution_records', message: `${runId}: inspected ${agentExecutionRecords.length} agent execution record(s), ${teamSessionRecords.length} team session record(s), and ${routePreflightEvents.length} router preflight event(s).` });
+      }
+      for (const check of await inspectRunTrustEvidence(projectRoot, state, invocationLedger)) {
+        issueCount += check.level === 'PASS' ? 0 : 1;
+        checks.push(check);
       }
       for (const delegation of Object.values(state.delegations)) {
         const report = await validateDelegationRecord(projectRoot, runId, delegation);
@@ -9605,9 +11264,9 @@ async function inspectRunEvidence(projectRoot: string, options: { allRuns?: bool
   if (runDirs.length === 0) {
     checks.push({ level: 'WARN', check: 'run_evidence', message: 'No runs found under .sdd/runs.', action: 'Create a run before /sdd-do or /sdd-verify.' });
   } else if (inspected.length === 0 && issueCount === 0) {
-    checks.push({ level: 'WARN', check: 'run_evidence', message: 'No non-archived runs were inspected.', action: 'Use sdd doctor --all-runs to audit archived history or create a new run.' });
+    checks.push({ level: 'WARN', check: 'run_evidence', message: branchPartition ? `No non-archived runs were inspected for branch ${branchPartition}.` : 'No non-archived runs were inspected.', action: 'Use sdd doctor --all-runs to audit archived history or create a new run.' });
   } else if (issueCount === 0) {
-    checks.push({ level: 'PASS', check: 'run_evidence', message: `Inspected ${inspected.length} run(s); no stale delegation, invalid artifact, terminal event gap, or resident worker runtime issue found.` });
+    checks.push({ level: 'PASS', check: 'run_evidence', message: `Inspected ${inspected.length} run(s); no stale delegation, invalid artifact, terminal event gap, trust evidence, or resident worker runtime issue found.` });
   }
   return checks;
 }
@@ -10102,8 +11761,10 @@ async function inspectProjectContextPackDoctorContract(projectRoot: string): Pro
 
 export async function readRunEvents(projectRoot: string, runId: string): Promise<RuntimeEvent[]> {
   const eventPath = path.join(getRunDir(projectRoot, runId), 'events.jsonl');
-  if (!await exists(eventPath)) {
-    return [];
+  await importLegacyRunEventsIfNeeded(projectRoot, runId, eventPath);
+  const storedEvents = await readRuntimeRunEvents(projectRoot, runId);
+  if (storedEvents.length > 0 || !await exists(eventPath)) {
+    return storedEvents;
   }
   const raw = await readFile(eventPath, 'utf8');
   return raw.split(/\r?\n/).filter((line) => line.trim().length > 0).map((line) => JSON.parse(line) as RuntimeEvent);

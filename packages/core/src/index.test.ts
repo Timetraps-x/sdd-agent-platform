@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { DatabaseSync } from 'node:sqlite';
 import { access, mkdir, mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -22,6 +23,8 @@ import {
   createRun,
   archiveRun,
   doctor,
+  buildContextBuildPackage,
+  buildEvidenceSummaryProjection,
   evaluateLifecycleDecisionGate,
   extractLifecycleRiskSignalsFromText,
   evaluateGovernancePolicy,
@@ -29,6 +32,9 @@ import {
   getProjectStatus,
   getDelegationStateMachine,
   getRunRelativeArtifactPath,
+  getRuntimeStorePath,
+  getInvocationLedgerPath,
+  contextBudgetForProfile,
   getSddInstructions,
   initProject,
   inspectRun,
@@ -51,6 +57,7 @@ import {
   isDelegationStale,
   isDelegationTerminal,
   inspectLocalRunIndex,
+  listInvocationLedgerEntries,
   listRuns,
   removeWorktreeLifecycle,
   queryLocalRunIndex,
@@ -75,6 +82,7 @@ import {
   listAgentRegistry,
   listSkillCapabilities,
   listCapabilitySources,
+  parseSddEvidenceMarkdown,
   parseSddResultMarkdown,
   parseSddTasksMarkdown,
   readProjectConfig,
@@ -84,6 +92,7 @@ import {
   recordLifecycleDecision,
   rebuildLocalRunIndex,
   renderSddResultArtifactTemplate,
+  parseContextProfile,
   renderLifecycleDecisionGate,
   renderSingleTaskLoopResult,
   renderTaskGapReport,
@@ -106,11 +115,110 @@ import {
   routeSddTask,
   validateAgentSkillTeamRuntime,
   writeArtifact,
+  summarizeCommandOutput,
+  validateLogWorkerSummary,
   writeResidentWorkerRuntimeRecord,
   writeRunState
 } from './index.js';
 
 const execFileAsync = promisify(execFile);
+
+test('runtime store mirrors run state events artifacts and doctor visibility', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-runtime-store-'));
+  try {
+    await initProject(root);
+    const run = await createRun(root, { runId: 'store-run-001' });
+    await appendEvent(root, run.runId, { event: 'runtime_store_test_event', runId: run.runId, summary: 'store mirror test' });
+    await writeArtifact(root, run.runId, 'validation-T1.md', 'runtime store artifact');
+
+    const db = new DatabaseSync(getRuntimeStorePath(root), { readOnly: true });
+    try {
+      const storedRun = db.prepare('SELECT run_id, status FROM runs WHERE run_id = ?').get(run.runId) as { run_id?: string; status?: string } | undefined;
+      const storedEvent = db.prepare('SELECT event_name FROM events WHERE run_id = ? AND event_name = ?').get(run.runId, 'runtime_store_test_event') as { event_name?: string } | undefined;
+      const storedArtifact = db.prepare('SELECT path FROM artifacts WHERE run_id = ? AND path = ?').get(run.runId, 'artifacts/validation-T1.md') as { path?: string } | undefined;
+      assert.equal(storedRun?.run_id, run.runId);
+      assert.equal(storedRun?.status, 'created');
+      assert.equal(storedEvent?.event_name, 'runtime_store_test_event');
+      assert.equal(storedArtifact?.path, 'artifacts/validation-T1.md');
+    } finally {
+      db.close();
+    }
+
+    const report = await doctor(root, { latestOnly: true });
+    const runtimeStoreCheck = report.checks.find((check) => check.check === 'runtime_store');
+    assert.equal(runtimeStoreCheck?.level, 'PASS');
+    assert.match(runtimeStoreCheck?.message ?? '', /phase-6\.11-runtime-store-v1/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('runtime store imports changed legacy run state and events', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-runtime-legacy-import-'));
+  try {
+    await initProject(root);
+    const run = await createRun(root, { runId: 'legacy-run-001' });
+    const state = await readRunState(root, run.runId);
+    const statePath = path.join(root, '.sdd', 'runs', run.runId, 'state.json');
+    const legacyIngestion = {
+      contract: 'sdd-artifact-result-ingestion-v1' as const,
+      runId: run.runId,
+      delegationId: 'D-T1-validator-001',
+      task: 'T1',
+      agent: 'validator',
+      artifactPath: 'artifacts/validation-T1.md',
+      status: 'accepted' as const,
+      resultStatus: 'PASS' as const,
+      delegationStatus: 'COMPLETED' as const,
+      ingestedAt: '2026-01-01T00:00:00.000Z',
+      issues: [],
+      gaps: []
+    };
+    await writeFile(statePath, `${JSON.stringify({
+      ...state,
+      status: 'completed',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      artifacts: [{ path: 'artifacts/validation-T1.md', kind: 'validation', task: 'T1', agent: 'validator', createdAt: '2026-01-01T00:00:00.000Z' }],
+      artifactIngestions: { 'D-T1-validator-001:artifacts/validation-T1.md': legacyIngestion }
+    }, null, 2)}\n`, 'utf8');
+    await writeFile(getInvocationLedgerPath(root, run.runId), `${JSON.stringify({
+      contract: 'sdd-invocation-ledger-v1',
+      version: '1.0.0',
+      entryId: 'legacy-ledger-entry-001',
+      runId: run.runId,
+      taskId: 'T1',
+      branch: 'master',
+      kind: 'command',
+      ref: 'npm test',
+      status: 'declared',
+      timestamp: '2026-01-01T00:00:00.000Z',
+      materialRefs: [],
+      metadata: { source: 'legacy-test' }
+    })}\n`, 'utf8');
+    await appendEvent(root, run.runId, { event: 'legacy_event_after_store', runId: run.runId });
+
+    const importedState = await readRunState(root, run.runId);
+    const importedEvents = await readRunEvents(root, run.runId);
+    const importedLedger = await listInvocationLedgerEntries(root, run.runId);
+    const db = new DatabaseSync(getRuntimeStorePath(root), { readOnly: true });
+    try {
+      const artifact = db.prepare('SELECT path, status FROM artifacts WHERE run_id = ? AND path = ?').get(run.runId, 'artifacts/validation-T1.md') as { path?: string; status?: string } | undefined;
+      const ingestion = db.prepare('SELECT status, result_status FROM artifact_ingestions WHERE run_id = ? AND artifact_path = ?').get(run.runId, 'artifacts/validation-T1.md') as { status?: string; result_status?: string } | undefined;
+      const activity = db.prepare('SELECT ref, status FROM activities WHERE run_id = ? AND activity_id = ?').get(run.runId, 'legacy-ledger-entry-001') as { ref?: string; status?: string } | undefined;
+      assert.equal(importedState.status, 'completed');
+      assert.equal(importedEvents.some((event) => event.event === 'legacy_event_after_store'), true);
+      assert.equal(importedLedger.some((entry) => entry.entryId === 'legacy-ledger-entry-001'), true);
+      assert.equal(artifact?.status, 'legacy_imported');
+      assert.equal(ingestion?.status, 'accepted');
+      assert.equal(ingestion?.result_status, 'PASS');
+      assert.equal(activity?.ref, 'npm test');
+    } finally {
+      db.close();
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test('initProject creates readable project config', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-runtime-'));
@@ -715,27 +823,84 @@ test('Phase 6 adaptive team-mode routes choose cost-bounded agent teams automati
     assert.equal(low.teamMode.mode, 'off');
     assert.equal(low.teamMode.enabled, false);
     assert.equal(low.teamMode.costClass, 'none');
+    assert.equal(low.teamMode.costRoute, 'downgraded');
+    assert.match(low.teamMode.downgradeReason ?? '', /Low-risk task uses no team automation/);
+    assert.equal(low.teamMode.trustPolicyEnforced, true);
     assert.equal(review.teamMode.activation, 'auto');
     assert.equal(review.teamMode.mode, 'review-lite');
     assert.equal(review.teamMode.enabled, true);
     assert.equal(review.teamMode.costClass, 'low');
+    assert.equal(review.teamMode.costRoute, 'downgraded');
+    assert.match(review.teamMode.downgradeReason ?? '', /Low-cost review-lite route/);
+    assert.equal(review.teamMode.trustPolicyEnforced, true);
     assert.equal(review.teamMode.maxMembers <= 2, true);
     assert.equal(review.teamMode.waveRecommendation.includes('implementation_review'), true);
     assert.equal(high.teamMode.mode, 'hyperplan');
     assert.equal(high.teamMode.enabled, true);
     assert.equal(high.teamMode.costClass, 'high');
+    assert.equal(high.teamMode.costRoute, 'no_downgrade');
+    assert.equal(high.teamMode.downgradeReason, null);
+    assert.equal(high.teamMode.trustPolicyEnforced, true);
     assert.equal(high.teamMode.maxMembers <= 4, true);
     assert.equal(high.teamMode.waveRecommendation.includes('hyperplan'), true);
     assert.equal(security.teamMode.mode, 'security-research');
     assert.equal(security.teamMode.costClass, 'high');
+    assert.equal(security.teamMode.costRoute, 'no_downgrade');
+    assert.equal(security.teamMode.downgradeReason, null);
+    assert.equal(security.teamMode.trustPolicyEnforced, true);
     assert.equal(security.teamMode.maxMembers <= 3, true);
     assert.equal(security.teamMode.waveRecommendation.includes('security_research'), true);
     assert.equal(forced.teamMode.activation, 'force');
     assert.equal(forced.teamMode.mode, 'review-lite');
     assert.equal(forced.teamMode.costClass, 'low');
+    assert.equal(forced.teamMode.costRoute, 'no_downgrade');
+    assert.equal(forced.teamMode.downgradeReason, null);
+    assert.equal(forced.teamMode.trustPolicyEnforced, true);
     assert.equal(disabled.teamMode.activation, 'off');
     assert.equal(disabled.teamMode.mode, 'off');
     assert.equal(disabled.teamMode.enabled, false);
+    assert.equal(disabled.teamMode.costRoute, 'not_applicable');
+    assert.equal(disabled.teamMode.trustPolicyEnforced, true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('routeSddTask uses derived route cache and opt-in profiling only', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-route-cache-profile-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', `# Tasks\n\n${adaptiveTeamTaskMarkdown('CACHE', { allowedAgents: ['reviewer'], requiredArtifacts: ['artifacts/review-CACHE.md'] })}`);
+
+    const uncached = await routeSddTask(root, { taskId: 'CACHE', branch: 'master' });
+    const first = await routeSddTask(root, { taskId: 'CACHE', branch: 'master', cache: true, profile: true });
+    const second = await routeSddTask(root, { taskId: 'CACHE', branch: 'master', cache: true });
+    const third = await routeSddTask(root, { taskId: 'CACHE', branch: 'master', cache: true, profile: true });
+
+    assert.equal(uncached.cache, undefined);
+    assert.equal(uncached.profile, undefined);
+    assert.equal(first.cache?.status, 'stored');
+    assert.equal(first.cache?.source, 'content_addressed_derived_route');
+    assert.equal(first.cache?.authoritative, false);
+    assert.ok(first.profile);
+    assert.equal(first.profile.every((span) => span.contract === 'phase-6.9-runtime-profile-v1'), true);
+    assert.equal(first.profile.some((span) => span.name === 'route_compute'), true);
+    assert.equal(first.teamMode.costRoute, 'downgraded');
+    assert.equal(first.teamMode.trustPolicyEnforced, true);
+    assert.equal(second.cache?.status, 'hit');
+    assert.equal(second.cache?.authoritative, false);
+    assert.equal(second.profile, undefined);
+    assert.equal(third.cache?.status, 'hit');
+    assert.ok(third.profile);
+    assert.equal(third.profile.some((span) => span.name === 'route_total'), true);
+    assert.equal(third.profile.some((span) => span.name === 'route_compute'), false);
+
+    await writeBranchDocs(root, 'master', `# Tasks\n\n${adaptiveTeamTaskMarkdown('CACHE', { allowedAgents: ['reviewer'], requiredArtifacts: ['artifacts/review-CACHE.md'] })}\n\nCache key invalidation fixture.`);
+    const invalidated = await routeSddTask(root, { taskId: 'CACHE', branch: 'master', cache: true });
+
+    assert.equal(invalidated.cache?.status, 'stored');
+    assert.notEqual(invalidated.cache?.key, first.cache?.key);
+    assert.equal(invalidated.cache?.authoritative, false);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -757,6 +922,7 @@ test('CLI exposes Phase 6 runtime, catalog, quarantine, team-mode, and route com
     const route = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'tasks', 'route', 'ONBOARDING-1'], { cwd: root });
     const routeForce = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'tasks', 'route', 'ONBOARDING-1', '--team-mode'], { cwd: root });
     const routeOff = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'tasks', 'route', 'ONBOARDING-1', '--no-team-mode'], { cwd: root });
+    const routeProfileCache = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'tasks', 'route', 'ONBOARDING-1', '--profile', '--cache'], { cwd: root });
     const parsedRuntime = JSON.parse(runtimeJson.stdout) as { valid: boolean; version: string };
 
     assert.match(runtime.stdout, /SDD agent\/skill\/team runtime/);
@@ -778,6 +944,10 @@ test('CLI exposes Phase 6 runtime, catalog, quarantine, team-mode, and route com
     assert.match(routeForce.stdout, /activation=force/);
     assert.match(routeForce.stdout, /mode=review-lite/);
     assert.match(routeOff.stdout, /team_mode=disabled mode=off activation=off cost=none/);
+    assert.match(routeProfileCache.stdout, /route_cache=stored/);
+    assert.match(routeProfileCache.stdout, /authoritative=false/);
+    assert.match(routeProfileCache.stdout, /trust_policy_enforced=true/);
+    assert.match(routeProfileCache.stdout, /profile\n- /);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -888,8 +1058,15 @@ test('Phase 6 task execution persists agent and team evidence records', async ()
     assert.equal(result.routeDecision.teamMode.mode, 'review-lite');
     assert.equal(result.routeDecision.teamMode.costClass, 'low');
     assert.equal(inspection.agentExecutions.length, 2);
-    assert.equal(inspection.agentExecutions.some((record) => record.status === 'skipped' && record.profile === 'implementer'), true);
-    assert.equal(inspection.agentExecutions.some((record) => record.status === 'blocked' && record.profile === 'reviewer'), true);
+    const implementerRecord = inspection.agentExecutions.find((record) => record.status === 'skipped' && record.profile === 'implementer');
+    const reviewerRecord = inspection.agentExecutions.find((record) => record.status === 'blocked' && record.profile === 'reviewer');
+    assert.ok(implementerRecord);
+    assert.ok(reviewerRecord);
+    assert.equal(implementerRecord.toolPermission?.profile, 'implementer');
+    assert.equal(implementerRecord.routeDecision.recommendedProfile, 'implementer');
+    assert.equal(reviewerRecord.toolPermission?.profile, 'reviewer');
+    assert.equal(reviewerRecord.routeDecision.recommendedProfile, 'reviewer');
+    assert.match(reviewerRecord.routeId, /^[a-f0-9]{16}$/);
     assert.equal(inspection.teamSessions.length, 1);
     const teamSession = inspection.teamSessions[0];
     assert.ok(teamSession);
@@ -1134,6 +1311,25 @@ test('AI entry drift check distinguishes managed drift from user modifications',
     assert.match(await readFile(commandPath, 'utf8'), /manual drift/);
     const doctorReport = await doctor(root, { latestOnly: true });
     assert.equal(doctorReport.checks.some((check) => check.check === 'ai_entry_sdd-root' && check.level === 'FAIL' && /will not overwrite user-modified/.test(check.action ?? '')), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('AI entry drift check includes managed entry version', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-ai-version-drift-'));
+  try {
+    await initProject(root);
+    const commandPath = path.join(root, '.claude', 'commands', 'sdd.md');
+    const original = await readFile(commandPath, 'utf8');
+    await writeFile(commandPath, original.replace('sdd_version: "0.3.0"', 'sdd_version: "0.2.0"'), 'utf8');
+
+    const drift = await checkAiToolEntryDrift(root);
+    assert.equal(drift[0].entries.some((entry) => entry.id === 'sdd-root' && entry.status === 'drifted'), true);
+
+    const update = await applyAiToolEntries(root);
+    assert.equal(update[0].entries.some((entry) => entry.id === 'sdd-root' && entry.status === 'updated'), true);
+    assert.match(await readFile(commandPath, 'utf8'), /sdd_version: "0\.3\.0"/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -2376,7 +2572,7 @@ test('CLI compact JSON supports instructions run-index sync-back and artifact va
     const state = await createRun(root, { runId: 'compact-run' });
     await bindTestRunState(root, state.runId, 'feature', 'T1');
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
-    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}\n## Acceptance Mapping\n\n- [PASS] AC-1\n`);
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
     await runGoalVerify(root, {
       runId: state.runId,
       branch: 'feature',
@@ -2398,6 +2594,37 @@ test('CLI compact JSON supports instructions run-index sync-back and artifact va
     await rm(root, { recursive: true, force: true });
   }
 });
+
+
+test('CLI exposes context build and evidence summary compact JSON', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-context-cli-'));
+  const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
+  const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
+  const parseCompactJson = <T>(stdout: string): T => {
+    const trimmed = stdout.trim();
+    assert.equal(trimmed.includes('\n'), false);
+    return JSON.parse(trimmed) as T;
+  };
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', contextBuildTaskMarkdown('T1'));
+    const state = await createRun(root, { runId: 'context-cli-run' });
+    await bindTestRunState(root, state.runId, 'master', 'T1');
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
+
+    const contextBuild = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'context', 'build', '--task', 'T1', '--branch', 'master', '--mode', 'verify', '--agent', 'validator', '--compact-json'], { cwd: root });
+    const evidenceSummary = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'evidence', 'summary', state.runId, '--task', 'T1', '--compact-json'], { cwd: root });
+
+    assert.equal(parseCompactJson<{ contract: string; authoritative: boolean; usableForPass: boolean }>(contextBuild.stdout).contract, 'sdd-context-package-v1');
+    const summary = parseCompactJson<{ contract: string; authoritative: boolean; usableForPass: boolean }>(evidenceSummary.stdout);
+    assert.equal(summary.contract, 'sdd-evidence-summary-v1');
+    assert.equal(summary.authoritative, false);
+    assert.equal(summary.usableForPass, false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 
 test('governance policy explains confirmation and concurrency gates', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-governance-policy-'));
@@ -3043,6 +3270,86 @@ artifacts:
   }
 });
 
+
+test('ingestArtifactResult admits validator evidence claims into runtime store', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-artifact-evidence-admission-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'master', 'T1');
+    const boundState = await readRunState(root, state.runId);
+    const delegation = createDelegationRecord({
+      delegationId: 'D-T1-validator-001',
+      task: 'T1',
+      agent: 'validator',
+      expectedArtifact: 'artifacts/validation-T1.md'
+    });
+    await writeRunState(root, { ...boundState, delegations: { ...boundState.delegations, [delegation.delegationId]: delegation } });
+    await appendEvent(root, state.runId, { event: 'delegation_started', runId: state.runId, data: { delegationId: delegation.delegationId } });
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
+
+    const result = await ingestArtifactResult(root, state.runId, { delegationId: delegation.delegationId, artifactPath: 'artifacts/validation-T1.md' });
+    const summary = await buildEvidenceSummaryProjection(root, { runId: state.runId, taskId: 'T1' });
+    const db = new DatabaseSync(getRuntimeStorePath(root), { readOnly: true });
+    try {
+      const claim = db.prepare('SELECT partition, task_id, acceptance_id, coverage_status, source_artifact FROM evidence_claims WHERE run_id = ?').get(state.runId) as { partition?: string; task_id?: string; acceptance_id?: string; coverage_status?: string; source_artifact?: string } | undefined;
+      const policyDecision = db.prepare('SELECT decision_id FROM policy_decisions WHERE run_id = ?').get(state.runId) as { decision_id?: string } | undefined;
+      assert.equal(result.valid, true);
+      assert.equal(claim?.partition, 'master');
+      assert.equal(claim?.task_id, 'T1');
+      assert.equal(claim?.acceptance_id, 'AC-1');
+      assert.equal(claim?.coverage_status, 'PASS');
+      assert.equal(claim?.source_artifact, 'artifacts/validation-T1.md');
+      assert.equal(policyDecision, undefined);
+      assert.equal(summary.passCount, 1);
+      assert.equal(summary.highlights.some((highlight) => highlight.includes('admitted_claims=1')), true);
+    } finally {
+      db.close();
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('ingestArtifactResult records policy decisions for rejected derived evidence', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-artifact-policy-decision-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'master', 'T1');
+    const boundState = await readRunState(root, state.runId);
+    const delegation = createDelegationRecord({
+      delegationId: 'D-T1-validator-001',
+      task: 'T1',
+      agent: 'validator',
+      expectedArtifact: 'artifacts/validation-T1.md'
+    });
+    const derivedEvidence = `\n\`\`\`sdd-evidence\ncontract: sdd-evidence-v1\nversion: 1.0.0\ntask: T1\nacceptance: AC-1\nstatus: PASS\nclaim: Derived summary tries to prove AC-1.\nsource_artifact: artifacts/evidence-summary-T1.json\nevidence_refs:\n  - artifact:artifacts/context-package-T1.json\nprovenance_refs:\n  - artifact:artifacts/validation-T1.md\npolicy_refs:\n  - acceptance-policy-v1:require-source-evidence\n\`\`\`\n`;
+    await writeRunState(root, { ...boundState, delegations: { ...boundState.delegations, [delegation.delegationId]: delegation } });
+    await appendEvent(root, state.runId, { event: 'delegation_started', runId: state.runId, data: { delegationId: delegation.delegationId } });
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${derivedEvidence}`);
+
+    const result = await ingestArtifactResult(root, state.runId, { delegationId: delegation.delegationId, artifactPath: 'artifacts/validation-T1.md' });
+    const db = new DatabaseSync(getRuntimeStorePath(root), { readOnly: true });
+    try {
+      const claim = db.prepare('SELECT is_derived, source_artifact FROM evidence_claims WHERE run_id = ?').get(state.runId) as { is_derived?: number; source_artifact?: string } | undefined;
+      const decision = db.prepare('SELECT status, issue_codes FROM policy_decisions WHERE run_id = ?').get(state.runId) as { status?: string; issue_codes?: string } | undefined;
+      assert.equal(result.valid, false);
+      assert.equal(result.record.status, 'rejected');
+      assert.equal(claim?.is_derived, 1);
+      assert.equal(claim?.source_artifact, 'artifacts/evidence-summary-T1.json');
+      assert.equal(decision?.status, 'rejected');
+      assert.match(decision?.issue_codes ?? '', /DERIVED_SOURCE_EVIDENCE/);
+    } finally {
+      db.close();
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('renderSddResultArtifactTemplate renders self-referencing reviewer artifact', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-artifact-template-review-'));
   try {
@@ -3099,7 +3406,58 @@ test('CLI artifact template can write directly into a run artifact directory', a
   }
 });
 
-test('renderSddResultArtifactTemplate copies validator acceptance mapping', async () => {
+test('CLI version compact JSON reports package identity', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-version-identity-'));
+  const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
+  const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
+  try {
+    await initProject(root);
+    const result = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, '--version', '--compact-json'], { cwd: root });
+    const identity = JSON.parse(result.stdout) as { version?: string; cliEntryPath?: string; packageJsonPath?: string | null };
+
+    assert.equal(identity.version, '0.3.0');
+    assert.match(identity.cliEntryPath ?? '', /packages[\\/]cli[\\/]src[\\/]main\.ts$/);
+    assert.match(identity.packageJsonPath ?? '', /package\.json$/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('CLI artifact template uses run partition when branch is omitted', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-artifact-template-run-branch-'));
+  const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
+  const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'feature', 'T1');
+    const result = await execFileAsync(process.execPath, [
+      '--import',
+      tsxLoader,
+      cliPath,
+      'artifact',
+      'template',
+      'artifacts/validation-T1.md',
+      '--task',
+      'T1',
+      '--agent',
+      'validator',
+      '--run',
+      state.runId,
+      '--write'
+    ], { cwd: root });
+    const raw = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'validation-T1.md'), 'utf8');
+
+    assert.match(result.stdout, /Artifact template written: artifacts\/validation-T1\.md/);
+    assert.match(raw, /Acceptance AC-1: TODO\. Add validation evidence for Parser behavior is covered\./);
+    assert.doesNotMatch(raw, /was not found in specs\//);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('renderSddResultArtifactTemplate scaffolds validator acceptance mapping without trusted PASS evidence', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-artifact-template-validator-'));
   try {
     await initProject(root);
@@ -3116,10 +3474,35 @@ test('renderSddResultArtifactTemplate copies validator acceptance mapping', asyn
     assert.match(template, /Acceptance AC-1: TODO\. Add validation evidence for Parser behavior is covered\./);
     await writeArtifact(root, state.runId, 'validation-T1.md', template);
     const report = await validateSddResultArtifact(root, state.runId, 'artifacts/validation-T1.md', { expectedTask: 'T1', expectedAgent: 'validator' });
-    assert.equal(report.valid, true);
+    assert.equal(report.valid, false);
+    assert.equal(report.trust?.valid, false);
+    assert.equal(report.issues.some((issue) => issue.message.includes('TODO_PLACEHOLDER')), true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test('parseSddEvidenceMarkdown validates policy-backed acceptance evidence', () => {
+  const report = parseSddEvidenceMarkdown(validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md'), {
+    expectedTask: 'T1',
+    sourceArtifact: 'artifacts/validation-T1.md'
+  });
+
+  assert.equal(report.valid, true);
+  assert.equal(report.claims.length, 1);
+  assert.equal(report.claims[0].acceptance, 'AC-1');
+  assert.equal(report.claims[0].evidence[0].ref, 'npm test');
+});
+
+test('parseSddEvidenceMarkdown rejects task mismatch and derived source evidence', () => {
+  const report = parseSddEvidenceMarkdown(`\n\`\`\`sdd-evidence\ncontract: sdd-evidence-v1\nversion: 1.0.0\ntask: T2\nacceptance: AC-1\nstatus: PASS\nclaim: Validation proves AC-1.\nsource_artifact: artifacts/acceptance-coverage-T1.md\nevidence_refs:\n  - artifact:artifacts/acceptance-coverage-T1.md\nprovenance_refs:\n  - artifact:artifacts/validation-T1.md\npolicy_refs:\n  - acceptance-policy-v1:require-source-evidence\n\`\`\`\n`, {
+    expectedTask: 'T1',
+    sourceArtifact: 'artifacts/validation-T1.md'
+  });
+
+  assert.equal(report.valid, false);
+  assert.equal(report.issues.some((issue) => issue.message.includes('POLICY_RULE_FAILED')), true);
+  assert.equal(report.issues.some((issue) => issue.message.includes('DERIVED_SOURCE_EVIDENCE')), true);
 });
 
 test('artifact path helpers canonicalize root-relative and run-relative forms', () => {
@@ -3371,7 +3754,7 @@ test('runSingleTaskLoop completes from supplied review and validation artifacts 
     await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
     const state = await createRun(root, { runId: 'run-1' });
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
-    await writeArtifact(root, state.runId, 'validation-T1.md', validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md'));
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
 
     const result = await runSingleTaskLoop(root, {
       runId: state.runId,
@@ -3457,7 +3840,7 @@ test('runSingleTaskLoop blocks PASS_WITH_GAPS validation with gap report and blo
     await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
     const state = await createRun(root, { runId: 'run-1' });
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
-    await writeArtifact(root, state.runId, 'validation-T1.md', validResultArtifact('validator', 'T1', 'PASS_WITH_GAPS', 'artifacts/validation-T1.md'));
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS_WITH_GAPS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
 
     const result = await runSingleTaskLoop(root, {
       runId: state.runId,
@@ -3572,7 +3955,7 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
     const state = await createRun(root, { runId: 'run-1' });
     await bindTestRunState(root, state.runId, 'feature', 'T1');
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
-    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}\n## Acceptance Mapping\n\n- [PASS] AC-1\n`);
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
 
     const result = await runGoalVerify(root, {
       runId: state.runId,
@@ -3596,6 +3979,8 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
     assert.match(coverage, /Acceptance Mapping/);
     assert.match(coverage, /AC-1/);
     assert.match(proposal, /status: verified/);
+    assert.equal(restored.syncBack.proposalDigest, hashTestDocument(proposal));
+    assert.equal(restored.syncBack.sourceVerifyStatus, 'PASS');
     assert.match(events, /Phase 1.9 goal-level verify PASS/);
     assert.match(tasksBeforeSyncBack, /status: pending/);
 
@@ -3616,14 +4001,30 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
     assert.equal(inspection.taskRunEvidence.runId, state.runId);
     assert.equal(inspection.taskRunEvidence.validation.status, 'pass');
     assert.equal(inspection.taskRunEvidence.syncBackProposal, 'artifacts/sync-back-proposal.md');
+    assert.equal(inspection.invocationLedger.some((entry) => entry.kind === 'artifact_hash' && entry.ref === 'artifacts/sync-back-proposal.md'), true);
+    assert.equal(inspection.taskRunEvidence.invocationLedger.some((entry) => entry.kind === 'artifact_hash' && entry.ref === 'artifacts/sync-back-proposal.md'), true);
     assert.equal(status.latestRun?.runId, state.runId);
     assert.equal(status.tasks.pending, 1);
     assert.equal(status.recommendedNextCommand, 'sdd sync-back inspect --branch feature --task T1');
     assert.equal(syncBack.status, 'ready');
     assert.equal(syncBack.markdownStatus, 'pending');
     assert.match(syncBack.proposal ?? '', /status: verified/);
+    assert.equal(syncBack.proposalDigest, restored.syncBack.proposalDigest);
+    assert.equal(syncBack.proposalDigestValid, true);
     assert.equal(syncBack.applyPolicy.mode, 'direct');
     assert.equal(syncBack.applyPolicy.requiresApproval, false);
+
+    const ledgerBeforeRerun = await listInvocationLedgerEntries(root, state.runId);
+    await runGoalVerify(root, {
+      runId: state.runId,
+      branch: 'feature',
+      taskId: 'T1',
+      reviewArtifact: 'artifacts/review-T1.md',
+      validationArtifact: 'artifacts/validation-T1.md'
+    });
+    const ledgerAfterRerun = await listInvocationLedgerEntries(root, state.runId);
+    assert.equal(ledgerAfterRerun.filter((entry) => entry.kind === 'artifact_hash').length, ledgerBeforeRerun.filter((entry) => entry.kind === 'artifact_hash').length);
+    assert.equal(ledgerAfterRerun.filter((entry) => entry.kind === 'command' && entry.status === 'declared').length, ledgerBeforeRerun.filter((entry) => entry.kind === 'command' && entry.status === 'declared').length);
 
     const applied = await applySyncBack(root, { runId: state.runId, branch: 'feature', taskId: 'T1' });
     const tasksAfterSyncBack = await readFile(path.join(root, 'specs', 'feature', 'tasks.md'), 'utf8');
@@ -3636,6 +4037,7 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
     assert.match(tasksAfterSyncBack, /sync-back-proposal\.md/);
     assert.equal(appliedState.syncBack.status, 'applied');
     assert.equal(appliedEvents.some((event) => event.event === 'sync_back_applied'), true);
+
     const postApplyIndex = await queryLocalRunIndex(root, { runId: state.runId });
     const postApplyDoctor = await doctor(root, { latestOnly: true });
     const postApplyStatus = await getProjectStatus(root, { branch: 'feature' });
@@ -3650,6 +4052,19 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
 
     assert.equal(repeated.applied, false);
     assert.equal(repeatedTasks.match(/Sync-back applied from run `run-1`/g)?.length, 1);
+
+    const reverified = await runGoalVerify(root, {
+      runId: state.runId,
+      branch: 'feature',
+      taskId: 'T1',
+      reviewArtifact: 'artifacts/review-T1.md',
+      validationArtifact: 'artifacts/validation-T1.md'
+    });
+    const reverifiedState = await readRunState(root, state.runId);
+    const reverifiedProposal = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'sync-back-proposal.md'), 'utf8');
+    assert.equal(reverified.status, 'PASS');
+    assert.equal(reverifiedState.syncBack.status, 'applied');
+    assert.equal(reverifiedState.syncBack.proposalDigest, hashTestDocument(reverifiedProposal));
 
     await writeRunState(root, { ...appliedState, documentSnapshot: restored.documentSnapshot });
     const legacyAppliedStatus = await getProjectStatus(root, { branch: 'feature' });
@@ -3668,6 +4083,30 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
   }
 });
 
+test('sync-back inspect blocks modified proposal digest', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-syncback-digest-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'feature', 'T1');
+    await markTestRunReadyForSyncBack(root, state.runId, 'T1');
+    await writeFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'sync-back-proposal.md'), 'status: verified\nmodified: true\n', 'utf8');
+
+    const syncBack = await inspectSyncBack(root, { runId: state.runId, branch: 'feature', taskId: 'T1' });
+
+    assert.equal(syncBack.status, 'blocked');
+    assert.equal(syncBack.proposalDigestValid, false);
+    assert.equal(syncBack.reasons.some((reason) => reason.includes('digest changed')), true);
+    await assert.rejects(
+      () => applySyncBack(root, { runId: state.runId, branch: 'feature', taskId: 'T1' }),
+      /digest changed/
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('sync-back apply requires approval for risky complex tasks', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-syncback-approval-'));
   try {
@@ -3676,7 +4115,7 @@ test('sync-back apply requires approval for risky complex tasks', async () => {
     const state = await createRun(root, { runId: 'run-1' });
     await bindTestRunState(root, state.runId, 'feature', 'T1');
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
-    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}\n## Acceptance Mapping\n\n- [PASS] Graph output is inspectable.\n`);
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'Graph output is inspectable.', 'artifacts/validation-T1.md')}`);
 
     await runGoalVerify(root, {
       runId: state.runId,
@@ -3714,7 +4153,7 @@ test('sync-back apply rejects blocked runs and reports inspect reasons', async (
     await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
     const state = await createRun(root, { runId: 'run-1' });
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
-    await writeArtifact(root, state.runId, 'validation-T1.md', validResultArtifact('validator', 'T1', 'PASS_WITH_GAPS', 'artifacts/validation-T1.md'));
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS_WITH_GAPS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
 
     await runSingleTaskLoop(root, {
       runId: state.runId,
@@ -3761,13 +4200,13 @@ test('runGoalVerify blocks when acceptance evidence is missing', async () => {
     assert.equal(result.status, 'BLOCKED');
     assert.equal(restored.status, 'blocked');
     assert.equal(result.gaps.some((gap) => gap.field === 'acceptance_coverage'), true);
-    assert.match(coverage, /No matching acceptance evidence/);
+    assert.match(coverage, /No policy-backed acceptance evidence/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 });
 
-test('runGoalVerify passes when validator artifact includes generated acceptance mapping', async () => {
+test('runGoalVerify blocks when validator artifact only includes generated acceptance mapping', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-verify-template-pass-'));
   try {
     await initProject(root);
@@ -3791,8 +4230,82 @@ test('runGoalVerify passes when validator artifact includes generated acceptance
       validationArtifact: 'artifacts/validation-T1.md'
     });
 
-    assert.equal(result.status, 'PASS');
-    assert.deepEqual(result.acceptanceCoverage.map((item) => item.status), ['PASS']);
+    assert.equal(result.status, 'BLOCKED');
+    assert.deepEqual(result.acceptanceCoverage.map((item) => item.status), ['REFERENCED_ONLY']);
+    assert.equal(result.gaps.some((gap) => gap.field === 'acceptance_coverage'), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('runGoalVerify blocks source evidence without invocation ledger corroboration', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-verify-ledger-gap-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'feature', 'T1');
+    const weakEvidence = `\n\`\`\`sdd-evidence\ncontract: sdd-evidence-v1\nversion: 1.0.0\ntask: T1\nacceptance: AC-1\nstatus: PASS\nclaim: Validation proves AC-1.\nsource_artifact: artifacts/validation-T1.md\nevidence_refs:\n  - command:npm run missing\n  - material:external-corpus\nprovenance_refs:\n  - artifact:artifacts/validation-T1.md\n  - material:external-corpus\npolicy_refs:\n  - acceptance-policy-v1:require-source-evidence\n\`\`\`\n`;
+    await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${weakEvidence}`);
+
+    const result = await runGoalVerify(root, {
+      runId: state.runId,
+      branch: 'feature',
+      taskId: 'T1',
+      reviewArtifact: 'artifacts/review-T1.md',
+      validationArtifact: 'artifacts/validation-T1.md'
+    });
+
+    assert.equal(result.status, 'BLOCKED');
+    assert.deepEqual(result.acceptanceCoverage.map((item) => item.status), ['BLOCKED']);
+    assert.equal(result.acceptanceCoverage[0].issueCodes?.includes('MISSING_COMMAND_OUTPUT'), true);
+    assert.equal(result.acceptanceCoverage[0].issueCodes?.includes('MISSING_MATERIAL_REFERENCE'), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+
+test('runGoalVerify fails closed for cross-partition admitted evidence', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-verify-partition-scope-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'feature', 'T1');
+    const boundState = await readRunState(root, state.runId);
+    const delegation = createDelegationRecord({
+      delegationId: 'D-T1-validator-001',
+      task: 'T1',
+      agent: 'validator',
+      expectedArtifact: 'artifacts/validation-T1.md'
+    });
+    await writeRunState(root, { ...boundState, delegations: { ...boundState.delegations, [delegation.delegationId]: delegation } });
+    await appendEvent(root, state.runId, { event: 'delegation_started', runId: state.runId, data: { delegationId: delegation.delegationId } });
+    await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
+    await ingestArtifactResult(root, state.runId, { delegationId: delegation.delegationId, artifactPath: 'artifacts/validation-T1.md' });
+    const db = new DatabaseSync(getRuntimeStorePath(root));
+    try {
+      db.prepare('UPDATE evidence_claims SET partition = ? WHERE run_id = ?').run('other', state.runId);
+    } finally {
+      db.close();
+    }
+
+    const result = await runGoalVerify(root, {
+      runId: state.runId,
+      branch: 'feature',
+      taskId: 'T1',
+      reviewArtifact: 'artifacts/review-T1.md',
+      validationArtifact: 'artifacts/validation-T1.md'
+    });
+    const report = await doctor(root, { latestOnly: true, branch: 'feature' });
+
+    assert.equal(result.status, 'BLOCKED');
+    assert.equal(result.gaps.some((gap) => gap.field === 'runtime_scope'), true);
+    assert.deepEqual(result.acceptanceCoverage.map((item) => item.status), ['BLOCKED']);
+    assert.equal(report.checks.some((check) => check.check === 'runtime_partition_scope' && check.level === 'FAIL'), true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -3993,6 +4506,65 @@ test('doctor latestOnly ignores older failed run evidence', async () => {
     assert.equal(latestOnly.checks.some((check) => check.check === 'stale_delegation'), false);
     assert.equal(latestOnly.checks.some((check) => check.check === 'run_evidence_scope'), true);
     assert.equal(allRuns.checks.some((check) => check.check === 'stale_delegation'), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('doctor trust suite flags mention-only acceptance and weak validator PASS artifacts', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-doctor-trust-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'feature', 'T1');
+    await writeArtifact(root, state.runId, 'validation-T1.md', validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md'));
+    const restored = await readRunState(root, state.runId);
+    await writeRunState(root, {
+      ...restored,
+      status: 'completed',
+      validation: {
+        status: 'pass',
+        commands: ['npm test'],
+        evidence: ['artifacts/validation-T1.md']
+      },
+      tasks: {
+        T1: {
+          status: 'verified',
+          verifyStatus: 'PASS',
+          gaps: [],
+          artifacts: ['artifacts/validation-T1.md'],
+          acceptanceCoverage: [{ acceptance: 'AC-1', status: 'PASS', evidence: 'Mentioned in artifacts/validation-T1.md.' }]
+        }
+      },
+      artifacts: [{ path: 'artifacts/validation-T1.md', kind: 'validation', task: 'T1', agent: 'validator', createdAt: new Date().toISOString() }]
+    });
+
+    const report = await doctor(root, { allRuns: true, branch: 'feature' });
+
+    assert.equal(report.checks.some((check) => check.check === 'acceptance_trust' && check.level === 'FAIL'), true);
+    assert.equal(report.checks.some((check) => check.check === 'artifact_trust' && check.level === 'FAIL' && /UNSOURCED_PASS/.test(check.message)), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('doctor honors explicit branch for document-chain scope', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-doctor-branch-'));
+  try {
+    await initProject(root);
+    await execFileAsync('git', ['init'], { cwd: root });
+    await execFileAsync('git', ['checkout', '-b', 'other'], { cwd: root });
+    const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
+    const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
+
+    const report = await doctor(root, { latestOnly: true, branch: 'master' });
+    const cli = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'doctor', '--latest-only', '--branch', 'master', '--compact-json'], { cwd: root });
+    const parsed = JSON.parse(cli.stdout) as { checks: Array<{ check: string; message: string }> };
+
+    assert.equal(report.checks.some((check) => /Document chain skipped for other/.test(check.message)), false);
+    assert.equal(parsed.checks.some((check) => /Document chain skipped for other/.test(check.message)), false);
+    assert.equal(parsed.checks.some((check) => check.check.startsWith('document_chain')), true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -4232,7 +4804,8 @@ async function bindTestRunState(root: string, runId: string, branch: string, tas
 
 async function markTestRunReadyForSyncBack(root: string, runId: string, taskId: string): Promise<void> {
   const state = await readRunState(root, runId);
-  await writeArtifact(root, runId, 'sync-back-proposal.md', 'status: verified\n');
+  const proposal = 'status: verified\n';
+  await writeArtifact(root, runId, 'sync-back-proposal.md', proposal);
   await writeRunState(root, {
     ...state,
     status: 'completed',
@@ -4248,6 +4821,8 @@ async function markTestRunReadyForSyncBack(root: string, runId: string, taskId: 
     syncBack: {
       mode: 'proposal',
       proposalPath: 'artifacts/sync-back-proposal.md',
+      proposalDigest: hashTestDocument(proposal),
+      sourceVerifyStatus: 'PASS',
       status: 'proposed'
     },
     artifacts: [
@@ -4257,8 +4832,16 @@ async function markTestRunReadyForSyncBack(root: string, runId: string, taskId: 
   });
 }
 
+function hashTestDocument(raw: string): string {
+  return createHash('sha256').update(raw.replace(/\r\n/g, '\n'), 'utf8').digest('hex');
+}
+
 function validResultArtifact(agent: string, task: string, status: string, artifactPath: string): string {
   return `# ${agent} result\n\n\`\`\`sdd-result\ncontract: sdd-result-v1\nversion: 1.3.0\nagent: ${agent}\ntask: ${task}\nstatus: ${status}\nartifacts:\n  - ${artifactPath}\n\`\`\`\n`;
+}
+
+function validTrustEvidence(task: string, acceptance: string, artifactPath: string): string {
+  return `\n\`\`\`sdd-evidence\ncontract: sdd-evidence-v1\nversion: 1.0.0\ntask: ${task}\nacceptance: ${acceptance}\nstatus: PASS\nclaim: Validation proves ${acceptance}.\nsource_artifact: ${artifactPath}\nevidence_refs:\n  - command:npm test\nprovenance_refs:\n  - artifact:${artifactPath}\npolicy_refs:\n  - acceptance-policy-v1:require-source-evidence\n\`\`\`\n`;
 }
 
 function validTaskMarkdown(taskId: string, dependsOn: string[]): string {
@@ -4421,6 +5004,176 @@ function withManagedHash(content: string): string {
   const body = content.replace(/^---\n[\s\S]*?\n---\n\n?/, '');
   return content.replace(/^sdd_hash:\s*sha256:[a-f0-9]+\s*$/m, `sdd_hash: sha256:${createHash('sha256').update(body, 'utf8').digest('hex')}`);
 }
+
+function contextBuildTaskMarkdown(taskId: string): string {
+  return `# Tasks
+
+### ${taskId}: Context package task
+
+\`\`\`sdd-task
+id: ${taskId}
+status: pending
+wave: 1
+depends_on: []
+acceptance_refs:
+  - AC-1
+plan_refs:
+  - "§6 Context Build Packages"
+affected_files:
+  - packages/core/src/index.ts
+validation:
+  - npm test
+risk: []
+required_artifacts:
+  - artifacts/implement-${taskId}.md
+  - artifacts/validation-${taskId}.md
+\`\`\`
+
+#### Boundary
+
+Stay inside context package runtime.
+
+#### Acceptance
+
+- Context package is deterministic.
+`;
+}
+
+
+test('context budget contracts are JSON-renderable and non-authoritative', () => {
+  const budget = contextBudgetForProfile(parseContextProfile('brief'));
+  assert.equal(budget.contract, 'phase-6.10-context-budget-v1');
+  assert.equal(budget.profile, 'brief');
+  assert.ok(JSON.stringify(budget).includes('current_task'));
+
+  const summary = summarizeCommandOutput('line one\nERROR blocked by missing artifact\nPASS later line', {
+    path: '.sdd/runs/run-1/log.txt',
+    hash: 'abc123',
+    kind: 'command_output'
+  });
+  assert.equal(summary.contract, 'sdd-command-output-summary-v1');
+  assert.equal(summary.authoritative, false);
+  assert.equal(summary.usableForPass, false);
+  assert.equal(summary.status, 'BLOCKED');
+  assert.ok(summary.omittedLines >= 0);
+});
+
+test('evidence summary projection is hash-backed and not usable for PASS', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-evidence-summary-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'summary-run' });
+    await bindTestRunState(root, state.runId, 'master', 'T1');
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
+
+    const summary = await buildEvidenceSummaryProjection(root, { runId: state.runId, taskId: 'T1' });
+    const db = new DatabaseSync(getRuntimeStorePath(root), { readOnly: true });
+    try {
+      const projection = db.prepare('SELECT projection_type, scope_key, payload_json FROM projections WHERE projection_type = ?').get('evidence_summary') as { projection_type?: string; scope_key?: string; payload_json?: string } | undefined;
+      const payload = JSON.parse(projection?.payload_json ?? '{}') as { contract?: string; authoritative?: boolean; usableForPass?: boolean; taskId?: string };
+      assert.equal(summary.contract, 'sdd-evidence-summary-v1');
+      assert.equal(summary.authoritative, false);
+      assert.equal(summary.usableForPass, false);
+      assert.equal(summary.taskId, 'T1');
+      assert.ok(summary.sources.some((source) => source.path.endsWith('state.json') && source.hash.length === 64));
+      assert.ok(summary.sources.some((source) => source.path.endsWith('artifacts/validation-T1.md') && source.kind === 'artifact'));
+      assert.ok(summary.policyRefs.some((ref) => ref.includes('reject-derived-source-evidence')));
+      assert.equal(projection?.scope_key, 'summary-run:T1');
+      assert.equal(payload.contract, 'sdd-evidence-summary-v1');
+      assert.equal(payload.authoritative, false);
+      assert.equal(payload.usableForPass, false);
+    } finally {
+      db.close();
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('context build packages differ by mode and agent while remaining derived guidance', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-context-build-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', contextBuildTaskMarkdown('T1'));
+    const implementerPackage = await buildContextBuildPackage(root, { taskId: 'T1', branch: 'master', mode: 'do', agent: 'implementer' });
+    const validatorPackage = await buildContextBuildPackage(root, { taskId: 'T1', branch: 'master', mode: 'verify', agent: 'validator' });
+    const db = new DatabaseSync(getRuntimeStorePath(root), { readOnly: true });
+    try {
+      const projections = db.prepare('SELECT projection_type, scope_key, payload_json FROM projections WHERE projection_type = ? ORDER BY scope_key').all('context_build') as Array<{ projection_type?: string; scope_key?: string; payload_json?: string }>;
+      const payloads = projections.map((projection) => JSON.parse(projection.payload_json ?? '{}') as { contract?: string; authoritative?: boolean; usableForPass?: boolean });
+      assert.equal(implementerPackage.contract, 'sdd-context-package-v1');
+      assert.equal(implementerPackage.authoritative, false);
+      assert.equal(implementerPackage.usableForPass, false);
+      assert.ok(implementerPackage.mustRead.some((ref) => ref.path.endsWith('tasks.md')));
+      assert.ok(implementerPackage.mustRead.some((ref) => ref.path === 'packages/core/src/index.ts'));
+      assert.ok(validatorPackage.mustRead.some((ref) => ref.path === 'artifacts/validation-T1.md'));
+      assert.notDeepEqual(implementerPackage.mustRead.map((ref) => ref.path), validatorPackage.mustRead.map((ref) => ref.path));
+      assert.ok(validatorPackage.warnings.some((warning) => warning.includes('cannot satisfy PASS evidence')));
+      assert.equal(projections.length, 2);
+      assert.ok(projections.some((projection) => projection.scope_key === 'master:T1:do:implementer:brief'));
+      assert.ok(projections.some((projection) => projection.scope_key === 'master:T1:verify:validator:brief'));
+      assert.equal(payloads.every((payload) => payload.contract === 'sdd-context-package-v1' && payload.authoritative === false && payload.usableForPass === false), true);
+    } finally {
+      db.close();
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('derived context projections and log workers cannot claim authority', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-derived-context-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'derived-run' });
+    await bindTestRunState(root, state.runId, 'master', 'T1');
+    const derivedArtifact = `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}
+\
+\
+\
+\
+\`\`\`sdd-evidence
+contract: sdd-evidence-v1
+version: 1.0.0
+task: T1
+acceptance: AC-1
+status: PASS
+claim: derived summary tries to pass
+source_artifact: artifacts/evidence-summary-T1.json
+evidence_refs:
+  - artifact:artifacts/context-package-T1.json
+provenance_refs:
+  - artifact:artifacts/log-worker-summary-T1.json
+policy_refs:
+  - acceptance-policy-v1:require-source-evidence
+\`\`\`
+`;
+    await writeArtifact(root, state.runId, 'validation-T1.md', derivedArtifact);
+    const validation = await validateSddResultArtifact(root, state.runId, 'artifacts/validation-T1.md', { expectedTask: 'T1', expectedAgent: 'validator' });
+
+    assert.equal(validation.valid, false);
+    assert.ok(validation.issues.some((issue) => issue.message.includes('DERIVED_SOURCE_EVIDENCE')));
+
+    const workerValidation = validateLogWorkerSummary({
+      contract: 'sdd-log-worker-summary-v1',
+      authoritative: false,
+      usableForPass: false,
+      runId: state.runId,
+      taskId: 'T1',
+      workerId: 'log-worker-1',
+      sources: [],
+      highlights: ['captured log'],
+      forbiddenAuthority: ['doctor verdict']
+    });
+    assert.equal(workerValidation.valid, false);
+    assert.ok(workerValidation.issues.some((issue) => issue.field === 'forbiddenAuthority'));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 
 async function initializeGitRepository(root: string): Promise<void> {
   await execFileAsync('git', ['-C', root, 'init']);

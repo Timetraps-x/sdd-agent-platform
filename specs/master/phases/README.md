@@ -97,12 +97,14 @@
 | 6.6 | [phase-6.6-documentation-information-architecture.md](phase-6.6-documentation-information-architecture.md) | [status](PHASE_STATUS.md) | Documentation Information Architecture：进入 Phase 7 前冻结文档分类、迁移风险、runtime/generated/archive 边界和验证门禁，真实安装运行 SDD workflow 产出证据 |
 | 6.7 | [phase-6.7-token-budget-output-dedup-runtime.md](phase-6.7-token-budget-output-dedup-runtime.md) | [status](PHASE_STATUS.md) | Token Budget and Output Dedup Runtime：集中 CLI JSON/compact 输出路径，减少 runtime renderer/instruction/evidence 重复输出，不改变机器可读合同 |
 | 6.8 | [phase-6.8-project-document-language-runtime.md](phase-6.8-project-document-language-runtime.md) | [status](PHASE_STATUS.md) | Project Document Language Runtime：使用同一个项目级 `docs_language` 控制 SDD 文档 prose，runtime/CLI/JSON/contract 继续英文稳定 |
+| 6.9 | [phase-6.9-runtime-trust-fast-path-hardening.md](phase-6.9-runtime-trust-fast-path-hardening.md) | [status](PHASE_STATUS.md) | Runtime Trust Layer and Fast Path Hardening：CER/PROV/attestation/policy 证据可信模型、真实项目 PASS 证据质量、policy-backed coverage、per-delegation routing、invocation ledger、sync-back 单调状态、doctor trust checks、命令 profiling/derived fast path 和 team-mode cost routing |
+| 6.10 | [phase-6.10-context-budget-runtime-log-workers.md](phase-6.10-context-budget-runtime-log-workers.md) | [status](PHASE_STATUS.md) | Context Budget Runtime and Non-authoritative Log Workers：context profile、hash-backed evidence summary、context build、命令输出摘要、非权威 log worker/subagent 边界和输出预算回归 |
 
 ## Phase 7
 
 | Phase | Artifact | Status | 定位 |
 |---|---|---|---|
-| 7.0 | [phase-7.0-code-knowledge-graph-baseline.md](phase-7.0-code-knowledge-graph-baseline.md) | [status](PHASE_STATUS.md) | 原代码知识图谱方向顺延，消费 Phase 5 graph-ready metadata、Phase 5.10 document-chain evidence、Phase 6 agent/skill/team runtime metadata、Phase 6.1 resident worker runtime evidence、Phase 6.2 RC validation evidence、Phase 6.3 merged runtime registry evidence、Phase 6.4 partition/revision evidence、Phase 6.5 partition-aware run isolation evidence、Phase 6.6 documentation IA evidence、Phase 6.7 output dedup evidence 和 Phase 6.8 document language evidence |
+| 7.0 | [phase-7.0-code-knowledge-graph-baseline.md](phase-7.0-code-knowledge-graph-baseline.md) | [status](PHASE_STATUS.md) | 原代码知识图谱方向顺延，消费 Phase 5 graph-ready metadata、Phase 5.10 document-chain evidence、Phase 6 agent/skill/team runtime metadata、Phase 6.1 resident worker runtime evidence、Phase 6.2 RC validation evidence、Phase 6.3 merged runtime registry evidence、Phase 6.4 partition/revision evidence、Phase 6.5 partition-aware run isolation evidence、Phase 6.6 documentation IA evidence、Phase 6.7 output dedup evidence、Phase 6.8 document language evidence、Phase 6.9 policy-proven runtime trust / structured evidence graph / fast-path evidence 和 Phase 6.10 context budget / non-authoritative projection evidence |
 ## 引用规则
 
 - phase 的可执行边界以本目录下对应文件为准。

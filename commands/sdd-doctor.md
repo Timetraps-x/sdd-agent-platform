@@ -1,6 +1,6 @@
 ---
 name: sdd-doctor
-version: 0.2.0
+version: 0.3.0
 phase: 1.9
 contract: sdd-command-v1
 workflow: workflows/doctor.yml
