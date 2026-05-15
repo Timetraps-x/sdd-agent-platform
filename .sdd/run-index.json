@@ -1,6 +1,6 @@
 {
   "contract": "phase-3.13-local-run-index-v1",
-  "generatedAt": "2026-05-13T06:41:16.240Z",
+  "generatedAt": "2026-05-15T05:58:35.969Z",
   "runs": [
     {
       "runId": "20260513-001",
@@ -18,14 +18,14 @@
       "documentSnapshot": {
         "specHash": "4b2a2e15caad5c25705b9ee079fa8a2289fe9c5390553abadeb34650d2367394",
         "planHash": "5a1690ef14e317dc338ddd3b6cb61a7e8faa2d022e854f1a5b7aea06e34957cf",
-        "tasksHash": "24c8cbb0b7b203709e1e481c94b8e9bbd0b8d9fb9ddc3a78f81d738ad22cfd12",
+        "tasksHash": "033b080d7219abc1a48b39099e2f0bee6dbfbe3734e301c30724f8be0e88a055",
         "planBasedOnSpecHash": null,
         "tasksBasedOnPlanHash": null
       },
       "createdAt": "2026-05-13T05:58:06.117Z",
-      "updatedAt": "2026-05-13T05:59:58.505Z",
+      "updatedAt": "2026-05-13T10:06:36.942Z",
       "validationStatus": "pass",
-      "syncBackStatus": "proposed",
+      "syncBackStatus": "applied",
       "taskIds": [
         "PHASE6.10-8"
       ],
@@ -1764,7 +1764,7 @@
       "status": "PASS",
       "runId": "20260513-001",
       "runStatus": "completed",
-      "updatedAt": "2026-05-13T05:59:58.505Z"
+      "updatedAt": "2026-05-13T10:06:36.942Z"
     },
     {
       "taskId": "PHASE6.6-1",
@@ -5418,13 +5418,13 @@
       "runId": "20260513-001",
       "runStatus": "completed",
       "validationStatus": "pass",
-      "syncBackStatus": "proposed",
+      "syncBackStatus": "applied",
       "affectedFiles": [
         "specs/master/phase6.10-validation.md",
         "packages/core/src/index.test.ts",
         "packages/cli/src/main.ts"
       ],
-      "updatedAt": "2026-05-13T05:59:58.505Z"
+      "updatedAt": "2026-05-13T10:06:36.942Z"
     },
     {
       "partition": "master",
@@ -5583,36 +5583,6 @@
     }
   ],
   "activeByAffectedFile": [
-    {
-      "file": "packages/cli/src/main.ts",
-      "partition": "master",
-      "gitBranch": "master",
-      "taskId": "PHASE6.10-8",
-      "runId": "20260513-001",
-      "runStatus": "completed",
-      "syncBackStatus": "proposed",
-      "updatedAt": "2026-05-13T05:59:58.505Z"
-    },
-    {
-      "file": "packages/core/src/index.test.ts",
-      "partition": "master",
-      "gitBranch": "master",
-      "taskId": "PHASE6.10-8",
-      "runId": "20260513-001",
-      "runStatus": "completed",
-      "syncBackStatus": "proposed",
-      "updatedAt": "2026-05-13T05:59:58.505Z"
-    },
-    {
-      "file": "specs/master/phase6.10-validation.md",
-      "partition": "master",
-      "gitBranch": "master",
-      "taskId": "PHASE6.10-8",
-      "runId": "20260513-001",
-      "runStatus": "completed",
-      "syncBackStatus": "proposed",
-      "updatedAt": "2026-05-13T05:59:58.505Z"
-    },
     {
       "file": "specs/master/phase6.9-validation.md",
       "partition": "master",

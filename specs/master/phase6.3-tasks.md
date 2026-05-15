@@ -7,8 +7,8 @@ Boundary:
 - Update Phase 6/7 index and status chain.
 
 Acceptance:
-- Phase 6.3 appears between 6.2 and 7.0.
-- Phase 7.0 depends on Phase 6.3 registry evidence.
+- Phase 6.3 appears before Phase 7.0 core modularization and Phase 8.0 code graph.
+- Phase 8.0 depends on Phase 6.3 registry evidence and Phase 7.0 core boundary evidence.
 
 Validation:
 - Manual doc/index review.

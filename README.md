@@ -66,19 +66,16 @@ sdd status
 sdd doctor
 ```
 
-初始化后通常会出现：
+初始化后会稳定出现：
 
 ```text
 .sdd/project.yml
 .sdd/runs/
-specs/<branch>/spec.md
-specs/<branch>/plan.md
-specs/<branch>/tasks.md
 .claude/commands/...      # managed generated entries
 .claude/skills/sdd/...    # managed generated skill
 ```
 
-`sdd init` 是项目级接入；具体需求进入哪个 workflow partition，由当前 Git branch 或显式 `--branch` 决定。
+`sdd init` 是项目级接入，不是每个 branch 都要重复执行的 workflow 入口。具体需求进入哪个 workflow partition，由当前 Git branch 或显式 `--branch` 决定；`specs/<partition>/spec.md`、`plan.md`、`tasks.md` 通常由 `/sdd:spec`、`/sdd:plan`、`/sdd:tasks` 逐步建立，或在显式 `--scaffold-docs` 时生成 starter docs。
 
 ### 3. 在 Claude Code 里继续
 
@@ -144,11 +141,12 @@ sdd sync-back apply <run_id> --task <task_id> --branch master
 |---|---|---|
 | [用户指南](docs/user-guide.md) | 人类用户 | 安装、初始化、执行任务、verify、sync-back、doctor、常见问题 |
 | [AI README](docs/ai-readme.md) | Claude Code / AI 操作者 | status-first、artifact、task boundary、sync-back 策略 |
-| [文档信息架构](docs/documentation-information-architecture.md) | 维护者 | Markdown 文档分类、迁移风险、未来整理策略 |
+| [文档信息架构](docs/documentation-information-architecture.md) | 维护者 | Markdown 分类、迁移风险、当前入口地图 |
+| [命令信息架构](docs/architecture/command-information-architecture.md) | 平台维护者 | CLI 命令分层、入口职责和用户路径 |
 | [架构设计](docs/architecture/sdd-agent-platform-architecture.md) | 平台维护者 | 平台架构和核心设计 |
 | [Lifecycle Decision Model](docs/architecture/lifecycle-decision-model.md) | 平台维护者 | direct / compact / full / research 的决策模型 |
 | [Phase artifacts index](specs/master/phases/README.md) | 平台维护者 | 本仓库 SDD phase 归档入口 |
-| [Phase status](specs/master/phases/PHASE_STATUS.md) | 平台维护者 | phase 状态汇总 |
+| [Phase status](specs/master/phases/PHASE_STATUS.md) | 平台维护者 | 当前阶段状态；截至 Phase 7.0 core modularization completed，Phase 8.0 code graph planned |
 
 研究与历史分析材料保留在 `docs/research/`；runtime contract assets 保留在 `commands/`、`agents/`、`templates/`、`workflows/` 等目录，不作为普通 Markdown 文档搬迁。
 
@@ -177,13 +175,15 @@ npm run build
 npm pack --dry-run --json
 ```
 
-常用 CLI smoke：
+常用只读 CLI smoke：
 
 ```bash
-node ./dist/packages/cli/src/main.js status --branch master
-node ./dist/packages/cli/src/main.js doctor --latest-only
-node ./dist/packages/cli/src/main.js instructions overview --json
+npm run sdd -- status --branch master
+npm run sdd -- instructions overview --json
+npm run sdd -- tasks list --branch master
 ```
+
+健康检查按需要单独运行 `sdd doctor --latest-only`；如果本地 generated entries 或历史 run evidence 有已知漂移，应先判断是否属于当前验证范围。
 
 ## npm 发布维护速查
 
@@ -236,4 +236,4 @@ sdd doctor
 
 ## 当前状态
 
-当前主路径已经覆盖全局安装、project init/update、Claude Code entry projection、artifact UX、run index、doctor、governance、wave/background/worktree contracts、agent/skill/team runtime、resident worker、声明式 runtime registry、`/sdd:spec` 分区入口和多分支 run 隔离。代码知识图谱顺延到 Phase 7。
+截至当前主线文档，Phase 1~6 已完成到 Phase 6.10：全局安装、project init/update、Claude Code entry projection、artifact UX、run index、governance、wave/background/worktree contracts、agent/skill/team runtime、resident worker、声明式 runtime registry、`/sdd:spec` 分区入口、多分支 run 隔离、runtime trust、context budget 和 non-authoritative log worker boundary 已进入主路径。Phase 7.0 正在执行 Core Runtime Modularization：以 package-local build、explicit core subpath exports、domain façade 和 CLI/core import boundary 收敛 core，并继续拆分 doctor、router/routing、CLI registry 职责；原代码知识图谱顺延为 Phase 8.0 planned。

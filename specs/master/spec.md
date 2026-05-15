@@ -108,7 +108,7 @@ The current plan is feasible because it maps known context-management techniques
 
 - decision_artifact: `specs/master/phases/phase-6.10-context-budget-runtime-log-workers.md`
 - predecessor_artifact: `specs/master/phases/phase-6.9-runtime-trust-fast-path-hardening.md`
-- downstream_artifact: `specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md`
+- downstream_artifact: `specs/master/phases/phase-7.0-core-runtime-modularization.md`
 - recommended_profile: `standard`
 - risk_signals: [`summary_false_authority`, `hidden_blocker`, `context_underfetch`, `subagent_authority_leak`, `stale_projection`]
 - autonomy_ceiling: `full_sdd_with_checkpoint`

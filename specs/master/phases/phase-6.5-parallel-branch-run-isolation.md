@@ -2,7 +2,7 @@
 
 ## 1. 定位
 
-Phase 6.5 插入在 Phase 6.4 Spec Partition Entry 和 Phase 7.0 Code Knowledge Graph Baseline 之间。
+Phase 6.5 插入在 Phase 6.4 Spec Partition Entry 和后续 core modularization / code graph 阶段之间。
 
 本阶段目标是在 Phase 6.4 已经确定 workflow partition 的基础上，让多分支、多 task、多 run 并行时不会互相干扰：run 必须绑定 partition/gitBranch/taskId/document hashes，后续 verify/sync-back 必须通过 partition + taskId 或显式 runId 确定性找到正确 run，并在错误 Git 分支、stale run、affected file 冲突时 fail closed 或要求确认。
 
@@ -11,8 +11,8 @@ Phase 6.5 插入在 Phase 6.4 Spec Partition Entry 和 Phase 7.0 Code Knowledge 
 ## 2. 依赖
 
 - depends_on: Phase 6.4 Spec Partition Entry
-- blocks: Phase 7.0 Code Knowledge Graph Baseline
-- required_by: Phase 7.0 Code Knowledge Graph Baseline
+- blocks: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
+- required_by: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
 
 ## 3. 范围
 
@@ -32,7 +32,7 @@ Phase 6.5 插入在 Phase 6.4 Spec Partition Entry 和 Phase 7.0 Code Knowledge 
 - 不让 run index 成为不可重建的权威数据库。
 - 不自动 rebase active run 到新的 spec/plan/tasks revision。
 - 不允许 stale run 静默 verify/pass/sync-back apply。
-- 不实现 Phase 7.0 code graph。
+- 不实现 Phase 8.0 code graph。
 
 ## 5. 交付物
 
@@ -43,7 +43,7 @@ Phase 6.5 插入在 Phase 6.4 Spec Partition Entry 和 Phase 7.0 Code Knowledge 
 - `specs/master/phase6.5-validation.md`
 - 更新后的 `specs/master/phases/README.md`
 - 更新后的 `specs/master/phases/PHASE_STATUS.md`
-- 更新后的 `specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md`
+- 更新后的 `specs/master/phases/phase-8.0-code-knowledge-graph-baseline.md`
 - `packages/core/src/index.ts` 中的 run state binding、run index、run resolver、stale/wrong-branch/conflict gate 改动
 - `packages/cli/src/main.ts` 中 verify/sync-back 默认 run resolution 和 status 展示改动
 - `packages/core/src/index.test.ts` 中的 Phase 6.5 regression tests
@@ -63,6 +63,6 @@ Phase 6.5 插入在 Phase 6.4 Spec Partition Entry 和 Phase 7.0 Code Knowledge 
 
 ## 7. 可被下游引用的产物
 
-- Phase 7.0 可消费 partition-aware run index、run snapshot hashes、stale/conflict/wrong-branch evidence 作为 graph input。
+- Phase 8.0 可消费 partition-aware run index、run snapshot hashes、stale/conflict/wrong-branch evidence 作为 graph input。
 - 后续 worktree/worker 并行执行可复用 partition+task run resolver 和 affected file conflict gate。
 - 后续 SDD UX 文档可声明“用户无需记 runId；CLI 通过 partition+task 找 latest eligible run”。

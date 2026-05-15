@@ -7,6 +7,26 @@
     "node": ">=22.5.0"
   },
   "exports": {
-    ".": "./src/index.ts"
+    "./ai-tools": { "types": "./dist/ai-tools.d.ts", "import": "./dist/ai-tools.js" },
+    "./instructions": { "types": "./dist/instructions.d.ts", "import": "./dist/instructions.js" },
+    "./runtime-paths": { "types": "./dist/runtime-paths.d.ts", "import": "./dist/runtime-paths.js" },
+    "./runtime-analysis": { "types": "./dist/runtime-analysis.d.ts", "import": "./dist/runtime-analysis.js" },
+    "./status": { "types": "./dist/status.d.ts", "import": "./dist/status.js" },
+    "./run-state": { "types": "./dist/run-state.d.ts", "import": "./dist/run-state.js" },
+    "./sdd-docs": { "types": "./dist/sdd-docs.d.ts", "import": "./dist/sdd-docs.js" },
+    "./context": { "types": "./dist/context.d.ts", "import": "./dist/context.js" },
+    "./artifacts": { "types": "./dist/artifacts.d.ts", "import": "./dist/artifacts.js" },
+    "./governance": { "types": "./dist/governance.d.ts", "import": "./dist/governance.js" },
+    "./verification": { "types": "./dist/verification.d.ts", "import": "./dist/verification.js" },
+    "./sync-back": { "types": "./dist/sync-back.d.ts", "import": "./dist/sync-back.js" },
+    "./lifecycle": { "types": "./dist/lifecycle.d.ts", "import": "./dist/lifecycle.js" },
+    "./execution": { "types": "./dist/execution.d.ts", "import": "./dist/execution.js" },
+    "./planning": { "types": "./dist/planning.d.ts", "import": "./dist/planning.js" },
+    "./worktree": { "types": "./dist/worktree.d.ts", "import": "./dist/worktree.js" },
+    "./delegation": { "types": "./dist/delegation.d.ts", "import": "./dist/delegation.js" },
+    "./registries": { "types": "./dist/registries.d.ts", "import": "./dist/registries.js" },
+    "./router": { "types": "./dist/router.d.ts", "import": "./dist/router.js" },
+    "./doctor": { "types": "./dist/doctor.d.ts", "import": "./dist/doctor.js" },
+    "./test-support": { "types": "./dist/test-support.d.ts", "import": "./dist/test-support.js" }
   }
 }

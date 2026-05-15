@@ -52,8 +52,8 @@ acceptance_refs:
 plan_refs:
   - "§3 Context Budget Contracts"
 affected_files:
-  - packages/core/src/index.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/build-package.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
   - npm run typecheck
   - npm test -- --test-name-pattern "context budget"
@@ -72,8 +72,8 @@ required_artifacts:
   - artifacts/review-PHASE6.10-1.md
   - artifacts/validation-PHASE6.10-1.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
-  - inspect:packages/core/src/index.test.ts
+  - inspect:packages/core/src/context/build-package.ts
+  - inspect:packages/core/src/context/context-build.test.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -107,9 +107,9 @@ acceptance_refs:
 plan_refs:
   - "§4 Output Projection Profiles"
 affected_files:
-  - packages/core/src/index.ts
+  - packages/core/src/context/command-summary.ts
   - packages/cli/src/main.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
   - npm run typecheck
   - npm test -- --test-name-pattern "context profile|brief|forensic"
@@ -130,7 +130,7 @@ required_artifacts:
   - artifacts/validation-PHASE6.10-2.md
 verification_availability:
   - inspect:packages/cli/src/main.ts
-  - inspect:packages/core/src/index.ts
+  - inspect:packages/core/src/context/command-summary.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -164,9 +164,9 @@ acceptance_refs:
 plan_refs:
   - "§5 Evidence Summary Projection"
 affected_files:
-  - packages/core/src/index.ts
+  - packages/core/src/context/evidence-summary.ts
   - packages/cli/src/main.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
   - npm run typecheck
   - npm test -- --test-name-pattern "evidence summary|derived summary"
@@ -186,8 +186,8 @@ required_artifacts:
   - artifacts/review-PHASE6.10-3.md
   - artifacts/validation-PHASE6.10-3.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
-  - inspect:packages/core/src/index.test.ts
+  - inspect:packages/core/src/context/evidence-summary.ts
+  - inspect:packages/core/src/context/context-build.test.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -220,9 +220,9 @@ acceptance_refs:
 plan_refs:
   - "§6 Context Build Packages"
 affected_files:
-  - packages/core/src/index.ts
+  - packages/core/src/context/build-package.ts
   - packages/cli/src/main.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
   - npm run typecheck
   - npm test -- --test-name-pattern "context build"
@@ -242,7 +242,7 @@ required_artifacts:
   - artifacts/review-PHASE6.10-4.md
   - artifacts/validation-PHASE6.10-4.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
+  - inspect:packages/core/src/context/build-package.ts
   - inspect:packages/cli/src/main.ts
 autonomy: direct_execution_allowed
 ```
@@ -275,9 +275,9 @@ acceptance_refs:
 plan_refs:
   - "§6 Context Build Packages"
 affected_files:
-  - packages/core/src/index.ts
+  - packages/core/src/context/build-package.ts
   - packages/cli/src/main.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
   - npm run typecheck
   - npm test -- --test-name-pattern "agent context package"
@@ -298,7 +298,7 @@ required_artifacts:
   - artifacts/review-PHASE6.10-5.md
   - artifacts/validation-PHASE6.10-5.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
+  - inspect:packages/core/src/context/build-package.ts
   - inspect:packages/cli/src/main.ts
 autonomy: direct_execution_allowed
 ```
@@ -332,8 +332,8 @@ acceptance_refs:
 plan_refs:
   - "§7 Log Worker Boundary and Trust Guard"
 affected_files:
-  - packages/core/src/index.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/log-worker.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
   - npm run typecheck
   - npm test -- --test-name-pattern "log worker|non-authoritative"
@@ -352,8 +352,8 @@ required_artifacts:
   - artifacts/review-PHASE6.10-6.md
   - artifacts/validation-PHASE6.10-6.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
-  - inspect:packages/core/src/index.test.ts
+  - inspect:packages/core/src/context/log-worker.ts
+  - inspect:packages/core/src/context/context-build.test.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -386,7 +386,7 @@ acceptance_refs:
 plan_refs:
   - "§8 Validation and Installed CLI Proof"
 affected_files:
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
   - packages/cli/src/main.ts
 validation:
   - npm run typecheck
@@ -406,7 +406,7 @@ required_artifacts:
   - artifacts/review-PHASE6.10-7.md
   - artifacts/validation-PHASE6.10-7.md
 verification_availability:
-  - inspect:packages/core/src/index.test.ts
+  - inspect:packages/core/src/context/context-build.test.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -439,7 +439,7 @@ plan_refs:
   - "§8 Validation and Installed CLI Proof"
 affected_files:
   - specs/master/phase6.10-validation.md
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
   - packages/cli/src/main.ts
 validation:
   - npm run typecheck

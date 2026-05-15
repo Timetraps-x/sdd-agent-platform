@@ -2,7 +2,7 @@
 
 ## 1. 定位
 
-Phase 6.6 插入在 Phase 6.5 Parallel Branch Run Isolation 和 Phase 7.0 Code Knowledge Graph Baseline 之间。
+Phase 6.6 插入在 Phase 6.5 Parallel Branch Run Isolation 和后续 core modularization / code graph 阶段之间。
 
 本阶段目标是在进入代码知识图谱前，先把项目文档的信息架构边界定清楚：区分用户文档、AI/tool 入口说明、架构文档、研究历史、runtime contract assets、SDD execution archive 和 generated AI entries，避免后续重构把可执行 contract、生成文件或历史证据当成普通 Markdown 随意移动。
 
@@ -11,8 +11,8 @@ Phase 6.6 插入在 Phase 6.5 Parallel Branch Run Isolation 和 Phase 7.0 Code K
 ## 2. 依赖
 
 - depends_on: Phase 6.5 Parallel Branch Run Isolation
-- blocks: Phase 7.0 Code Knowledge Graph Baseline
-- required_by: Phase 7.0 Code Knowledge Graph Baseline
+- blocks: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
+- required_by: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
 
 ## 3. 范围
 
@@ -31,7 +31,7 @@ Phase 6.6 插入在 Phase 6.5 Parallel Branch Run Isolation 和 Phase 7.0 Code K
 - 不发布 npm 包。
 - 不提交或推送 Git 变更。
 - 不导入或执行第三方 prompt pack。
-- 不实现 Phase 7.0 code graph。
+- 不实现 Phase 8.0 code graph。
 
 ## 5. 交付物
 
@@ -43,12 +43,12 @@ Phase 6.6 插入在 Phase 6.5 Parallel Branch Run Isolation 和 Phase 7.0 Code K
 - `docs/documentation-information-architecture.md`
 - 更新后的 `specs/master/phases/README.md`
 - 更新后的 `specs/master/phases/PHASE_STATUS.md`
-- 更新后的 `specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md`
+- 更新后的 `specs/master/phases/phase-8.0-code-knowledge-graph-baseline.md`
 - 真实安装 / workflow / sync-back / 卸载证据
 
 ## 6. 验收标准
 
-- Phase 6.6 出现在 phase index/status 中，并明确阻塞 Phase 7.0。
+- Phase 6.6 出现在 phase index/status 中，并明确阻塞 Phase 7.0 Core Runtime Modularization 和 Phase 8.0 Code Knowledge Graph Baseline。
 - `docs/documentation-information-architecture.md` 定义目标分类、推荐位置、迁移风险等级、落地策略和验证门禁。
 - 文档 IA 明确区分普通 Markdown 文档、runtime contract assets、SDD execution archive 和 generated AI entries。
 - 高风险迁移必须要求 reference grep、代码/测试/workflow 同步更新和完整验证。
@@ -57,6 +57,6 @@ Phase 6.6 插入在 Phase 6.5 Parallel Branch Run Isolation 和 Phase 7.0 Code K
 
 ## 7. 可被下游引用的产物
 
-- Phase 7.0 可消费文档 IA 作为 graph input 的文档分类、archive 边界和 generated/runtime asset 边界。
+- Phase 8.0 可消费文档 IA 作为 graph input 的文档分类、archive 边界和 generated/runtime asset 边界。
 - 后续真实文档迁移 phase 可复用迁移风险分类和验证门禁。
 - 用户指南与 README 重构可复用目标分类，避免把 Claude Code 执行机制混入 human-facing guide。

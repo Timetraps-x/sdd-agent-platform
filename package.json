@@ -20,10 +20,13 @@
     "cli"
   ],
   "bin": {
-    "sdd": "dist/packages/cli/src/main.js"
+    "sdd": "packages/cli/dist/main.js"
   },
   "files": [
-    "dist",
+    "packages/cli/dist",
+    "packages/cli/package.json",
+    "packages/core/dist",
+    "packages/core/package.json",
     "README.md",
     "package.json",
     "tsconfig.build.json"
@@ -35,11 +38,11 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -b tsconfig.build.json",
     "prepare": "npm run build",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test --import tsx \"packages/**/*.test.ts\"",
-    "sdd": "tsx packages/cli/src/main.ts"
+    "typecheck": "npm run build && tsc --noEmit",
+    "test": "npm run build && node --test --import tsx \"packages/**/*.test.ts\"",
+    "sdd": "npm run build --silent && node packages/cli/dist/main.js"
   },
   "workspaces": [
     "packages/*"

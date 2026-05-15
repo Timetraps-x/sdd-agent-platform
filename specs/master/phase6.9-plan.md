@@ -50,7 +50,7 @@ Goals:
 
 Non-goals:
 
-- Do not implement Phase 7 graph storage or graph queries.
+- Do not implement Phase 8 graph storage or graph queries.
 - Do not add a daemon, remote worker fleet, external telemetry dependency, or graph database.
 - Do not hide workflow commands or merge stages to make UX look shorter.
 - Do not weaken validation gates, sync-back approval, or branch partition boundaries.
@@ -261,7 +261,7 @@ Design:
   - policy decision entries explain derived trust state, not source evidence.
 - `materialsUsed` rendering, evidence attestation materials, and doctor usage claims must be ledger/provenance-backed.
 
-Phase 6.9 should stay local/file-backed. Exporting to OpenTelemetry or a graph is Phase 7+ work.
+Phase 6.9 should stay local/file-backed. Exporting to OpenTelemetry or a graph is Phase 8+ work after Phase 7 core modularization.
 
 ## 8. Sync-back State Machine and Run Semantics
 

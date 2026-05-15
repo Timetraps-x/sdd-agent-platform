@@ -4,11 +4,11 @@
 
 Boundary:
 - Create Phase 6.5 phase artifact and execution docs.
-- Insert Phase 6.5 before Phase 7.0.
+- Insert Phase 6.5 before Phase 7.0 core modularization and Phase 8.0 code graph.
 
 Acceptance:
 - Phase 6.5 appears after Phase 6.4 in phase index/status.
-- Phase 7.0 depends on Phase 6.5 evidence.
+- Phase 8.0 depends on Phase 6.5 evidence and Phase 7.0 core boundary evidence.
 
 Validation:
 - Manual doc/index review.

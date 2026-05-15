@@ -9,8 +9,8 @@ Build on Phase 6.4 partition resolution. Treat `.sdd/runs/<runId>/state.json` as
 ### 1. Phase docs and chain
 
 - Add Phase 6.5 phase artifact and execution docs.
-- Insert Phase 6.5 before Phase 7.0.
-- Update Phase 7.0 handoff to consume partition-aware run evidence.
+- Insert Phase 6.5 before Phase 7.0 core modularization and Phase 8.0 code graph.
+- Update Phase 8.0 handoff to consume partition-aware run evidence after Phase 7.0 core modularization.
 
 ### 2. Run state snapshot binding
 

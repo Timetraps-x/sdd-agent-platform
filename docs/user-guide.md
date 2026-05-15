@@ -20,17 +20,16 @@ sdd doctor
 
 你不需要先记完整生命周期。`/sdd` 会读取当前状态，并告诉你下一步是补 spec、写 plan、拆 tasks、执行 task、验证，还是处理 sync-back。
 
-成功接入后，项目里通常会有：
+成功接入后，项目里会稳定出现：
 
 ```text
 .sdd/project.yml
 .sdd/runs/
-specs/<branch>/spec.md
-specs/<branch>/plan.md
-specs/<branch>/tasks.md
 .claude/commands/...      # managed generated entries
 .claude/skills/sdd/...    # managed generated skill
 ```
+
+`specs/<partition>/spec.md`、`plan.md`、`tasks.md` 是 workflow 文档，通常在 `/sdd:spec`、`/sdd:plan`、`/sdd:tasks` 阶段逐步建立；只有显式 `--scaffold-docs` 或旧式 `--branch` starter-docs 路径才会在 init 时生成。
 
 ## 2. 安装、更新与卸载
 
@@ -76,9 +75,15 @@ sdd status
 sdd doctor
 ```
 
-`sdd init` 是项目级接入。它负责 `.sdd/project.yml`、可选 starter docs、Claude Code managed entries。它不是每个 branch 都要重复执行的 workflow 入口。
+`sdd init` 是项目级接入。它负责 `.sdd/project.yml`、`.sdd/runs/`、Claude Code managed entries。它不是每个 branch 都要重复执行的 workflow 入口，也不默认替每个 partition 写完整 `spec.md / plan.md / tasks.md`。
 
-如果不希望生成 starter docs：
+如果需要初始化时生成 starter docs：
+
+```bash
+sdd init --ai claude-code --scaffold-docs
+```
+
+如果要显式跳过 starter docs，可以写明：
 
 ```bash
 sdd init --ai claude-code --no-scaffold-docs
@@ -535,7 +540,7 @@ security-key/browser authentication 的快速处理方式：
 # install / update
 sdd --version
 sdd --help
-sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
+sdd init [--force] [--ai auto|claude-code|none] [--scaffold-docs] [--no-scaffold-docs]
 sdd update [--check] [--ai auto|claude-code]
 
 # status / doctor

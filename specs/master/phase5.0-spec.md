@@ -25,7 +25,7 @@ Phase 5.0 的职责收敛为：完成路线重构和 contract freeze，把 Phase
 - FR-3: Phase 5.0 必须冻结十个 harness contracts 的名称和责任边界：`ContextResolverContract`、`LifecycleRiskGateContract`、`OutputQualityContract`、`WorkflowGateContract`、`AgentRegistryContract`、`TaskGraphContract`、`TaskRunEvidenceContract`、`QueryStatusContract`、`SkillAgentEvalContract`、`HarnessLearningContract`。
 - FR-4: Phase 5.0 必须定义 autonomy model：`report_only`、`assisted`、`agent_safe`、`human_required`。
 - FR-5: Phase 5.0 必须把后续实现拆分为 Phase 5.1~5.6，而不是继续把 runtime work 塞进 5.0。
-- FR-6: Phase 5.0 必须确认 Phase 6 拥有 Agent / Skill Runtime Harness，Phase 7 拥有 Code Knowledge Graph，Phase 5 只提供 graph-ready harness metadata。
+- FR-6: Phase 5.0 必须确认 Phase 6 拥有 Agent / Skill Runtime Harness，Phase 7 拥有 Core Runtime Modularization，Phase 8 拥有 Code Knowledge Graph，Phase 5 只提供 graph-ready harness metadata。
 
 ### Non-functional Requirements
 
@@ -37,13 +37,13 @@ Phase 5.0 的职责收敛为：完成路线重构和 contract freeze，把 Phase
 
 | Phase | Title | Boundary |
 |---|---|---|
-| 5.0 | Harness Reframe and Contract Freeze | 路线重构、contract freeze、no-OS guardrail、Phase 7 handoff 边界 |
+| 5.0 | Harness Reframe and Contract Freeze | 路线重构、contract freeze、no-OS guardrail、graph handoff 边界 |
 | 5.1 | Context / Risk / Output Harness | branch/context resolver、risk extraction、autonomy decision、输出结构 |
 | 5.2 | Workflow / Agent Registry Harness | workflow inspect/validate、agent registry、slash command agent evidence |
 | 5.3 | Task Graph / Run Evidence Harness | task graph、agent_fit、verification availability、run evidence、verifier |
 | 5.4 | Managed Assets / Query Status Harness | managed manifest、doctor drift、status/doctor/run inspect/debug 边界 |
 | 5.5 | Eval / Learning / Context Pack Harness | ERP trial eval、HarnessLearning、Project Context Pack |
-| 5.6 | Phase 7 Graph Handoff Hardening | graph-ready metadata schema 和 Phase 7 输入稳定化 |
+| 5.6 | Phase 7 Graph Handoff Hardening | graph-ready metadata schema 和 Phase 8 输入稳定化 |
 
 ## Acceptance Criteria
 
@@ -52,7 +52,7 @@ Phase 5.0 的职责收敛为：完成路线重构和 contract freeze，把 Phase
 - AC-3: 十个 harness contracts 被定义，并映射到 5.1~5.6。
 - AC-4: Phase 5.0 不建设 OS/scheduler/plugin runtime/OpenCode clone，不替代 Claude Code 权限模型。
 - AC-5: Phase 5.1~5.6 都有独立 artifact/spec/plan/tasks/validation 入口。
-- AC-6: Phase 6 拥有 Agent / Skill Runtime Harness，Phase 7 拥有 Code Knowledge Graph。
+- AC-6: Phase 6 拥有 Agent / Skill Runtime Harness，Phase 7 拥有 Core Runtime Modularization，Phase 8 拥有 Code Knowledge Graph。
 
 ## Out of Scope
 

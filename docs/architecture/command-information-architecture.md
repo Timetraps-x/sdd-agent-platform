@@ -9,7 +9,7 @@
 本文评估两类入口：
 
 1. Shell CLI：例如 `sdd init`、`sdd status`、`sdd do task`。
-2. AI 工具入口 / slash command：当前 Claude Code 投影为 `.claude/commands/sdd.md` 根入口和 `.claude/commands/sdd/*.md` 子入口；常用形态是 `/sdd`、`/sdd:spec`、`/sdd:plan`、`/sdd:tasks`、`/sdd:do`、`/sdd:verify`。
+2. AI 工具入口 / slash command：当前 Claude Code 投影为 `.claude/commands/sdd.md` 根入口和 `.claude/commands/sdd/*.md` 子入口；常用形态是 `/sdd`、`/sdd:spec`、`/sdd:plan`、`/sdd:tasks`、`/sdd:do`、`/sdd:verify`、`/sdd:sync-back`、`/sdd:ship`。
 
 ## 结论
 
@@ -254,7 +254,7 @@ workflow = what should I do next for this project/task
 ```text
 root artifact id: sdd-root
 root projected path: .claude/commands/sdd.md
-workflow projected paths: .claude/commands/sdd/spec.md, plan.md, tasks.md, do.md, verify.md
+workflow projected paths: .claude/commands/sdd/spec.md, plan.md, tasks.md, do.md, verify.md, sync-back.md, ship.md
 ```
 
 在 Claude Code 中，常用入口是：
@@ -266,6 +266,8 @@ workflow projected paths: .claude/commands/sdd/spec.md, plan.md, tasks.md, do.md
 /sdd:tasks
 /sdd:do
 /sdd:verify
+/sdd:sync-back
+/sdd:ship
 ```
 
 ### `sdd init`
@@ -275,7 +277,7 @@ workflow projected paths: .claude/commands/sdd/spec.md, plan.md, tasks.md, do.md
 入口行为：
 
 ```text
-sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
+sdd init [--force] [--ai auto|claude-code|none] [--scaffold-docs] [--no-scaffold-docs]
 ```
 
 实际 side effects：
@@ -291,7 +293,7 @@ sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
 
 - `sdd init` 默认是项目级接入；不同 Git branch 不需要重复 init。
 - starter semantic docs 是 scaffold 行为，不是 workflow branch 入口；常规分区文档由 `/sdd:spec` 创建/细化。
-- 传 `--no-scaffold-docs` 时跳过 starter docs。
+- 传 `--scaffold-docs` 时创建 starter docs；传 `--no-scaffold-docs` 时显式跳过 starter docs。
 - 已存在的 semantic docs 默认保留。
 - 只有显式 `--force` 才覆盖已有 semantic docs。
 - `--ai claude-code` 会显式投影 Claude Code entries。
@@ -310,7 +312,7 @@ sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
 
 - 不传 `--branch` 时，CLI/core 从当前 Git branch 解析 partition。
 - 传 `--branch <branch>` 时，只解析/创建指定 partition，不要求重复 init。
-- 后续 `/sdd:plan`、`/sdd:tasks`、`/sdd:do`、`/sdd:verify` 继续使用已解析的 partition/task 语义。
+- 后续 `/sdd:plan`、`/sdd:tasks`、`/sdd:do`、`/sdd:verify`、`/sdd:sync-back` 继续使用已解析的 partition/task 语义；`/sdd:ship` 使用目标 branch/partition 做上线前检查，但不执行 publish/push/tag。
 
 这些 AI 入口不应该：
 
@@ -322,9 +324,11 @@ sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
 ### 两者关系
 
 ```text
-/sdd       = AI 操作说明 / 根入口投影 / thin wrapper
-/sdd:spec  = workflow partition 入口投影
-sdd init   = source of truth / 项目级初始化执行器 / state writer
+/sdd            = AI 操作说明 / 根入口投影 / thin wrapper
+/sdd:spec       = workflow partition 入口投影
+/sdd:sync-back  = verified task completion 写回入口投影
+/sdd:ship       = 上线前 readiness checklist 入口投影
+sdd init        = source of truth / 项目级初始化执行器 / state writer
 ```
 
 也就是说：
@@ -336,6 +340,7 @@ sdd init   = source of truth / 项目级初始化执行器 / state writer
   -> CLI/core 返回当前 partition、workflow_status、recommended command
   -> 若需要进入新 workflow，AI 运行 /sdd:spec 对应的 spec 指令
   -> 后续 plan/tasks/do/verify/sync-back 继续由 CLI/core 状态驱动
+  -> 若用户要求上线，AI 运行 /sdd:ship，按 checklist.md 做只读/本地验证 preflight
 ```
 
 ### 为什么需要两类入口
@@ -362,6 +367,8 @@ AI slash command 是入口投影。
 | 人类在终端接入项目 | `sdd init --ai claude-code` |
 | Claude Code 里让 AI 判断下一步 | `/sdd` |
 | 进入或细化某个 workflow partition | `/sdd:spec` |
+| verify PASS 后写回任务完成态 | `/sdd:sync-back` |
+| 上线前 readiness 检查 | `/sdd:ship` + `checklist.md` |
 | CI 或脚本初始化 | `sdd init --ai none` 或指定 AI mode |
 | 修复 generated entry drift | `sdd update` |
 | 重新覆盖 starter docs | `sdd init --force`，且必须显式确认风险 |
@@ -433,7 +440,7 @@ sdd worktree *           -> sdd debug worktree *
 ## 推荐默认 help 形态
 
 ```text
-sdd Phase platform CLI
+sdd workflow platform CLI
 
 Default workflow commands:
   sdd init [options]

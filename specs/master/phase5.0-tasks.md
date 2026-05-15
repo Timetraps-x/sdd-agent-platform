@@ -42,7 +42,7 @@ risk:
 - Phase 5 当前标题为 SDD Harness Engineering。
 - `Source Architecture Localization` 不再作为当前阶段定位。
 - Phase 5 明确依托 Claude Code 等 AI tool harness，不建设 OS/scheduler/plugin runtime/OpenCode clone。
-- Phase 6.0 Agent / Skill Runtime Harness 是新 runtime owner；Phase 7.0 Code Knowledge Graph Baseline 是代码知识图谱 owner。
+- Phase 6.0 Agent / Skill Runtime Harness 是 runtime owner；Phase 7.0 Core Runtime Modularization 是 core boundary owner；Phase 8.0 Code Knowledge Graph Baseline 是代码知识图谱 owner。
 - Phase status 不再声称 Phase 5 runtime implementation 已 completed。
 
 ### P5.0-T2: Split oversized Phase 5 runtime work into 5.1-5.6
@@ -83,7 +83,7 @@ risk:
 - Phase 5.3 owns task graph/run evidence harness。
 - Phase 5.4 owns managed assets/query status harness。
 - Phase 5.5 owns eval/learning/context pack harness。
-- Phase 5.6 owns Phase 7 graph handoff hardening。
+- Phase 5.6 owns graph handoff hardening for the later Phase 8 code graph.
 
 ## Dependency Notes
 

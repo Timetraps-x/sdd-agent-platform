@@ -11,7 +11,7 @@
 | Check | Expected | Status | Evidence |
 |---|---|---|---|
 | Phase docs | Phase 6 artifact/spec/plan/tasks/validation exist and are restructured around agent/skill/team runtime | passed | `specs/master/phases/phase-6.0-agent-skill-runtime-harness.md`; `specs/master/phase6.0-{spec,plan,tasks,validation}.md` define the runtime harness scope. |
-| Phase renumbering | Original code graph Phase 6 is now Phase 7 | passed | `specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md`; phase indexes now place code graph after Phase 6 runtime metadata. |
+| Phase renumbering | Original code graph Phase 6 is now Phase 8 after the inserted Phase 7 core modularization stage | passed | `specs/master/phases/phase-8.0-code-knowledge-graph-baseline.md`; phase indexes now place core modularization before code graph. |
 | Reuse-first policy | Docs forbid rebuilding host/plugin/MCP/agent wheels without gap reason | passed | `artifacts/phase6.0-skill-reuse-catalog.md` records reuse/adapt/borrow/avoid decisions, source attribution, and build exception rules. |
 | External material policy | External agent/skill repos are treated as material/mechanism sources, not SDD profile replacements | passed | Phase docs and `sdd external-packs inspect agency_agents_material` keep external material quarantined until source/license, scan, and mapping checks pass. |
 | Anti big-prompt policy | Docs forbid bulk prompt copying and require structured metadata + short host projection | passed | Phase docs/catalog forbid prompt-pack bulk copy; external material is represented as capability metadata, risk ceiling, tool boundary, evidence schema, and quarantine checks. |

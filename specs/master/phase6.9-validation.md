@@ -29,7 +29,7 @@ In scope:
 
 Out of scope:
 
-- Phase 7 code knowledge graph implementation;
+- Phase 8 code knowledge graph implementation;
 - graph database, embedding store, daemon, remote worker fleet, or external telemetry;
 - command hiding or forced command merging;
 - runtime localization;
@@ -107,4 +107,4 @@ sdd doctor --latest-only --branch master
 
 ## 5. Completion Notes
 
-Phase 6.9 is the runtime trust layer and fast path hardening phase before Phase 7.0. Completion evidence must be filled only after implementation tasks, installed CLI regression, weak-evidence fixtures, weak PASS sync-back prevention, and EMP-style trust fixtures pass.
+Phase 6.9 is the runtime trust layer and fast path hardening phase before Phase 7.0 core modularization and Phase 8.0 code graph. Completion evidence must be filled only after implementation tasks, installed CLI regression, weak-evidence fixtures, weak PASS sync-back prevention, and EMP-style trust fixtures pass.

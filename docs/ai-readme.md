@@ -55,8 +55,8 @@ spec -> plan -> tasks(multiple waves) -> graph inspect -> wave inspect -> task-b
 应做：
 
 1. 运行 `sdd status`。
-2. 报告 documents、task counts、latest run、gaps、recommended next command。
-3. 如果指向 task，运行 `sdd tasks inspect <task_id>`。
+2. 默认只向用户报告 workflow status、blocker/current task 和 recommended next command；只有用户要求细节时再展开 documents、task counts、latest run 或 gaps。
+3. 如果指向 task，运行 `sdd tasks inspect <task_id>`，并只摘录 Boundary、Acceptance、validation 和 blocking gaps。
 4. 如果指向 verify 或 sync-back，使用 status/recommended command 里的 branch/task。
 5. 如果指向 sync-back，运行 `sdd sync-back inspect --task <task_id>`，必要时加 `--branch <branch>` 或 run id，并报告 `apply_policy`。
 

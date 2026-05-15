@@ -10,7 +10,7 @@ Implement one coherent runtime increment rather than multiple partial phases. Th
 
 - Add Phase 6.3 phase artifact and execution docs.
 - Update phase index/status.
-- Update Phase 7.0 to consume Phase 6.3 registry evidence.
+- Update Phase 8.0 to consume Phase 6.3 registry evidence after Phase 7.0 core modularization.
 
 ### 2. Project config contract
 

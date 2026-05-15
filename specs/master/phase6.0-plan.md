@@ -200,6 +200,6 @@ sdd do task <task_id>
 9. Evidence ingestion bridge for agent/team/tool/security/browser outputs.
 10. Doctor/status visibility and smoke cases.
 
-## 10. Phase 7 Handoff
+## 10. Phase 8 Handoff
 
-Phase 7 code graph will consume Phase 6 records as graph inputs: AgentProfileContract, SkillCapabilityContract, CapabilitySourceCatalog, ExternalAgentPackImportPolicy, ToolPermissionSpec, HostAdapterContract, AgentRouterDecision, ModelPolicyContract, TeamModePolicy, DelegationWavePolicy, AgentExecutionRecord, TeamSessionRecord, TeamMessageRecord, ExecutionTrajectory, SkillReuseDecision and EvidenceIngestionRecord.
+Phase 8 code graph will consume Phase 6 records as graph inputs after Phase 7 core modularization stabilizes the core module boundary: AgentProfileContract, SkillCapabilityContract, CapabilitySourceCatalog, ExternalAgentPackImportPolicy, ToolPermissionSpec, HostAdapterContract, AgentRouterDecision, ModelPolicyContract, TeamModePolicy, DelegationWavePolicy, AgentExecutionRecord, TeamSessionRecord, TeamMessageRecord, ExecutionTrajectory, SkillReuseDecision and EvidenceIngestionRecord.

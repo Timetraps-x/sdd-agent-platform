@@ -12,7 +12,7 @@ Phase 1.0~6.1 已经形成完整闭环，但核心实现和测试集中在少数
 - `packages/cli/src/main.ts`
 - `packages/core/src/index.test.ts`
 
-这会提高后续 Phase 7.0 code graph 的接入风险，也会让 CLI UX、doctor/verify/sync-back、agent/runtime evidence 的修改更容易互相影响。
+这会提高后续 Phase 7.0 core modularization 和 Phase 8.0 code graph 的接入风险，也会让 CLI UX、doctor/verify/sync-back、agent/runtime evidence 的修改更容易互相影响。
 
 ## Scope
 
@@ -25,7 +25,7 @@ Phase 1.0~6.1 已经形成完整闭环，但核心实现和测试集中在少数
 
 ## Non-goals
 
-- 不实现 Phase 7.0 graph baseline。
+- 不实现 Phase 8.0 graph baseline。
 - 不新增 daemon / tmux / remote worker fleet。
 - 不改变 SDD completion gate。
 - 不破坏已有 CLI command contract。

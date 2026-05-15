@@ -33,7 +33,7 @@ wave: 2
 depends_on:
   - P5.6-T1
 affected_files:
-  - specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md
+  - specs/master/phases/phase-8.0-code-knowledge-graph-baseline.md
   - specs/master/phases/README.md
   - specs/master/phases/PHASE_STATUS.md
 validation:

@@ -2,7 +2,7 @@
 
 ## 1. 定位
 
-Phase 6.3 插入在 Phase 6.2 RC Stabilization 和 Phase 7.0 Code Knowledge Graph Baseline 之间。
+Phase 6.3 插入在 Phase 6.2 RC Stabilization 和后续 core modularization / code graph 阶段之间。
 
 本阶段目标是把 Phase 6 已有的 agent profile、skill capability、capability source、router、team-mode 合同从“仅内置硬编码 catalog”推进到“声明式 runtime registry”。项目可以通过 `.sdd/project.yml` 声明 SDD 内置素材库没有的 agent / skill / source，并在通过校验后被 runtime inspection、router、CLI 和 validation 识别。
 
@@ -11,8 +11,8 @@ Phase 6.3 插入在 Phase 6.2 RC Stabilization 和 Phase 7.0 Code Knowledge Grap
 ## 2. 依赖
 
 - depends_on: Phase 6.2 RC Stabilization
-- blocks: Phase 7.0 Code Knowledge Graph Baseline
-- required_by: Phase 7.0 Code Knowledge Graph Baseline
+- blocks: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
+- required_by: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
 
 ## 3. 范围
 
@@ -32,7 +32,7 @@ Phase 6.3 插入在 Phase 6.2 RC Stabilization 和 Phase 7.0 Code Knowledge Grap
 - 不直接执行第三方 agent pack。
 - 不实现 daemon、tmux UI、远程 worker fleet 或进程 supervisor。
 - 不把 frontend/backend/database/release 写死成 router 特例。
-- 不实现 Phase 7.0 code graph、embedding store、graph database 或 impact analysis。
+- 不实现 Phase 8.0 code graph、embedding store、graph database 或 impact analysis。
 - 不替换现有 CLI command framework。
 - 不移除 Phase 6 内置 baseline profiles / capabilities / sources。
 
@@ -45,7 +45,7 @@ Phase 6.3 插入在 Phase 6.2 RC Stabilization 和 Phase 7.0 Code Knowledge Grap
 - `specs/master/phase6.3-validation.md`
 - 更新后的 `specs/master/phases/PHASE_STATUS.md`
 - 更新后的 `specs/master/phases/README.md`
-- 更新后的 `specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md`
+- 更新后的 `specs/master/phases/phase-8.0-code-knowledge-graph-baseline.md`
 - `packages/core/src/index.ts` 中的 merged registry、project runtime config、router、validation 改动
 - `packages/cli/src/main.ts` 中的 Phase 6.3 inspection / route 输出改动
 - `packages/core/src/index.test.ts` 中的 Phase 6.3 regression tests
@@ -68,6 +68,6 @@ Phase 6.3 插入在 Phase 6.2 RC Stabilization 和 Phase 7.0 Code Knowledge Grap
 
 ## 7. 可被下游引用的产物
 
-- Phase 7.0 可消费 merged runtime registry metadata，把 project-config agent/skill/source 纳入 graph input。
+- Phase 8.0 可消费 merged runtime registry metadata，把 project-config agent/skill/source 纳入 graph input。
 - 后续 domain agent phases 可复用 `agent_runtime` 声明模型，不需要硬编码 frontend/backend/database/release 特例。
 - 后续外部素材接入可复用 quarantine/source attribution/validated contract promotion 规则。

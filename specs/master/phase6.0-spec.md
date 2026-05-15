@@ -46,7 +46,7 @@ The restructured Phase 6 treats GitHub agent/skill repositories as material libr
 | NFR-5 | Avoid big-prompt engineering: external agent material must be mapped into structured metadata and short host projections, not bulk-inlined into core prompts. | Must |
 | NFR-6 | Team-mode must not be globally forced: default activation is adaptive auto, low-risk routes stay off, `--team-mode` forces a bounded attempt, and `--no-team-mode` disables team usage for a route/run. | Must |
 | NFR-7 | Security-research and PoC workflows must remain authorized, defensive and non-destructive, with severity calibrated by practical exploitability evidence. | Must |
-| NFR-8 | Phase 6 must emit runtime metadata that Phase 6.1 resident workers and Phase 7 code graph can consume without implementing those layers early. | Must |
+| NFR-8 | Phase 6 must emit runtime metadata that Phase 6.1 resident workers and Phase 8 code graph can consume without implementing those layers early. | Must |
 
 ## 5. Acceptance Criteria
 
@@ -55,7 +55,7 @@ The restructured Phase 6 treats GitHub agent/skill repositories as material libr
 | AC-1 | Phase 6 docs define agent profile, skill capability, capability source catalog, external pack import policy, tool permission, host adapter, router, team-mode, delegation wave, execution/team records, evidence ingestion and reuse policy contracts. | Document grep / review | Must |
 | AC-2 | Phase 6 explicitly states open-source/native wheels are reused first and external agent repositories are material/mechanism sources, not SDD profile replacements. | Document review | Must |
 | AC-3 | Anti-big-prompt rules forbid bulk-copying external prompt packs into SDD runtime and require structured metadata mapping. | Document review | Must |
-| AC-4 | Original code graph phase is renumbered to Phase 7 and consumes Phase 6 agent/skill/team runtime metadata. | Phase index review | Must |
+| AC-4 | Original code graph phase is renumbered to Phase 8 and consumes Phase 6 agent/skill/team runtime metadata after Phase 7 core modularization. | Phase index review | Must |
 | AC-5 | Router input/output semantics make `agent_fit`, `allowed_agents`, `risk`, `autonomy`, `required_artifacts`, tool permission and team-mode activation internal mechanism inputs. | Spec/plan/tasks review | Must |
 | AC-6 | Team-mode is defined as adaptive-by-default but bounded, with `auto`/`force`/`off` activation, cost-capped modes, chief/member/team message records, and verify/doctor-readable evidence. | Spec/plan/tasks review | Must |
 | AC-7 | Hyperplan and security-research are represented as SDD delegation waves, not unmanaged prompt flows. | Plan/tasks review | Must |
@@ -70,5 +70,5 @@ The restructured Phase 6 treats GitHub agent/skill repositories as material libr
 - Bulk-importing external agent packs such as agency-agents, SuperClaude or wshobson agents without quarantine and mapping.
 - Copying Oh My OpenAgent/OpenCode agent names/prompts/model configs directly.
 - Forcing team-mode on every task by default; low-risk tasks must be allowed to remain `mode=off` under adaptive routing.
-- Implementing Phase 7 code graph.
+- Implementing Phase 8 code graph.
 - Implementing Phase 6.1 resident worker claim/lease/heartbeat runtime; Phase 6.0 only defines the router/team metadata it consumes.

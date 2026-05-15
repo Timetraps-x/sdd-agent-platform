@@ -69,6 +69,7 @@ export interface AiToolAdapter {
 export interface AiProjectionOptions {
   tool?: AiToolSelection;
   check?: boolean;
+  force?: boolean;
 }
 
 export const claudeCodeAdapter: AiToolAdapter = {
@@ -92,13 +93,14 @@ export const claudeCodeAdapter: AiToolAdapter = {
 
 1. Accept the user's natural-language intent, then run \`sdd status\` first and report only workflow state, blocker/current task, and the recommended next command; do not paste or restate full status unless asked.
 2. Dynamic routing comes from CLI/core output, not this generated markdown; follow the recommended next command before choosing a dedicated \`/sdd:*\` entry.
-3. If the intent is still ambiguous after status, ask one clarifying question before spec/plan/do/verify/sync-back work.
+3. If the intent is still ambiguous after status, ask one clarifying question before spec/plan/do/verify/sync-back/ship work.
 4. For risky requests that mention state-machine, concurrency, database, SQL, security, API/schema, CI/build, or external unknowns, run \`sdd lifecycle decide --from-text <text>\` before spec/plan work.
 5. If status reports workflow_status=not_started, use \`/sdd:spec\` to create the current Git branch partition; do not use \`sdd init\` as the workflow branch entry.
-6. If status points to gaps, drift, or doctor/update work, handle that maintenance action before do/verify.
+6. If status points to gaps, drift, or doctor/update work, handle that maintenance action before do/verify/ship.
 7. If status recommends a task, run \`sdd tasks inspect <task_id>\` and use the task Boundary and Acceptance before offering \`/sdd:do\`.
-8. If status recommends do, verify, or sync-back, follow the dedicated \`/sdd:do\`, \`/sdd:verify\`, or sync-back CLI path instead of inferring completion from chat.
-9. If status recommends sync-back, run \`sdd sync-back inspect --task <task_id>\` by default and follow apply_policy; pass an explicit run id only for replay/CI/old-run inspection. Direct-safe tasks may apply directly, confirm-required tasks need human confirmation and \`--approved\`.
+8. If status recommends do, verify, or sync-back, follow the dedicated \`/sdd:do\`, \`/sdd:verify\`, or \`/sdd:sync-back\` entry instead of inferring completion from chat.
+9. If status recommends sync-back, use \`/sdd:sync-back\` to run \`sdd sync-back inspect --branch <branch> --task <task_id>\` first and follow apply_policy; pass an explicit run id only for replay/CI/old-run inspection. Direct-safe tasks may apply directly, confirm-required tasks need human confirmation and \`--approved\`.
+10. If the user asks to release or go online, use \`/sdd:ship\` and \`checklist.md\`; do not publish, push, tag, or create external release state without explicit confirmation.
 `
       },
 
@@ -200,14 +202,86 @@ Do not create worktrees, auto commit, or mark missing evidence as PASS.
         kind: 'command',
         relativePath: '.claude/commands/sdd/verify.md',
         title: 'SDD verify',
-        body: `Verify task acceptance coverage from review and validation evidence. By default, verify resolves the latest eligible run from the current/requested partition plus task id; pass \`--run <run_id>\` only for replay, CI, or old-run inspection.\n\nRun:\n\n\`\`\`bash\nsdd status\nsdd instructions verify --json\n\`\`\`\n\nWorkflow:\n\n1. Resolve exactly one task id and workflow partition from \`sdd status\`, the recommended command, or the user request. Stop and ask if either is ambiguous.\n2. Omit \`--run\` by default so CLI/core resolves the latest eligible partition/task run; inspect an explicit run only when the user or CI names one.\n3. Ensure the validator artifact includes exact task Acceptance text, preferably generated with \`sdd artifact template artifacts/validation-<task_id>.md --task <task_id> --agent validator\`; pass the run-relative artifact path while storing the physical file under \`.sdd/runs/<run_id>/artifacts/\`.\n4. Run \`sdd artifact validate <run_id> <artifact> --task <task_id> --agent validator\` before goal-level verify.\n5. Run \`sdd verify task <task_id> --branch <branch>\` for goal-level acceptance coverage, adding \`--run <run_id>\` only for explicit old-run replay.\n6. If verify PASS, run \`sdd sync-back inspect --branch <branch> --task <task_id>\` and follow apply_policy.\n7. Direct-safe tasks may run \`sdd sync-back apply --branch <branch> --task <task_id>\` directly; confirm-required tasks require human confirmation and \`--approved\` before writing \`tasks.md\`.\n\nDo not auto-fix failures, force push, or mark completed when blocking gaps remain.\n`
+        body: `Verify task acceptance coverage from review and validation evidence. By default, verify resolves the latest eligible run from the current/requested partition plus task id; pass \`--run <run_id>\` only for replay, CI, or old-run inspection.
+
+Run:
+
+\`\`\`bash
+sdd status
+sdd instructions verify --json
+\`\`\`
+
+Workflow:
+
+1. Resolve exactly one task id and workflow partition from \`sdd status\`, the recommended command, or the user request. Stop and ask if either is ambiguous.
+2. Omit \`--run\` by default so CLI/core resolves the latest eligible partition/task run; inspect an explicit run only when the user or CI names one.
+3. Ensure the validator artifact includes exact task Acceptance text, preferably generated with \`sdd artifact template artifacts/validation-<task_id>.md --task <task_id> --agent validator\`; pass the run-relative artifact path while storing the physical file under \`.sdd/runs/<run_id>/artifacts/\`.
+4. Run \`sdd artifact validate <run_id> <artifact> --task <task_id> --agent validator\` before goal-level verify.
+5. Run \`sdd verify task <task_id> --branch <branch>\` for goal-level acceptance coverage, adding \`--run <run_id>\` only for explicit old-run replay.
+6. If verify PASS, use \`/sdd:sync-back\` to inspect the target tasks.md update before applying it.
+
+Do not auto-fix failures, force push, or mark completed when blocking gaps remain.
+`
+      },
+      {
+        id: 'sdd-sync-back',
+        kind: 'command',
+        relativePath: '.claude/commands/sdd/sync-back.md',
+        title: 'SDD sync-back',
+        body: `Inspect and optionally apply the verified task completion proposal back into tasks.md. Sync-back is a document write-back gate, not another implementation step.
+
+Run:
+
+\`\`\`bash
+sdd status
+sdd instructions sync-back --json
+sdd sync-back inspect --branch <branch> --task <task_id>
+\`\`\`
+
+Workflow:
+
+1. Resolve exactly one task id and workflow partition from \`sdd status\`, the recommended command, or the user request. Stop and ask if either is ambiguous.
+2. Run \`sdd sync-back inspect --branch <branch> --task <task_id>\` before any apply; pass \`<run_id>\` only for replay, CI, or old-run inspection.
+3. Report what apply would write: target tasks file, task id, markdown status transition, proposal path, evidence artifacts, apply_policy, and policy reasons.
+4. If inspect reports \`status=ready\` and \`apply_policy=direct\`, run \`sdd sync-back apply --branch <branch> --task <task_id>\`.
+5. If inspect reports approval_required=true, ask for explicit human confirmation and only then run \`sdd sync-back apply --branch <branch> --task <task_id> --approved\`.
+6. Explain that apply writes only tasks.md for the target task, appends the sync-back implementation note, marks run sync_back applied, and rebuilds the local run index.
+
+Do not apply without inspect, do not use \`--approved\` without human confirmation, and do not change source files during sync-back.
+`
+      },
+      {
+        id: 'sdd-ship',
+        kind: 'command',
+        relativePath: '.claude/commands/sdd/ship.md',
+        title: 'SDD ship',
+        body: `Run release-readiness checks against checklist.md. This command is a preflight gate; it does not authorize npm publish, git push, git tag, or external release creation.
+
+Run:
+
+\`\`\`bash
+sdd status --branch <branch>
+sdd instructions ship --json
+\`\`\`
+
+Workflow:
+
+1. Read \`checklist.md\` and use it as the release checklist.
+2. Resolve the target branch/partition from \`sdd status\` or the user's explicit branch.
+3. Confirm workflow tasks are complete or intentionally deferred, and that verified work has no unapplied sync-back proposal.
+4. Run generated-entry drift, current-run health, typecheck, test, build, and package dry-run gates from the checklist.
+5. Report PASS/BLOCKED by checklist section with failed commands and remaining manual confirmations.
+6. Stop before publish, push, tag, or external release creation unless the user explicitly approves that separate action.
+
+Do not skip failed gates, do not treat historical doctor debt as a release blocker unless it affects current evidence, and do not mutate release state from this preflight command.
+`
       },
       {
         id: 'sdd-instructions',
         kind: 'command',
         relativePath: '.claude/commands/sdd/instructions.md',
         title: 'SDD instructions',
-        body: `Fetch dynamic SDD instructions and follow the status-first decision tree to the next actionable step.\n\nRun:\n\n\`\`\`bash\nsdd status\nsdd instructions overview --json\n\`\`\`\n\nThen apply this decision tree:\n\n- **If status reports gaps or drift**: run the recommended command. For generated entry drift, run \`sdd update\`, then \`sdd doctor\` again.\n- **If status recommends a task**: run \`sdd tasks inspect <task_id>\`, then offer \`/sdd:do\` inside the approved task boundary.\n- **If status recommends verify or sync-back**: use the task id and partition from status/recommended command; omit \`--run\` unless an explicit run is named for replay, CI, or old-run inspection.\n- **If the next change has state-machine, concurrency, database, SQL, security, API/schema, CI/build, or external unknown risk**: run \`sdd lifecycle decide --from-text <text>\` and respect hard gates before spec/plan work.\n- **After a task completes**: run \`sdd verify task <task_id> --branch <branch>\` for acceptance coverage; CLI/core resolves the latest eligible run.\n- **After verify PASS**: run \`sdd sync-back inspect --branch <branch> --task <task_id>\` and follow apply_policy: direct-safe tasks may apply directly, confirm-required tasks need human confirmation and \`--approved\`.\n\nReport only the selected next action, blockers, and commands you will run; do not paste full JSON/status output unless the user asks. Do not loop in maintenance checks when status already gives a next workflow action.\n`
+        body: `Fetch dynamic SDD instructions and follow the status-first decision tree to the next actionable step.\n\nRun:\n\n\`\`\`bash\nsdd status\nsdd instructions overview --json\n\`\`\`\n\nThen apply this decision tree:\n\n- **If status reports gaps or drift**: run the recommended command. For generated entry drift, run \`sdd update\`, then \`sdd doctor\` again.\n- **If status recommends a task**: run \`sdd tasks inspect <task_id>\`, then offer \`/sdd:do\` inside the approved task boundary.\n- **If status recommends verify or sync-back**: use the task id and partition from status/recommended command; omit \`--run\` unless an explicit run is named for replay, CI, or old-run inspection.\n- **If the next change has state-machine, concurrency, database, SQL, security, API/schema, CI/build, or external unknown risk**: run \`sdd lifecycle decide --from-text <text>\` and respect hard gates before spec/plan work.\n- **After a task completes**: run \`sdd verify task <task_id> --branch <branch>\` for acceptance coverage; CLI/core resolves the latest eligible run.\n- **After verify PASS**: use \`/sdd:sync-back\` to run \`sdd sync-back inspect --branch <branch> --task <task_id>\` and follow apply_policy: direct-safe tasks may apply directly, confirm-required tasks need human confirmation and \`--approved\`.\n\nReport only the selected next action, blockers, and commands you will run; do not paste full JSON/status output unless the user asks. Do not loop in maintenance checks when status already gives a next workflow action.\n`
       }
     ];
   }
@@ -235,7 +309,7 @@ export async function applyAiToolEntries(projectRoot: string, options: AiProject
     const entries: AiEntryStatusReport[] = [];
     for (const template of adapter.entries()) {
       const projected = renderProjectedEntry(adapter, template);
-      entries.push(await applyEntry(projectRoot, projected, options.check === true));
+      entries.push(await applyEntry(projectRoot, projected, options.check === true, options.force === true));
     }
     results.push({ tool: adapter.id, entries });
   }
@@ -305,7 +379,7 @@ function renderProjectedEntry(adapter: AiToolAdapter, entry: AiToolEntryTemplate
   };
 }
 
-async function applyEntry(projectRoot: string, projected: ProjectedAiEntry, checkOnly: boolean): Promise<AiEntryStatusReport> {
+async function applyEntry(projectRoot: string, projected: ProjectedAiEntry, checkOnly: boolean, force: boolean): Promise<AiEntryStatusReport> {
   const absolutePath = path.join(projectRoot, projected.relativePath);
   const existing = await readFile(absolutePath, 'utf8').catch((error: unknown) => {
     if (isNodeError(error) && error.code === 'ENOENT') {
@@ -336,7 +410,7 @@ async function applyEntry(projectRoot: string, projected: ProjectedAiEntry, chec
     return statusReport(projected, 'unchanged', 'Managed AI entry is current.');
   }
 
-  if (current.bodyHash !== current.hash) {
+  if (current.bodyHash !== current.hash && (checkOnly || !force)) {
     return statusReport(projected, 'user-modified', 'Managed AI entry has user modifications outside the recorded hash.', 'Review manually; sdd update will not overwrite user-modified entries by default.');
   }
 

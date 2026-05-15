@@ -2,7 +2,7 @@ import { SDD_VERSION } from './ai-tools.js';
 
 export const SDD_INSTRUCTIONS_CONTRACT = 'sdd-instructions-v1';
 
-export type InstructionAction = 'overview' | 'init' | 'doctor' | 'update' | 'spec' | 'plan' | 'tasks' | 'do' | 'verify' | 'run-task' | 'verify-task';
+export type InstructionAction = 'overview' | 'init' | 'doctor' | 'update' | 'spec' | 'plan' | 'tasks' | 'do' | 'verify' | 'sync-back' | 'ship' | 'run-task' | 'verify-task';
 
 export interface SddInstructionPayload {
   contract: typeof SDD_INSTRUCTIONS_CONTRACT;
@@ -17,18 +17,19 @@ export interface SddInstructionPayload {
 
 const INSTRUCTION_PAYLOADS: Record<InstructionAction, Omit<SddInstructionPayload, 'contract' | 'version' | 'action'>> = {
   overview: {
-    summary: 'Route natural-language SDD intent from branch/source status to task execution, agent evidence, partition-aware verification, and explicit sync-back while keeping CLI/core output as source of truth.',
-    requiredCommands: ['sdd status', 'sdd lifecycle decide --from-text <text>', 'sdd doctor', 'sdd tasks inspect <task_id>', 'sdd do task <task_id>', 'sdd verify task <task_id> [--branch <branch>] [--run <run_id>]', 'sdd sync-back inspect [<run_id>] --task <task_id>'],
+    summary: 'Route natural-language SDD intent from branch/source status to task execution, agent evidence, partition-aware verification, explicit sync-back, and release readiness while keeping CLI/core output as source of truth.',
+    requiredCommands: ['sdd status', 'sdd lifecycle decide --from-text <text>', 'sdd doctor', 'sdd tasks inspect <task_id>', 'sdd do task <task_id>', 'sdd verify task <task_id> [--branch <branch>] [--run <run_id>]', 'sdd sync-back inspect [<run_id>] --branch <branch> --task <task_id>', 'sdd sync-back apply [<run_id>] --branch <branch> --task <task_id> [--approved]', 'sdd instructions ship --json'],
     allowedSideEffects: ['read .sdd state', 'read specs documents', 'read generated AI entries'],
-    forbiddenSideEffects: ['background write', 'worktree creation', 'auto commit', 'force push', 'unapproved complex sync-back apply'],
+    forbiddenSideEffects: ['background write', 'worktree creation', 'auto commit', 'force push', 'unapproved complex sync-back apply', 'publish or push release artifacts without explicit human confirmation'],
     nextSteps: [
       'Treat /sdd as a natural-language intent router, then run sdd status first to see branch/source context and the recommended next command; report only workflow state, blocker/current task, and next action unless the user asks for full detail.',
       'Dynamic routing comes from CLI/core output; follow the recommended next command and do not infer dynamic state from generated markdown.',
-      'If intent remains ambiguous after status, ask one clarifying question before spec/plan/do/verify/sync-back work.',
-      'If status reports generated entry drift or missing config, run sdd doctor and sdd update before do/verify.',
+      'If intent remains ambiguous after status, ask one clarifying question before spec/plan/do/verify/sync-back/ship work.',
+      'If status reports generated entry drift or missing config, run sdd doctor and sdd update before do/verify/ship.',
       'If status recommends a pending task, run sdd tasks inspect <task_id> and execute only the approved task boundary; scout/implementer/reviewer/validator participation should be recorded as artifacts rather than hidden in the main chat.',
       'For verify and sync-back, omit --run by default so CLI resolves the latest eligible run from partition + task id; pass --run only for replay, CI, or old-run inspection.',
-      'After verify PASS, run sdd sync-back inspect --task <task_id>; direct-safe tasks may apply directly, while confirm-required tasks need sdd sync-back apply --approved after human confirmation.'
+      'After verify PASS, use /sdd:sync-back or run sdd sync-back inspect --branch <branch> --task <task_id>; inspect must explain the target tasks.md update before direct apply or before asking for human approval.',
+      'For release readiness, use /sdd:ship and checklist.md; do not publish, push, tag, or create external release state without explicit human confirmation.'
     ]
   },
   init: {
@@ -82,10 +83,24 @@ const INSTRUCTION_PAYLOADS: Record<InstructionAction, Omit<SddInstructionPayload
   },
   verify: {
     summary: 'Verify task acceptance coverage from reviewer/validator artifacts, resolving the latest eligible run from partition + task id unless --run is explicit.',
-    requiredCommands: ['sdd status', 'sdd instructions verify --json', 'sdd artifact template artifacts/validation-<task_id>.md --task <task_id> --agent validator', 'sdd artifact validate <run_id> <artifact> --task <task_id> --agent validator', 'sdd verify task <task_id> [--branch <branch>] [--run <run_id>]', 'sdd sync-back inspect [<run_id>] --task <task_id>'],
+    requiredCommands: ['sdd status', 'sdd instructions verify --json', 'sdd artifact template artifacts/validation-<task_id>.md --task <task_id> --agent validator', 'sdd artifact validate <run_id> <artifact> --task <task_id> --agent validator', 'sdd verify task <task_id> [--branch <branch>] [--run <run_id>]', 'sdd sync-back inspect [<run_id>] --branch <branch> --task <task_id>'],
     allowedSideEffects: ['write acceptance coverage artifact', 'update .sdd run state', 'create sync-back proposal'],
     forbiddenSideEffects: ['auto commit', 'force push', 'auto-fix failures', 'unapproved complex sync-back apply', 'mark completed with blocking validation gaps'],
-    nextSteps: ['Run sdd status and resolve exactly one task id plus workflow partition from the recommended command or user request.', 'Omit --run by default so CLI resolves the latest eligible run for partition + task id; pass --run only for explicit replay, CI, or old-run inspection.', 'Ensure the validator artifact includes exact Acceptance text, preferably under ## Acceptance Mapping from sdd artifact template.', 'Store artifacts physically under .sdd/runs/<run_id>/artifacts/ but pass run-relative artifacts/<file> paths to validate/verify CLI flags.', 'Run sdd artifact validate before goal-level verify.', 'Run sdd instructions verify --json and sdd verify task <task_id> --branch <branch>.', 'If PASS, run sdd sync-back inspect --branch <branch> --task <task_id> and follow its apply_policy.', 'Report PASS/BLOCKED status, unresolved blockers, and next apply command only; avoid pasting full acceptance coverage unless requested.', 'Direct-safe tasks may run sdd sync-back apply directly; confirm-required tasks require human confirmation and --approved before writing tasks.md.']
+    nextSteps: ['Run sdd status and resolve exactly one task id plus workflow partition from the recommended command or user request.', 'Omit --run by default so CLI resolves the latest eligible run for partition + task id; pass --run only for explicit replay, CI, or old-run inspection.', 'Ensure the validator artifact includes exact Acceptance text, preferably under ## Acceptance Mapping from sdd artifact template.', 'Store artifacts physically under .sdd/runs/<run_id>/artifacts/ but pass run-relative artifacts/<file> paths to validate/verify CLI flags.', 'Run sdd artifact validate before goal-level verify.', 'Run sdd instructions verify --json and sdd verify task <task_id> --branch <branch>.', 'If PASS, use /sdd:sync-back or run sdd sync-back inspect --branch <branch> --task <task_id> before apply.', 'Report PASS/BLOCKED status, unresolved blockers, and next sync-back gate only; avoid pasting full acceptance coverage unless requested.']
+  },
+  'sync-back': {
+    summary: 'Inspect and optionally apply the verified task completion proposal back into specs/<partition>/tasks.md with an explicit target change summary.',
+    requiredCommands: ['sdd status', 'sdd instructions sync-back --json', 'sdd sync-back inspect [<run_id>] --branch <branch> --task <task_id>', 'sdd sync-back apply [<run_id>] --branch <branch> --task <task_id> [--approved]'],
+    allowedSideEffects: ['read .sdd run state', 'read sync-back proposal artifact', 'read specs/<partition>/tasks.md', 'write specs/<partition>/tasks.md only during apply', 'update run sync_back state only during apply'],
+    forbiddenSideEffects: ['auto commit', 'force push', 'apply without inspect', 'apply confirm-required proposals without human approval', 'change source files outside tasks.md'],
+    nextSteps: ['Run sdd status and resolve exactly one task id plus workflow partition from the recommended command or user request.', 'Run sdd sync-back inspect --branch <branch> --task <task_id> first; pass an explicit run id only for replay, CI, or old-run inspection.', 'Report the inspect target update before asking for approval: target tasks file, task id, markdown status transition, proposal path, evidence artifacts, apply_policy, and policy reasons.', 'If apply_policy=direct and status=ready, run sdd sync-back apply --branch <branch> --task <task_id>; if approval_required=true, ask for explicit confirmation and then add --approved.', 'Explain that apply writes the task block status to completed, appends the sync-back implementation note from the proposal/evidence, marks the run sync_back state applied, and rebuilds the local run index.', 'After apply, report the updated task id, tasks.md path, applied flag, and sync_back state.']
+  },
+  ship: {
+    summary: 'Run release-readiness checks against checklist.md without publishing, pushing, tagging, or changing external release state.',
+    requiredCommands: ['sdd status --branch <branch>', 'sdd tasks list --branch <branch>', 'sdd doctor --latest-only', 'sdd update --check', 'npm run typecheck', 'npm test', 'npm run build', 'npm pack --dry-run --json', 'git status'],
+    allowedSideEffects: ['read project status', 'read SDD documents and run evidence', 'run local validation commands', 'write no source or release state unless separately requested'],
+    forbiddenSideEffects: ['npm publish', 'git push', 'git tag', 'create GitHub release', 'force push', 'auto commit', 'skip failed gates', 'treat historical doctor debt as a release blocker unless it affects current run evidence'],
+    nextSteps: ['Read checklist.md and use it as the release gate checklist.', 'Run sdd status for the target branch and confirm there are no pending required workflow tasks or unapplied sync-back proposals.', 'Run sdd update --check to verify managed AI entries are current.', 'Run current-run health checks with sdd doctor --latest-only; use broader historical doctor scopes only for audit, not as an automatic release blocker.', 'Run npm run typecheck, npm test, npm run build, and npm pack --dry-run --json.', 'Report PASS/BLOCKED by checklist section, including exact failed commands and unresolved manual confirmations.', 'Stop before npm publish, git push, git tag, or external release creation unless the user explicitly approves that separate action.']
   },
   'run-task': {
     summary: 'Run the ingestion-aware task workflow using CLI/core runtime state and artifacts.',
@@ -132,5 +147,5 @@ export function renderSddInstructions(payload: SddInstructionPayload): string {
 }
 
 function isInstructionAction(action: string): action is InstructionAction {
-  return action === 'overview' || action === 'init' || action === 'doctor' || action === 'update' || action === 'spec' || action === 'plan' || action === 'tasks' || action === 'do' || action === 'verify' || action === 'run-task' || action === 'verify-task';
+  return action === 'overview' || action === 'init' || action === 'doctor' || action === 'update' || action === 'spec' || action === 'plan' || action === 'tasks' || action === 'do' || action === 'verify' || action === 'sync-back' || action === 'ship' || action === 'run-task' || action === 'verify-task';
 }

@@ -52,4 +52,4 @@ Evidence:
 - Package dry-run output is acceptable.
 - Built CLI can run `status` from `dist/packages/cli/src/main.js`.
 - Phase 6/6.1 resident worker runtime behavior remains unchanged.
-- No new Phase 7.0 graph behavior is introduced in this phase.
+- No new Phase 8.0 graph behavior is introduced in this phase.
