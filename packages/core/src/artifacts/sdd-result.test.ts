@@ -49,7 +49,7 @@ test('validateSddResultArtifact catches missing, empty, and task mismatch artifa
     const missing = await validateSddResultArtifact(root, state.runId, 'artifacts/missing.md', { expectedTask: 'T1', expectedAgent: 'reviewer' });
     assert.equal(missing.valid, false);
     assert.equal(missing.issues.some((issue) => issue.field === 'artifacts' && /Cannot read artifact/.test(issue.message)), true);
-    assert.equal(missing.issues.some((issue) => /\.sdd\/runs\/run-1\/artifacts\/missing\.md/.test(issue.recommendation)), true);
+    assert.equal(missing.issues.some((issue) => /branch evidence/.test(issue.recommendation)), true);
 
     await writeArtifact(root, state.runId, 'empty.md', '');
     const empty = await validateSddResultArtifact(root, state.runId, 'artifacts/empty.md');

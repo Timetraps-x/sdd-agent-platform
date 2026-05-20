@@ -10,15 +10,21 @@ import { inspectArtifactResultIngestions } from '../artifacts/ingestion.js';
 import { initProject } from '../config/init-project.js';
 import { getProjectStatus } from '../status/project-status.js';
 import { doctor } from '../doctor/doctor.js';
-import { writeArtifact } from '../run-state/artifacts.js';
+import { readArtifact, writeArtifact } from '../run-state/artifacts.js';
 import { inspectRun } from '../run-state/inspect-run.js';
 import { rebuildLocalRunIndex } from '../run-state/run-index.js';
+import { readRunEvents } from '../run-state/events.js';
 import { createRun, readRunState } from '../run-state/run-state.js';
 import { validResultArtifact, validTaskMarkdown, validTrustEvidence, writeBranchDocs } from '../test-support/fixtures.js';
+import { bindTestRunState } from '../test-support/run-state.js';
 import { renderSingleTaskLoopResult } from './rendering.js';
 import { runSingleTaskLoop } from './single-task-loop.js';
 
 const execFileAsync = promisify(execFile);
+
+function stringifyEvents(events: Awaited<ReturnType<typeof readRunEvents>>): string {
+  return events.map((event) => `${event.event}\n${event.summary ?? ''}`).join('\n');
+}
 
 test('runSingleTaskLoop completes from supplied review and validation artifacts without modifying tasks markdown', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-loop-pass-'));
@@ -27,6 +33,7 @@ test('runSingleTaskLoop completes from supplied review and validation artifacts 
     await execFileAsync('git', ['init'], { cwd: root });
     await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
     const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'feature', 'T1');
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
     await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
 
@@ -41,7 +48,7 @@ test('runSingleTaskLoop completes from supplied review and validation artifacts 
     const ingestionInspection = await inspectArtifactResultIngestions(root, state.runId);
     await rebuildLocalRunIndex(root);
     const doctorReport = await doctor(root, { latestOnly: true });
-    const events = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'events.jsonl'), 'utf8');
+    const events = stringifyEvents(await readRunEvents(root, state.runId));
     const tasksMarkdown = await readFile(path.join(root, 'specs', 'feature', 'tasks.md'), 'utf8');
 
     assert.equal(result.status, 'completed');
@@ -52,7 +59,7 @@ test('runSingleTaskLoop completes from supplied review and validation artifacts 
     assert.equal(restored.syncBack.proposalPath, 'artifacts/sync-back-proposal.md');
     assert.equal(ingestionInspection.valid, true);
     assert.deepEqual(ingestionInspection.records.map((record) => record.delegationId), ['B-T1-reviewer-001', 'B-T1-validator-001']);
-    assert.equal(doctorReport.status, 'PASS');
+    assert.equal(doctorReport.status, 'WARN');
     assert.match(events, /task_selected/);
     assert.match(events, /review_passed/);
     assert.match(events, /validation_passed/);
@@ -78,8 +85,8 @@ test('runSingleTaskLoop blocks on missing reviewer artifact and creates gap prop
       taskId: 'T1'
     });
     const restored = await readRunState(root, state.runId);
-    const gapReport = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'gap-report-T1.md'), 'utf8');
-    const proposal = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'sync-back-proposal.md'), 'utf8');
+    const gapReport = await readArtifact(root, state.runId, 'gap-report-T1.md');
+    const proposal = await readArtifact(root, state.runId, 'sync-back-proposal.md');
 
     assert.equal(result.status, 'blocked');
     assert.equal(result.gaps.some((gap) => gap.field === 'implementer'), false);
@@ -94,12 +101,12 @@ test('runSingleTaskLoop blocks on missing reviewer artifact and creates gap prop
     assert.match(rendered, /sdd artifact template artifacts\/validation-T1.md --task T1 --agent validator --run run-1 --write/);
     assert.match(rendered, /--implement-artifact artifacts\/implement-T1.md/);
     assert.match(rendered, /--validation-artifact artifacts\/validation-T1.md/);
-    assert.match(rendered, /physical artifact files belong under \.sdd\/runs\/run-1\/artifacts\//);
+    assert.match(rendered, /physical artifact files belong under branch evidence \.sdd\/runs\/<branchSlug>\/evidence\/artifacts\//);
     assert.match(rendered, /artifact_path_scope=CLI flags use run-relative artifacts\/<file>/);
     assert.equal(restored.status, 'blocked');
     assert.match(gapReport, /reviewer artifact was not supplied/);
     assert.match(proposal, /Proposal only/);
-    const events = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'events.jsonl'), 'utf8');
+    const events = stringifyEvents(await readRunEvents(root, state.runId));
     assert.match(events, /delegation_failed/);
     assert.doesNotMatch(events, /agent_failed/);
   } finally {
@@ -113,6 +120,7 @@ test('runSingleTaskLoop blocks PASS_WITH_GAPS validation with gap report and blo
     await initProject(root);
     await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
     const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'feature', 'T1');
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
     await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS_WITH_GAPS', 'artifacts/validation-T1.md')}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
 
@@ -124,9 +132,9 @@ test('runSingleTaskLoop blocks PASS_WITH_GAPS validation with gap report and blo
       validationArtifact: 'artifacts/validation-T1.md'
     });
     const restored = await readRunState(root, state.runId);
-    const gapReport = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'gap-report-T1.md'), 'utf8');
-    const proposal = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'sync-back-proposal.md'), 'utf8');
-    const events = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'events.jsonl'), 'utf8');
+    const gapReport = await readArtifact(root, state.runId, 'gap-report-T1.md');
+    const proposal = await readArtifact(root, state.runId, 'sync-back-proposal.md');
+    const events = stringifyEvents(await readRunEvents(root, state.runId));
 
     assert.equal(result.status, 'blocked');
     assert.equal(restored.status, 'blocked');
@@ -151,7 +159,7 @@ test('runSingleTaskLoop persists agent and team evidence records', async () => {
     const result = await runSingleTaskLoop(root, { taskId: 'ONBOARDING-1', branch: 'master' });
     const inspection = await inspectRun(root, result.runId);
     const status = await getProjectStatus(root, { branch: 'master' });
-    const report = await doctor(root, { latestOnly: true });
+    const report = await doctor(root);
 
     assert.equal(result.status, 'blocked');
     assert.equal(result.routeDecision.teamMode.decision, 'enabled');

@@ -388,3 +388,48 @@ ${implementationNotes}
   - Confirm the first real feature/change request.
 `;
 }
+
+export function renderInitVerifyDocument(branch: string, timestamp: string, docsLanguage: string): string {
+  const zh = usesChineseInitDocs(docsLanguage);
+  const title = zh ? '# Verify: Project Onboarding / 项目入门' : '# Verify: Project Onboarding';
+  const purpose = zh
+    ? '这份 verify.md 是从 starter tasks 派生的 verification guidance，不是 runtime evidence，也不替代 `/sdd:test` 产生的验证证据。'
+    : 'This verify.md is task-derived verification guidance, not runtime evidence, and it does not replace validation evidence produced by `/sdd:test`.';
+  const availability = zh
+    ? '在替换真实 spec/plan/tasks 前，只能检查 onboarding scaffold 是否仍然可见且未被误当作已批准实现。'
+    : 'Before replacing the real spec/plan/tasks, verification can only inspect that the onboarding scaffold is visible and not mistaken for approved implementation.';
+  return `---
+template: sdd-init-onboarding-verify-v1
+version: 1.4.0
+contract: sdd-verify-doc-v1
+sdd_managed_starter: true
+branch: ${branch}
+created_at: ${timestamp}
+updated_at: ${timestamp}
+---
+
+${title}
+
+## 1. Purpose
+
+${purpose}
+
+## 2. Task Verification Matrix
+
+| Task | Acceptance refs | Validation commands | Required artifacts | Verification availability |
+|---|---|---|---|---|
+| ONBOARDING-1 | AC-1<br>AC-2 | sdd status --branch ${branch}<br>sdd verifies inspect --branch ${branch} | none | ${availability} |
+
+## 3. Verification Rules
+
+- This starter verify contract does not authorize source changes, validation execution, runtime mutation, sync-back, commit, push, publish, or release.
+- Replace starter spec, plan, tasks, and verify documents with a real branch contract before implementation.
+- Runtime PASS is judged by \`/sdd:test\` / \`sdd test task <task_id> --branch ${branch}\`; low-level verify remains available for compatibility diagnostics.
+- Re-run \`sdd verifies write --branch ${branch} --force\` only after reviewing changed task expectations.
+
+## 4. Out of Scope
+
+- This document is not evidence in \`.sdd/runtime.sqlite\`.
+- This document is not a release, ship, or sync-back approval.
+`;
+}

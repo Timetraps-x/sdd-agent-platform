@@ -14,6 +14,7 @@ import type { LifecycleAutonomyCeiling } from '../lifecycle/decision-gate.js';
 import type { ArtifactResultIngestionStatus } from '../artifacts/ingestion.js';
 import type { SddResultStatus } from '../artifacts/sdd-result.js';
 import type { RouteCacheMetadata, RuntimeProfileSpan, TeamModeActivation } from './route-cache.js';
+import type { ApprovalPolicy, LifecycleRiskProfile, LifecycleWorkflowGate } from '../risk.js';
 
 export type BuiltInAgentProfileId = 'planner' | 'architect' | 'implementer' | 'reviewer' | 'validator' | 'researcher' | 'orchestrator' | 'security' | 'domain_expert';
 export type AgentProfileId = BuiltInAgentProfileId | string;
@@ -277,6 +278,11 @@ export interface AgentRouterDecision {
   modelPolicy: ModelPolicyContract;
   teamMode: TeamModePolicy;
   autonomyCeiling: LifecycleAutonomyCeiling;
+  lifecycleGate: LifecycleWorkflowGate | null;
+  lifecycleProfile: LifecycleRiskProfile | null;
+  approvalPolicy: ApprovalPolicy | null;
+  requiredStages: string[];
+  primaryReason: string;
   requiredArtifacts: string[];
   blockedReason: string | null;
   nextAction: string;

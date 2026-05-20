@@ -35,3 +35,11 @@ export function readRepeatedOptions(args: string[], name: string): string[] {
   }
   return values;
 }
+
+export function hasHelpFlag(args: string[]): boolean {
+  return args.includes('--help') || args.includes('-h');
+}
+
+export function hasPreflightFlag(args: string[]): boolean {
+  return args.includes('--preflight');
+}

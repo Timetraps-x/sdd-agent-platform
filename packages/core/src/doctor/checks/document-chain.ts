@@ -1,7 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { messageFromError } from '../../contracts/issues.js';
 import { resolveSddContext } from '../../sdd-docs/context.js';
-import { parseSddBranch, type SddTask, type SddTaskSourceLocation } from '../../sdd-docs/task-parser.js';
+import { parseSddBranch, type SddTaskSourceLocation } from '../../sdd-docs/task-parser.js';
+import { inspectVerifyContract } from '../../verification/verify-contract.js';
+import { buildTaskRiskProfile } from '../../task-risk-profile.js';
 import type { DoctorCheck } from '../model.js';
 
 export async function inspectDocumentChainEvidence(projectRoot: string, branch?: string | null): Promise<DoctorCheck[]> {
@@ -69,11 +71,21 @@ export async function inspectDocumentChainEvidence(projectRoot: string, branch?:
       }
     }
 
+    const verifyInspection = await inspectVerifyContract(projectRoot, branch ? { branch, branchSource: 'cli_option' } : {});
+    for (const issue of verifyInspection.issues) {
+      checks.push({
+        level: issue.level === 'FAIL' ? 'FAIL' : 'WARN',
+        check: issue.field === 'verify.md' ? 'document_chain_verify_missing' : 'document_chain_verify_contract',
+        message: issue.message,
+        action: issue.action
+      });
+    }
+
     if (checks.length === 0) {
       checks.push({
         level: 'PASS',
         check: 'document_chain',
-        message: `Spec acceptance IDs and task evidence links are consistent for ${context.branch}.`
+        message: `Spec acceptance IDs, task evidence links, and verify.md contract are consistent for ${context.branch}.`
       });
     }
     return checks;
@@ -82,7 +94,7 @@ export async function inspectDocumentChainEvidence(projectRoot: string, branch?:
       level: 'WARN',
       check: 'document_chain',
       message: `Document chain could not be inspected: ${messageFromError(error)}`,
-      action: 'Run sdd tasks gaps and inspect specs/<branch>/spec.md/tasks.md manually.'
+      action: 'Run sdd tasks gaps, sdd verifies inspect, and inspect specs/<branch>/spec.md/tasks.md manually.'
     }];
   }
 }
@@ -91,9 +103,8 @@ function extractSpecAcceptanceIds(raw: string): Set<string> {
   return new Set(Array.from(raw.matchAll(/\bAC-[A-Za-z0-9._-]+\b/g)).map((match) => match[0]));
 }
 
-function isHighRiskTask(task: SddTask): boolean {
-  const highRiskTags = new Set(['state-machine', 'concurrency', 'database', 'sql', 'security', 'api_schema', 'ci_build', 'external_unknown', 'database_data_loss']);
-  return task.risk.some((risk) => highRiskTags.has(risk));
+function isHighRiskTask(task: Parameters<typeof buildTaskRiskProfile>[0]): boolean {
+  return buildTaskRiskProfile(task).riskLevel === 'high';
 }
 
 function sourceLocationEvidence(source: SddTaskSourceLocation): string {

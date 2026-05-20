@@ -1,10 +1,12 @@
 import type { InitProjectResult } from '@sdd-agent-platform/core/status';
 import type { ProjectStatus } from '@sdd-agent-platform/core/status';
+import type { StatuslineProjection } from '@sdd-agent-platform/core/status';
 import type { RunSummary } from '@sdd-agent-platform/core/run-state';
 import type { RunInspection } from '@sdd-agent-platform/core/run-state';
 import type { LocalRunIndex, LocalRunIndexInspection } from '@sdd-agent-platform/core/run-state';
 import type { SyncBackApplyResult } from '@sdd-agent-platform/core/sync-back';
 import type { SyncBackInspection } from '@sdd-agent-platform/core/sync-back';
+import type { ShipResult } from '@sdd-agent-platform/core/lifecycle';
 import { renderIssuesOrNone, renderWorkflowDocumentGaps } from './issues.js';
 
 export function renderInitResult(result: InitProjectResult): string {
@@ -53,7 +55,8 @@ export function renderProjectStatus(status: ProjectStatus): string {
   const lines = [`SDD status for ${status.branch}`];
   const staleDocuments = [
     status.documents.planStale ? 'plan' : null,
-    status.documents.tasksStale ? 'tasks' : null
+    status.documents.tasksStale ? 'tasks' : null,
+    status.documents.verifyStale ? 'verify' : null
   ].filter((item): item is string => item !== null);
   const hasDocumentHashes = Boolean(
     status.documents.specHash
@@ -61,16 +64,23 @@ export function renderProjectStatus(status: ProjectStatus): string {
     || status.documents.tasksHash
     || status.documents.planBasedOnSpecHash
     || status.documents.tasksBasedOnPlanHash
+    || status.documents.verifyHash
+    || status.documents.verifyBasedOnTasksHash
   );
   lines.push('decision');
   lines.push(`- workflow_status=${status.workflowStatus}`);
   lines.push(`- context raw_branch=${status.context.rawBranch} partition=${status.context.partition} source=${status.context.branchSource} spec_dir=${status.context.specDir}`);
   lines.push(`- git current_branch=${status.context.currentGitBranch ?? 'none'} working_tree_matched=${status.context.workingTreeMatched ?? 'unknown'}`);
-  lines.push(`- documents spec=${status.documents.specExists} plan=${status.documents.planExists} tasks=${status.documents.tasksExists} stale=${staleDocuments.join(',') || 'none'}`);
+  lines.push(`- documents spec=${status.documents.specExists} plan=${status.documents.planExists} tasks=${status.documents.tasksExists} verify=${status.documents.verifyExists} stale=${staleDocuments.join(',') || 'none'}`);
   if (hasDocumentHashes) {
-    lines.push(`- document_hashes spec=${status.documents.specHash ?? 'none'} plan=${status.documents.planHash ?? 'none'} tasks=${status.documents.tasksHash ?? 'none'} plan_based_on_spec=${status.documents.planBasedOnSpecHash ?? 'none'} tasks_based_on_plan=${status.documents.tasksBasedOnPlanHash ?? 'none'}`);
+    lines.push(`- document_hashes spec=${status.documents.specHash ?? 'none'} plan=${status.documents.planHash ?? 'none'} tasks=${status.documents.tasksHash ?? 'none'} verify=${status.documents.verifyHash ?? 'none'} plan_based_on_spec=${status.documents.planBasedOnSpecHash ?? 'none'} tasks_based_on_plan=${status.documents.tasksBasedOnPlanHash ?? 'none'} verify_based_on_tasks=${status.documents.verifyBasedOnTasksHash ?? 'none'}`);
   }
   lines.push(`- tasks total=${status.tasks.total} pending=${status.tasks.pending} in_progress=${status.tasks.inProgress} completed=${status.tasks.completed} blocked=${status.tasks.blocked} deferred=${status.tasks.deferred} unknown=${status.tasks.unknown} gaps=${status.tasks.gaps}`);
+  lines.push(`- task_risk high=${status.taskRisk.highRiskTasks.join(',') || 'none'} medium=${status.taskRisk.mediumRiskTasks.join(',') || 'none'} source_boundary=${status.taskRisk.sourceBoundaryTasks.join(',') || 'none'} context=${status.taskRisk.contextRiskTasks.join(',') || 'none'} token=${status.taskRisk.tokenRiskTasks.join(',') || 'none'} performance=${status.taskRisk.performanceRiskTasks.join(',') || 'none'}`);
+  lines.push(`- lifecycle_risk status=${status.lifecycleRisk.status} profile=${status.lifecycleRisk.profile ?? 'none'} approval=${status.lifecycleRisk.approvalPolicy ?? 'none'} input=${status.lifecycleRisk.inputHash ?? 'none'} expected=${status.lifecycleRisk.expectedInputHash}`);
+  lines.push(`- workflow_handoff status=${status.workflowHandoff.status} active_stage=${status.workflowHandoff.activeStage?.stage ?? 'none'} latest_stage=${status.workflowHandoff.latestStageRun?.stage ?? 'none'} latest_handoff=${status.workflowHandoff.latestHandoff ? `${status.workflowHandoff.latestHandoff.fromStage}->${status.workflowHandoff.latestHandoff.toStage}:${status.workflowHandoff.latestHandoff.status}` : 'none'} stage_projections=${status.workflowHandoff.projectionCounts.stageRuns} handoff_projections=${status.workflowHandoff.projectionCounts.handoffs}`);
+  lines.push(`- context_offload level=${status.contextRuntime.level} action=${status.contextRuntime.action} load_signals=${status.contextRuntime.loadSignals} offload_decisions=${status.contextRuntime.offloadDecisions} dispatch_refs=${status.contextRuntime.dispatchRefs}`);
+  lines.push(`- subagent_dispatch status=${status.subagentDispatches.status} dispatches=${status.subagentDispatches.dispatches} blocking_open=${status.subagentDispatches.blockingOpen} failed=${status.subagentDispatches.failed} stale=${status.subagentDispatches.stale} completed=${status.subagentDispatches.completed} archived=${status.subagentDispatches.archived} superseded=${status.subagentDispatches.superseded}`);
   if (status.latestRun) {
     lines.push(`- latest_run ${status.latestRun.runId} status=${status.latestRun.status} phase=${status.latestRun.phase ?? 'n/a'} task=${status.latestRun.currentTask ?? 'n/a'} validation=${status.latestRun.validationStatus} sync_back=${status.latestRun.syncBackStatus}`);
     if (status.latestRunEvidence) {
@@ -92,6 +102,24 @@ export function renderProjectStatus(status: ProjectStatus): string {
   renderWorkflowDocumentGaps(lines, status.gaps);
   lines.push(`next ${status.recommendedNextCommand}`);
   return lines.join('\n');
+}
+
+export function renderStatuslineProjection(statusline: StatuslineProjection): string {
+  return [
+    `sdd ${statusline.branch}`,
+    `wf=${statusline.workflow}`,
+    `tasks=${statusline.taskHealth}:${statusline.counts.tasks.completed}/${statusline.counts.tasks.total}`,
+    `runtime=${statusline.runtimeHealth}`,
+    `test=${statusline.testHealth}`,
+    `team=${statusline.teamHealth}:${statusline.counts.teamSessions}`,
+    `tokens=${statusline.tokenHealth}`,
+    `context=${statusline.contextLoad}:${statusline.contextAction}`,
+    `subagents=${statusline.subagentHealth}:${statusline.counts.subagentDispatches}`,
+    `risk=high:${statusline.taskRisk.highRiskTasks.length},source:${statusline.taskRisk.sourceBoundaryTasks.length},ctx:${statusline.taskRisk.contextRiskTasks.length},tok:${statusline.taskRisk.tokenRiskTasks.length},perf:${statusline.taskRisk.performanceRiskTasks.length}`,
+    `evidence=${statusline.evidenceHealth}:${statusline.counts.artifactIngestions}`,
+    `run=${statusline.latestRunId ?? 'none'}`,
+    `next=${statusline.next}`
+  ].join(' | ');
 }
 
 export function renderRunList(runs: RunSummary[]): string {
@@ -159,56 +187,87 @@ export function renderRunInspection(inspection: RunInspection): string {
 
 export function renderSyncBackInspection(inspection: SyncBackInspection): string {
   const taskId = inspection.taskId ?? 'n/a';
-  const currentStatus = inspection.markdownStatus ?? 'n/a';
-  const lines = [`Sync-back ${inspection.status} for ${inspection.runId}/${taskId}`];
-  lines.push(`branch=${inspection.branch}`);
-  lines.push(`target_tasks_path=${inspection.targetTasksPath}`);
-  lines.push(`target_update=task ${taskId} status ${currentStatus} -> completed`);
-  lines.push(`proposal=${inspection.proposalPath ?? 'none'}`);
-  lines.push(`proposal_digest_valid=${inspection.proposalDigestValid === null ? 'n/a' : inspection.proposalDigestValid}`);
-  lines.push(`run_task_status=${inspection.runTaskStatus ?? 'n/a'} markdown_status=${currentStatus}`);
-  lines.push(`artifacts=${inspection.artifacts.join(',') || 'none'}`);
-  if (inspection.reasons.length > 0) {
-    lines.push('reasons');
-    for (const reason of inspection.reasons) {
-      lines.push(`- ${reason}`);
-    }
-  }
-  renderWorkflowDocumentGaps(lines, inspection.gaps);
-  lines.push(`apply_policy=${inspection.applyPolicy.mode} approval_required=${inspection.applyPolicy.requiresApproval}`);
-  for (const reason of inspection.applyPolicy.reasons) {
-    lines.push(`- policy: ${reason}`);
-  }
-  lines.push('apply_effects');
-  lines.push('- write target task block in tasks.md to completed');
-  lines.push('- append sync-back implementation note from proposal/evidence');
-  lines.push('- mark run sync_back state applied');
-  lines.push('- rebuild local run index');
-  if (inspection.status === 'ready') {
-    const approvedFlag = inspection.applyPolicy.requiresApproval ? ' --approved' : '';
-    lines.push(`next sdd sync-back apply ${inspection.runId} --branch ${inspection.branch} --task ${taskId}${approvedFlag}`);
-  }
+  const lines = [`SDD sync-back ${taskId}`];
+  lines.push('');
+  lines.push(syncBackResultSentence(inspection));
+  lines.push('');
+  lines.push('Why:');
+  lines.push(`- ${primarySyncBackReason(inspection)}`);
+  lines.push('');
+  lines.push('Next:');
+  lines.push(`- ${nextSyncBackAction(inspection)}`);
   return lines.join('\n');
 }
 
 export function renderSyncBackApplyResult(result: SyncBackApplyResult): string {
   const inspection = result.inspection;
   const taskId = inspection.taskId ?? result.taskId;
-  const lines = [result.message];
-  lines.push(`run_id=${result.runId}`);
-  lines.push(`branch=${inspection.branch}`);
-  lines.push(`task_id=${taskId}`);
-  lines.push(`target_tasks_path=${result.tasksPath}`);
-  lines.push(`target_update=task ${taskId} status ${inspection.markdownStatus ?? 'n/a'}`);
-  lines.push(`proposal=${inspection.proposalPath ?? 'none'}`);
-  lines.push(`artifacts=${inspection.artifacts.join(',') || 'none'}`);
-  lines.push(`applied=${result.applied}`);
-  lines.push(`sync_back=${inspection.status}`);
-  lines.push('applied_effects');
-  lines.push('- target tasks.md task block is completed');
-  lines.push('- sync-back implementation note is present in tasks.md');
-  lines.push('- run sync_back state is applied');
-  lines.push('- local run index was rebuilt');
+  const lines = [`SDD sync-back apply ${taskId}`];
+  lines.push('');
+  lines.push(result.applied ? 'Sync-back applied.' : 'Sync-back was not applied.');
+  lines.push('');
+  lines.push('Why:');
+  lines.push(`- ${result.applied ? `Task status and sync-back note were written to ${result.tasksPath}.` : result.message}`);
+  lines.push('');
+  lines.push('Next:');
+  lines.push(`- ${result.applied ? `Run sdd ship --dry-run --branch ${inspection.branch} when branch readiness should be checked.` : nextSyncBackAction(inspection)}`);
+  return lines.join('\n');
+}
+
+function syncBackResultSentence(inspection: SyncBackInspection): string {
+  if (inspection.status === 'blocked') {
+    return 'Blocked before applying sync-back.';
+  }
+  if (inspection.applyPolicy.requiresApproval) {
+    return 'Sync-back is ready and needs review before apply.';
+  }
+  return 'Sync-back is ready to apply.';
+}
+
+function primarySyncBackReason(inspection: SyncBackInspection): string {
+  if (inspection.reasons.length > 0) {
+    return inspection.reasons[0];
+  }
+  if (inspection.staleVerifyRecoveryCommand) {
+    return `verify.md is stale for ${inspection.taskId ?? inspection.runId}.`;
+  }
+  if (inspection.gaps.length > 0) {
+    return inspection.gaps[0].message;
+  }
+  if (inspection.applyPolicy.reasons.length > 0) {
+    return inspection.applyPolicy.reasons[0];
+  }
+  if (inspection.applyPolicy.requiresApproval) {
+    return 'The task can be synced back, but the apply policy requires review first.';
+  }
+  return 'Validation evidence and sync-back proposal are ready for this task.';
+}
+
+function nextSyncBackAction(inspection: SyncBackInspection): string {
+  if (inspection.staleVerifyRecoveryCommand) {
+    return inspection.staleVerifyRecoveryCommand;
+  }
+  if (inspection.status === 'ready') {
+    const approvedFlag = inspection.applyPolicy.requiresApproval ? ' --approved' : '';
+    const command = `sdd sync-back apply ${inspection.runId} --branch ${inspection.branch} --task ${inspection.taskId ?? 'TASK'}${approvedFlag}`;
+    return inspection.applyPolicy.requiresApproval
+      ? `Review ${inspection.proposalPath ?? 'the sync-back proposal'} and apply policy, then run ${command}.`
+      : `Run ${command}.`;
+  }
+  return inspection.approvalCard.nextAction;
+}
+
+export function renderShipResult(result: ShipResult): string {
+  const blockedCheck = result.checks.find((check) => check.status === 'BLOCKED');
+  const lines = [`SDD ship ${result.branch}`];
+  lines.push('');
+  lines.push(result.status === 'PASS' ? (result.dryRun ? 'Ship dry-run passed.' : 'Ship completed.') : 'Blocked before ship.');
+  lines.push('');
+  lines.push('Why:');
+  lines.push(`- ${blockedCheck?.message ?? 'All ship readiness checks passed.'}`);
+  lines.push('');
+  lines.push('Next:');
+  lines.push(`- ${blockedCheck?.nextAction ?? result.nextActions[0] ?? 'No ship action is required.'}`);
   return lines.join('\n');
 }
 

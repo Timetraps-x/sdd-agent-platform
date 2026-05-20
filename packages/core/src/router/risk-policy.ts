@@ -1,31 +1,33 @@
 import type { LifecycleAutonomyCeiling } from '../lifecycle/decision-gate.js';
 import type { SddTask } from '../sdd-docs/task-parser.js';
+import { buildTaskRiskProfile } from '../task-risk-profile.js';
 
 export function taskAutonomyCeiling(task: SddTask): LifecycleAutonomyCeiling {
   const declared = task.autonomy?.trim();
   if (declared === 'direct_execution_allowed' || declared === 'compact_boundary_only' || declared === 'full_sdd_with_checkpoint' || declared === 'research_before_implementation') {
     return declared;
   }
-  if (hasExternalUnknownRisk(task.risk)) {
+  const profile = buildTaskRiskProfile(task);
+  if (profile.externalUnknown) {
     return 'research_before_implementation';
   }
-  if (isHighRiskValues(task.risk)) {
+  if (profile.riskLevel === 'high') {
     return 'full_sdd_with_checkpoint';
   }
-  if (task.risk.length > 0) {
+  if (profile.riskLevel === 'medium') {
     return 'compact_boundary_only';
   }
   return 'direct_execution_allowed';
 }
 
 export function hasSecurityRisk(risk: string[]): boolean {
-  return risk.some((item) => /security|auth|token|secret|permission|sql_injection|注入|安全/i.test(item));
+  return buildTaskRiskProfile({ id: null, risk, affectedFiles: [], validation: [], requiredArtifacts: [] }).securitySensitive;
 }
 
 export function hasExternalUnknownRisk(risk: string[]): boolean {
-  return risk.some((item) => /external_unknown|external|third.?party|unknown|外部|未知/i.test(item));
+  return buildTaskRiskProfile({ id: null, risk, affectedFiles: [], validation: [], requiredArtifacts: [] }).externalUnknown;
 }
 
 export function isHighRiskValues(risk: string[]): boolean {
-  return risk.some((item) => /state[-_]?machine|concurrency|database|data[-_]?loss|sql|security|api[-_]?schema|ci[-_]?build|external[-_]?unknown|迁移|并发|数据库|安全/i.test(item));
+  return buildTaskRiskProfile({ id: null, risk, affectedFiles: [], validation: [], requiredArtifacts: [] }).riskLevel === 'high';
 }

@@ -37,13 +37,13 @@ sdd status --branch <branch>
 常规周期：
 
 ```text
-用户意图 -> sdd status -> recommended next command -> 必要时补 spec/plan/tasks -> 选择一个 task -> 实现/证据 -> do/verify -> sync-back inspect -> 按 apply_policy 写回或等待确认
+用户意图 -> sdd status -> recommended next command -> 必要时补 spec/plan/tasks -> 选择一个 task -> 实现/证据 -> do/test -> sync-back inspect -> 按 apply_policy 写回或等待确认
 ```
 
 大任务生命周期是治理模型，不是每次都要完整跑：
 
 ```text
-spec -> plan -> tasks(multiple waves) -> graph inspect -> wave inspect -> task-by-task do/verify -> sync-back
+spec -> plan -> tasks(multiple waves) -> graph inspect -> wave inspect -> task-by-task do/test -> sync-back
 ```
 
 小任务应该走 direct/compact 的最短安全路径。
@@ -57,7 +57,7 @@ spec -> plan -> tasks(multiple waves) -> graph inspect -> wave inspect -> task-b
 1. 运行 `sdd status`。
 2. 默认只向用户报告 workflow status、blocker/current task 和 recommended next command；只有用户要求细节时再展开 documents、task counts、latest run 或 gaps。
 3. 如果指向 task，运行 `sdd tasks inspect <task_id>`，并只摘录 Boundary、Acceptance、validation 和 blocking gaps。
-4. 如果指向 verify 或 sync-back，使用 status/recommended command 里的 branch/task。
+4. 如果指向 test、verify 或 sync-back，使用 status/recommended command 里的 branch/task。
 5. 如果指向 sync-back，运行 `sdd sync-back inspect --task <task_id>`，必要时加 `--branch <branch>` 或 run id，并报告 `apply_policy`。
 
 不应做：
@@ -163,17 +163,17 @@ sdd do task <task_id> --branch <branch> --run <run_id> \
 - evidence 不足时标 PASS。
 - 直接运行 background executor 替代用户主路径，除非用户明确要求。
 
-## 7. `/sdd:verify`
+## 7. `/sdd:test` 与低层 `sdd verify task`
 
-用于 goal-level acceptance coverage verify。
+`/sdd:test` 是主运行时门禁：执行验证命令、评估 acceptance evidence coverage，并给出一个统一 PASS / FAIL / BLOCKED 判断。低层 `sdd verify task` 只保留给兼容诊断、旧 run replay 或 CI，不再投影成 slash 用户入口。
 
 推荐流程：
 
 ```bash
 sdd status --branch <branch>
-sdd instructions verify --json
-sdd artifact validate <run_id> artifacts/validation-<task_id>.md --task <task_id> --agent validator
-sdd verify task <task_id> --branch <branch> --run <run_id>
+sdd instructions test --json
+sdd verifies inspect --branch <branch>
+sdd test task <task_id> --branch <branch>
 sdd sync-back inspect <run_id> --branch <branch> --task <task_id>
 ```
 
@@ -219,18 +219,29 @@ sdd sync-back apply <run_id> --branch <branch> --task <task_id> --approved
 
 不要自己把“复杂任务确认”解释成已经获批；必须有用户明确确认。
 
-## 9. doctor / archive / update
+## 9. 前台 subagent 结果消费边界
+
+`sdd subagents run` 可以用于旁路观察、调研或代码分析。AI 操作者应优先消费 `agents[].digest`，只有 digest 提示需要深读时才打开 `doNotReadUnlessNeededRefs` 指向的完整 artifact。
+
+要求：
+
+- digest 是 non-authoritative guidance，只能用于 summary / diagnostic。
+- `summaryRefs` 是 projection refs，不要当成 PASS evidence。
+- `doNotReadUnlessNeededRefs` 指向完整 artifact，可用于人工或主 agent 深读。
+- subagent 不能 approve、sync-back、ship、stage completion 或最终风险判断。
+
+## 10. doctor / archive / update
 
 正常健康检查：
 
 ```bash
-sdd doctor
+sdd doctor fast --branch <branch>
 ```
 
-只检查当前最新 run：
+需要更深检查时：
 
 ```bash
-sdd doctor --latest-only
+sdd doctor deep --branch <branch>
 ```
 
 检查 generated entries：
@@ -251,7 +262,7 @@ sdd doctor --all-runs
 sdd run archive <run_id> --reason <text>
 ```
 
-## 10. 高级能力边界
+## 11. 高级能力边界
 
 这些不是普通用户主路径：
 
@@ -264,7 +275,7 @@ sdd run archive <run_id> --reason <text>
 
 只有在用户明确要求平台能力验证、wave/background/worktree 或治理评估时才使用。
 
-## 11. 输出给用户时应说明什么
+## 12. 输出给用户时应说明什么
 
 每次操作结束，报告：
 

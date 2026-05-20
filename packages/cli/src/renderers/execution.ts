@@ -1,4 +1,5 @@
 import type { BackgroundExecutorInspection, BackgroundExecutorResult } from '@sdd-agent-platform/core/execution';
+import type { ForegroundSubagentRunResult } from '@sdd-agent-platform/core/execution';
 import type { ResidentWorkerRuntimeClaimResult, ResidentWorkerRuntimeHeartbeatResult, ResidentWorkerRuntimeInspection, ResidentWorkerRuntimeList } from '@sdd-agent-platform/core/execution';
 import type { WaveExecutorInspection, WaveExecutorResult } from '@sdd-agent-platform/core/execution';
 import { renderIssues } from './issues.js';
@@ -8,8 +9,39 @@ export function renderBackgroundExecutorResult(result: BackgroundExecutorResult)
   lines.push(`version=${result.version}`);
   lines.push(`run=${result.runId} delegation=${result.delegationId ?? 'n/a'} queue=${result.queueItemId ?? 'n/a'} worker=${result.workerAdapterId}`);
   lines.push(`artifact=${result.artifactPath ?? 'pending'}`);
+  if (result.hostInvocation) {
+    lines.push(`host_exit=${result.hostInvocation.exitCode ?? 'null'} timed_out=${result.hostInvocation.timedOut} stdout_bytes=${result.hostInvocation.stdoutBytes} stderr_bytes=${result.hostInvocation.stderrBytes}`);
+  }
   lines.push(result.message);
   renderIssues(lines, result.issues);
+  return lines.join('\n');
+}
+
+export function renderForegroundSubagentRunResult(result: ForegroundSubagentRunResult): string {
+  const lines = [`Foreground subagents ${result.status} for ${result.taskId}`];
+  lines.push(`run=${result.runId} branch=${result.branch} agents=${result.agents.length}`);
+  lines.push(`summary_refs=${result.summaryRefs.length} deep_read_refs=${result.doNotReadUnlessNeededRefs.length}`);
+  lines.push(result.message);
+  for (const agent of result.agents) {
+    lines.push(`- ${agent.agent}: ${agent.status} delegation=${agent.delegationId} artifact=${agent.artifactPath ?? 'none'}`);
+    if (agent.digest) {
+      lines.push(`  digest=${agent.digest.summary}`);
+      for (const finding of agent.digest.keyFindings.slice(0, 3)) {
+        lines.push(`  finding=${finding}`);
+      }
+      if (agent.digest.recommendation) {
+        lines.push(`  recommendation=${agent.digest.recommendation}`);
+      }
+      for (const ref of agent.digest.deepReadRefs) {
+        lines.push(`  deep_read=${ref.ref}`);
+      }
+    }
+    if (agent.hostInvocation) {
+      lines.push(`  host_exit=${agent.hostInvocation.exitCode ?? 'null'} timed_out=${agent.hostInvocation.timedOut} stdout_bytes=${agent.hostInvocation.stdoutBytes} stderr_bytes=${agent.hostInvocation.stderrBytes}`);
+    }
+    renderIssues(lines, agent.issues.map((issue) => ({ field: `${agent.agent}.${issue.field}`, message: issue.message, recommendation: issue.recommendation })));
+  }
+  lines.push('note=foreground subagents collect non-authoritative evidence only; they do not approve, sync-back, or ship.');
   return lines.join('\n');
 }
 

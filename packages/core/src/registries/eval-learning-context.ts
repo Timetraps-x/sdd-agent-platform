@@ -103,7 +103,7 @@ const HARNESS_LEARNING_SINKS: HarnessLearningSink[] = [
   { id: 'generated_entry_guidance', output: 'Managed command or skill wording update.', boundary: 'Must remain sdd-managed and refresh through update rather than user-file overwrite.' }
 ];
 
-const HARNESS_LEARNING_FORBIDDEN_OUTPUTS = ['self-modifying runtime', 'hidden background automation', 'unapproved sync-back apply', 'replacement of .sdd/project.yml/specs/runs/artifacts as source of truth'];
+const HARNESS_LEARNING_FORBIDDEN_OUTPUTS = ['self-modifying runtime', 'hidden background automation', 'unapproved sync-back apply', 'replacement of .sdd/project.yml/specs/runtime.sqlite/branch evidence as source of truth'];
 
 const PROJECT_CONTEXT_PACK: ProjectContextPackContract = {
   version: PROJECT_CONTEXT_PACK_CONTRACT_VERSION,
@@ -116,8 +116,8 @@ const PROJECT_CONTEXT_PACK: ProjectContextPackContract = {
   runtimeSourcesOfTruth: [
     '.sdd/project.yml for project configuration',
     'specs/<branch>/spec.md, plan.md, and tasks.md for semantic state',
-    '.sdd/runs/<run_id>/state.json and events.jsonl for runtime execution facts',
-    '.sdd/runs/<run_id>/artifacts/*.md for agent and validation evidence'
+    '.sdd/runtime.sqlite for runtime execution facts',
+    '.sdd/runs/<branchSlug>/evidence/artifacts/*.md for agent and validation evidence'
   ],
   boundaries: [
     'Context pack may prime future sessions but cannot mark tasks complete.',

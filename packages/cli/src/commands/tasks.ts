@@ -61,7 +61,7 @@ export async function handleTasksCommand(projectRoot: string, command: string | 
     if (!taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd tasks route <task_id> [--branch <branch>] [--team-mode [auto|force|off]] [--no-team-mode] [--profile] [--cache] [--json]'
+        error: 'Usage: sdd tasks route <task_id> [--branch <branch>] [--team-mode [auto|force|off]] [--no-team-mode] [--profile] [--cache] [--approved] [--json]'
       };
     }
     const decision = await routeSddTask(projectRoot, {
@@ -70,6 +70,7 @@ export async function handleTasksCommand(projectRoot: string, command: string | 
       teamModeActivation: readTeamModeActivation(rest),
       profile: rest.includes('--profile'),
       cache: rest.includes('--cache'),
+      approved: rest.includes('--approved'),
     });
     return {
       exitCode: decision.blockedReason ? 1 : 0,

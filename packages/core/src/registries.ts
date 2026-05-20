@@ -1,5 +1,7 @@
 export * from './registries/agent-registry.js';
 export * from './registries/agent-runtime-static.js';
+export * from './registries/agent-capability-catalog.js';
+export * from './registries/command-team-runtime.js';
 export * from './registries/capability-sources.js';
 export * from './registries/skill-capabilities.js';
 export * from './registries/tool-capabilities.js';

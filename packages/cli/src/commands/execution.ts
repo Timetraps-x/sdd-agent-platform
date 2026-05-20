@@ -1,4 +1,5 @@
 import { inspectBackgroundExecutor, runBackgroundExecutor } from '@sdd-agent-platform/core/execution';
+import { runForegroundSubagents } from '@sdd-agent-platform/core/execution';
 import { claimResidentWorkerRuntime, heartbeatResidentWorkerRuntime, inspectResidentWorkerRuntime, listResidentWorkerRuntimes } from '@sdd-agent-platform/core/execution';
 import { inspectWaveExecutor, runWaveExecutor } from '@sdd-agent-platform/core/execution';
 import { inspectTaskGraph } from '@sdd-agent-platform/core/planning';
@@ -7,7 +8,7 @@ import { inspectWorktreeIsolation } from '@sdd-agent-platform/core/worktree';
 import { createWorktreeLifecycle, inspectWorktreeLifecycle, keepWorktreeLifecycle, removeWorktreeLifecycle } from '@sdd-agent-platform/core/worktree';
 import { readBranchOption, readTaskArtifactOptions, readWaveExecutorStrategy } from '../args.js';
 import { readOption, readPositiveIntegerOption, readRepeatedOptions } from '../options.js';
-import { renderBackgroundExecutorInspection, renderBackgroundExecutorResult, renderResidentWorkerRuntimeClaimResult, renderResidentWorkerRuntimeHeartbeatResult, renderResidentWorkerRuntimeInspection, renderResidentWorkerRuntimeList, renderWaveExecutorInspection, renderWaveExecutorResult } from '../renderers/execution.js';
+import { renderBackgroundExecutorInspection, renderBackgroundExecutorResult, renderForegroundSubagentRunResult, renderResidentWorkerRuntimeClaimResult, renderResidentWorkerRuntimeHeartbeatResult, renderResidentWorkerRuntimeInspection, renderResidentWorkerRuntimeList, renderWaveExecutorInspection, renderWaveExecutorResult } from '../renderers/execution.js';
 import { renderTaskGraphPlan, renderWavePlan } from '../renderers/planning.js';
 import { renderWorktreeIsolationDecision, renderWorktreeLifecycleInspection, renderWorktreeLifecycleRecord } from '../renderers/worktree.js';
 
@@ -95,12 +96,35 @@ export async function handleExecutionCommand(projectRoot: string, command: strin
     };
   }
 
+  if (command === 'subagents' && subcommand === 'run') {
+    const taskId = rest[0] && !rest[0].startsWith('--') ? rest[0] : null;
+    const agents = readRepeatedOptions(rest, '--agent');
+    if (!taskId || agents.length === 0) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd subagents run <task_id> [--agent <agent>]... [--branch <branch>] [--run <run_id>] [--timeout-seconds <n>] [--approved] [--json|--compact-json]'
+      };
+    }
+    const result = await runForegroundSubagents(projectRoot, {
+      branch: readBranchOption(rest),
+      runId: readOption(rest, '--run') ?? undefined,
+      taskId,
+      agents,
+      timeoutSeconds: readPositiveIntegerOption(rest, '--timeout-seconds') ?? undefined,
+      approved: rest.includes('--approved')
+    });
+    return {
+      exitCode: result.status === 'completed' ? 0 : 1,
+      output: rest.includes('--json') || rest.includes('--compact-json') ? JSON.stringify(result, null, rest.includes('--compact-json') ? 0 : 2) : renderForegroundSubagentRunResult(result)
+    };
+  }
+
   if (command === 'background' && subcommand === 'run') {
     const taskId = rest[0];
     if (!taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd background run <task_id> [--run <run_id>] [--agent <agent>] [--worker <adapter_id>] [--artifact <path>] [--branch <branch>] [--json]'
+        error: 'Usage: sdd background run <task_id> [--run <run_id>] [--agent <agent>] [--worker <adapter_id>] [--artifact <path>] [--timeout-seconds <n>] [--approved] [--branch <branch>] [--json]'
       };
     }
     const result = await runBackgroundExecutor(projectRoot, {
@@ -110,7 +134,9 @@ export async function handleExecutionCommand(projectRoot: string, command: strin
       agent: readOption(rest, '--agent') ?? undefined,
       workerAdapterId: readOption(rest, '--worker') ?? undefined,
       artifactPath: readOption(rest, '--artifact') ?? undefined,
-      delegationId: readOption(rest, '--delegation') ?? undefined
+      delegationId: readOption(rest, '--delegation') ?? undefined,
+      timeoutSeconds: readPositiveIntegerOption(rest, '--timeout-seconds') ?? undefined,
+      approved: rest.includes('--approved')
     });
     return {
       exitCode: result.status === 'blocked' || result.status === 'failed' ? 1 : 0,

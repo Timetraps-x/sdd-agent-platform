@@ -1,16 +1,18 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { getArtifactPath, getRunRelativeArtifactPath, normalizeArtifactRootRelativePath } from '../runtime-paths.js';
-import { runtimeScopedId, withRuntimeStore } from '../storage/runtime-store.js';
+import { getArtifactPath, getEvidenceAttachmentPath, getRunRelativeArtifactPath, normalizeArtifactRootRelativePath } from '../runtime-paths.js';
+import { readRuntimeRunState, recordRuntimeEvidenceAttachment, runtimeScopedId, withRuntimeStore } from '../storage/runtime-store.js';
+import { exists } from '../storage/json-io.js';
 import { appendArtifactHashLedgerEntry } from './invocation-ledger.js';
 
 export async function writeArtifact(projectRoot: string, runId: string, artifactRootRelativePath: string, content: string): Promise<{ absolutePath: string; runRelativePath: string }> {
   const normalized = normalizeArtifactRootRelativePath(artifactRootRelativePath);
-  const absolutePath = getArtifactPath(projectRoot, runId, normalized);
+  const runRelativePath = getRunRelativeArtifactPath(normalized);
+  const branchSlug = await resolveRunBranchSlug(projectRoot, runId);
+  const absolutePath = getEvidenceAttachmentPath(projectRoot, branchSlug, runRelativePath);
   await mkdir(path.dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, content, 'utf8');
-  const runRelativePath = getRunRelativeArtifactPath(normalized);
   await appendArtifactHashLedgerEntry(projectRoot, {
     runId,
     artifactPath: runRelativePath,
@@ -18,11 +20,26 @@ export async function writeArtifact(projectRoot: string, runId: string, artifact
     status: 'written'
   });
   await recordRuntimeArtifact(projectRoot, { runId, path: runRelativePath, content, status: 'written' });
+  await recordRuntimeEvidenceAttachment(projectRoot, {
+    branchSlug,
+    runId,
+    kind: artifactKind(runRelativePath),
+    relativePath: runRelativePath,
+    contentHash: hashDocumentContent(content),
+    bytes: Buffer.byteLength(content, 'utf8'),
+    payload: { artifactPath: runRelativePath, status: 'written' }
+  });
   return { absolutePath, runRelativePath };
 }
 
 export async function readArtifact(projectRoot: string, runId: string, artifactRootRelativePath: string): Promise<string> {
-  return readFile(getArtifactPath(projectRoot, runId, normalizeArtifactRootRelativePath(artifactRootRelativePath)), 'utf8');
+  const normalized = normalizeArtifactRootRelativePath(artifactRootRelativePath);
+  const runRelativePath = getRunRelativeArtifactPath(normalized);
+  const evidencePath = getEvidenceAttachmentPath(projectRoot, await resolveRunBranchSlug(projectRoot, runId), runRelativePath);
+  if (await exists(evidencePath)) {
+    return readFile(evidencePath, 'utf8');
+  }
+  return readFile(getArtifactPath(projectRoot, runId, normalized), 'utf8');
 }
 
 export function artifactKind(artifactPath: string): string {
@@ -56,6 +73,11 @@ async function recordRuntimeArtifact(projectRoot: string, input: { runId: string
     db.prepare('INSERT OR REPLACE INTO artifacts (artifact_id, run_id, path, kind, task_id, agent, content_hash, bytes, status, created_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(runtimeScopedId(input.runId, input.path, contentHash), input.runId, input.path, artifactKind(input.path), input.taskId ?? null, input.agent ?? null, contentHash, Buffer.byteLength(input.content, 'utf8'), input.status, now, payload);
   });
+}
+
+async function resolveRunBranchSlug(projectRoot: string, runId: string): Promise<string> {
+  const state = await readRuntimeRunState(projectRoot, runId);
+  return state?.gitBranch ?? state?.partition ?? 'unscoped';
 }
 
 function hashDocumentContent(raw: string): string {

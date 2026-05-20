@@ -1,11 +1,17 @@
+import { decideCommandTeamRuntime, inspectAgentCapabilityCatalog, inspectCommandTeamRuntime, validateAgentCapabilityCatalog, validateCommandTeamRuntime } from '@sdd-agent-platform/core/registries';
 import { inspectAgentSkillTeamRuntime, inspectCapabilitySource, inspectExternalAgentPackImport, inspectSkillCapability, inspectTeamModePolicy, listCapabilitySources, listSkillCapabilities, validateAgentSkillTeamRuntime } from '@sdd-agent-platform/core/router';
 import { readBranchOption, readTeamModeActivation } from '../../args.js';
-import { readOption } from '../../options.js';
+import { readOption, readRepeatedOptions } from '../../options.js';
 import {
+  renderAgentCapabilityCatalog,
+  renderAgentCapabilityCatalogValidation,
   renderAgentSkillTeamRuntimeInspection,
   renderAgentSkillTeamRuntimeValidation,
   renderCapabilitySourceInspect,
   renderCapabilitySourceList,
+  renderCommandTeamRuntimeDecision,
+  renderCommandTeamRuntimeInspection,
+  renderCommandTeamRuntimeValidation,
   renderExternalAgentPackImportInspection,
   renderSkillCapabilityInspect,
   renderSkillCapabilityList,
@@ -27,6 +33,57 @@ export async function handleRegistryRuntimeCommand(projectRoot: string, command:
     return {
       exitCode: result.valid ? 0 : 1,
       output: rest.includes('--json') ? JSON.stringify(result, null, 2) : renderAgentSkillTeamRuntimeValidation(result)
+    };
+  }
+
+  if (command === 'agent-capabilities' && subcommand === 'list') {
+    const catalog = await inspectAgentCapabilityCatalog(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(catalog, null, 2) : renderAgentCapabilityCatalog(catalog)
+    };
+  }
+
+  if (command === 'agent-capabilities' && subcommand === 'validate') {
+    const validation = await validateAgentCapabilityCatalog(projectRoot);
+    return {
+      exitCode: validation.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(validation, null, 2) : renderAgentCapabilityCatalogValidation(validation)
+    };
+  }
+
+  if (command === 'command-team' && subcommand === 'inspect') {
+    const inspection = await inspectCommandTeamRuntime(projectRoot);
+    return {
+      exitCode: 0,
+      output: rest.includes('--json') ? JSON.stringify(inspection, null, 2) : renderCommandTeamRuntimeInspection(inspection)
+    };
+  }
+
+  if (command === 'command-team' && subcommand === 'validate') {
+    const validation = await validateCommandTeamRuntime(projectRoot);
+    return {
+      exitCode: validation.valid ? 0 : 1,
+      output: rest.includes('--json') ? JSON.stringify(validation, null, 2) : renderCommandTeamRuntimeValidation(validation)
+    };
+  }
+
+  if (command === 'command-team' && subcommand === 'decide') {
+    const commandOption = readOption(rest, '--command');
+    if (!commandOption) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd command-team decide --command <command> [--risk <tag>] [--team-mode auto|force|off] [--json]'
+      };
+    }
+    const decision = await decideCommandTeamRuntime(projectRoot, {
+      command: commandOption as Parameters<typeof decideCommandTeamRuntime>[1]['command'],
+      activation: readTeamModeActivation(rest),
+      riskTags: readRepeatedOptions(rest, '--risk')
+    });
+    return {
+      exitCode: decision.mode === 'blocked' ? 1 : 0,
+      output: rest.includes('--json') ? JSON.stringify(decision, null, 2) : renderCommandTeamRuntimeDecision(decision)
     };
   }
 

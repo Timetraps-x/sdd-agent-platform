@@ -62,3 +62,9 @@ Phase 7 收敛 core runtime 模块边界时，需要先有稳定的 context pack
 - Command output summary contract。
 - Non-authoritative log worker boundary。
 - Budget regression thresholds。
+
+## 8. 状态
+
+- status: `completed`
+- completion evidence: `../phase6.10-validation.md`、`../phase6.10-tasks.md`、runs `20260512-008` through `20260512-016`、`phases/PHASE_STATUS.md`。
+- downstream gate: Phase 7.0 已可基于 Phase 6.10 的 context budget / evidence summary / log worker 非权威边界继续推进。

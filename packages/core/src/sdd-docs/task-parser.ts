@@ -15,6 +15,12 @@ export interface SddTaskSourceLocation {
   lineEnd: number;
 }
 
+export interface SddValidationCommand {
+  command: string;
+  acceptanceRefs: string[];
+  raw: string;
+}
+
 export interface SddTask {
   id: string;
   title: string | null;
@@ -23,6 +29,7 @@ export interface SddTask {
   dependsOn: string[];
   affectedFiles: string[];
   validation: string[];
+  validationCommands: SddValidationCommand[];
   risk: string[];
   acceptanceRefs: string[];
   planRefs: string[];
@@ -54,17 +61,22 @@ export interface SddTaskModel {
   specPath: string;
   planPath: string;
   tasksPath: string;
+  verifyPath: string;
   documents: {
     specExists: boolean;
     planExists: boolean;
     tasksExists: boolean;
+    verifyExists: boolean;
     specHash?: string | null;
     planHash?: string | null;
     tasksHash?: string | null;
+    verifyHash?: string | null;
     planBasedOnSpecHash?: string | null;
     tasksBasedOnPlanHash?: string | null;
+    verifyBasedOnTasksHash?: string | null;
     planStale?: boolean;
     tasksStale?: boolean;
+    verifyStale?: boolean;
   };
   tasks: SddTask[];
   gaps: SddTaskGap[];
@@ -75,13 +87,15 @@ export async function parseSddBranch(projectRoot: string, branch = 'master'): Pr
   const specPath = path.join(projectRoot, 'specs', branch, 'spec.md');
   const planPath = path.join(projectRoot, 'specs', branch, 'plan.md');
   const tasksPath = path.join(projectRoot, 'specs', branch, 'tasks.md');
-  const [specExists, planExists, tasksExists] = await Promise.all([exists(specPath), exists(planPath), exists(tasksPath)]);
-  const [rawSpec, rawPlan, rawTasks] = await Promise.all([
+  const verifyPath = path.join(projectRoot, 'specs', branch, 'verify.md');
+  const [specExists, planExists, tasksExists, verifyExists] = await Promise.all([exists(specPath), exists(planPath), exists(tasksPath), exists(verifyPath)]);
+  const [rawSpec, rawPlan, rawTasks, rawVerify] = await Promise.all([
     specExists ? readFile(specPath, 'utf8') : Promise.resolve(null),
     planExists ? readFile(planPath, 'utf8') : Promise.resolve(null),
-    tasksExists ? readFile(tasksPath, 'utf8') : Promise.resolve(null)
+    tasksExists ? readFile(tasksPath, 'utf8') : Promise.resolve(null),
+    verifyExists ? readFile(verifyPath, 'utf8') : Promise.resolve(null)
   ]);
-  const documents = buildDocumentChainState({ specExists, planExists, tasksExists, rawSpec, rawPlan, rawTasks });
+  const documents = buildDocumentChainState({ specExists, planExists, tasksExists, verifyExists, rawSpec, rawPlan, rawTasks, rawVerify });
   const gaps: SddTaskGap[] = [];
 
   if (documents.planStale) {
@@ -89,6 +103,9 @@ export async function parseSddBranch(projectRoot: string, branch = 'master'): Pr
   }
   if (documents.tasksStale) {
     gaps.push(documentGap('tasks.md', `Tasks document is stale because based_on_plan_hash ${documents.tasksBasedOnPlanHash} no longer matches current plan hash ${documents.planHash}.`, 'Re-run /sdd:tasks for this partition before executing implementation.'));
+  }
+  if (documents.verifyStale) {
+    gaps.push(documentGap('verify.md', `Verify document is stale because based_on_tasks_hash ${documents.verifyBasedOnTasksHash} no longer matches current tasks hash ${documents.tasksHash}.`, 'Run /sdd:test for this partition so the test gate can refresh or block on the verification contract.'));
   }
   if (!specExists) {
     gaps.push(documentGap('spec.md', 'Spec document is missing.', 'Create or restore specs/<branch>/spec.md before full SDD execution.'));
@@ -103,6 +120,7 @@ export async function parseSddBranch(projectRoot: string, branch = 'master'): Pr
       specPath,
       planPath,
       tasksPath,
+      verifyPath,
       documents,
       tasks: [],
       gaps
@@ -118,6 +136,7 @@ export async function parseSddBranch(projectRoot: string, branch = 'master'): Pr
         specPath,
         planPath,
         tasksPath,
+        verifyPath,
         documents,
         tasks: retainedModel.tasks,
         gaps: [...gaps, ...retainedModel.gaps]
@@ -129,6 +148,7 @@ export async function parseSddBranch(projectRoot: string, branch = 'master'): Pr
     specPath,
     planPath,
     tasksPath,
+    verifyPath,
     documents,
     tasks: taskModel.tasks,
     gaps: [...gaps, ...taskModel.gaps]
@@ -206,7 +226,8 @@ export function parseSddTasksMarkdown(raw: string, options: { branch?: string; t
       wave: parseWave(scalarValue(metadata.wave)),
       dependsOn: listValue(metadata.depends_on),
       affectedFiles: listValue(metadata.affected_files),
-      validation: listValue(metadata.validation),
+      validation: parseValidationCommands(metadata.validation).map((command) => command.command),
+      validationCommands: parseValidationCommands(metadata.validation),
       risk: listValue(metadata.risk),
       acceptanceRefs: listValue(metadata.acceptance_refs),
       planRefs: listValue(metadata.plan_refs),
@@ -234,27 +255,34 @@ export function parseSddTasksMarkdown(raw: string, options: { branch?: string; t
   return { tasks, gaps };
 }
 
-function buildDocumentChainState(input: { specExists: boolean; planExists: boolean; tasksExists: boolean; rawSpec: string | null; rawPlan: string | null; rawTasks: string | null }): SddTaskModel['documents'] {
+function buildDocumentChainState(input: { specExists: boolean; planExists: boolean; tasksExists: boolean; verifyExists: boolean; rawSpec: string | null; rawPlan: string | null; rawTasks: string | null; rawVerify: string | null }): SddTaskModel['documents'] {
   const specHash = input.rawSpec === null ? null : hashDocumentContent(input.rawSpec);
   const planHash = input.rawPlan === null ? null : hashDocumentContent(input.rawPlan);
   const tasksHash = input.rawTasks === null ? null : hashDocumentContent(input.rawTasks);
+  const verifyHash = input.rawVerify === null ? null : hashDocumentContent(input.rawVerify);
   const planBasedOnSpecHash = input.rawPlan === null ? null : readDocumentScalar(input.rawPlan, 'based_on_spec_hash');
   const tasksBasedOnPlanHash = input.rawTasks === null ? null : readDocumentScalar(input.rawTasks, 'based_on_plan_hash');
+  const verifyBasedOnTasksHash = input.rawVerify === null ? null : readDocumentScalar(input.rawVerify, 'based_on_tasks_hash');
 
   const planStale = Boolean(planBasedOnSpecHash && specHash && !documentHashMatches(planBasedOnSpecHash, specHash));
   const tasksHashMismatch = Boolean(tasksBasedOnPlanHash && planHash && !documentHashMatches(tasksBasedOnPlanHash, planHash));
+  const verifyHashMismatch = Boolean(verifyBasedOnTasksHash && tasksHash && !documentHashMatches(verifyBasedOnTasksHash, tasksHash));
 
   return {
     specExists: input.specExists,
     planExists: input.planExists,
     tasksExists: input.tasksExists,
+    verifyExists: input.verifyExists,
     specHash,
     planHash,
     tasksHash,
+    verifyHash,
     planBasedOnSpecHash,
     tasksBasedOnPlanHash,
+    verifyBasedOnTasksHash,
     planStale,
-    tasksStale: planStale || tasksHashMismatch
+    tasksStale: planStale || tasksHashMismatch,
+    verifyStale: planStale || tasksHashMismatch || verifyHashMismatch
   };
 }
 
@@ -382,6 +410,32 @@ function listValue(value: string | string[] | undefined): string[] {
     return [];
   }
   return [value];
+}
+
+function parseValidationCommands(value: string | string[] | undefined): SddValidationCommand[] {
+  return listValue(value).map(parseValidationCommand);
+}
+
+function parseValidationCommand(raw: string): SddValidationCommand {
+  const separator = raw.match(/\s=>\s/);
+  if (!separator || separator.index === undefined) {
+    return { command: raw, acceptanceRefs: [], raw };
+  }
+  const command = raw.slice(0, separator.index).trim();
+  const refsRaw = raw.slice(separator.index + separator[0].length).trim();
+  return {
+    command: command || raw,
+    acceptanceRefs: parseAcceptanceRefList(refsRaw),
+    raw
+  };
+}
+
+function parseAcceptanceRefList(raw: string): string[] {
+  const trimmed = raw.replace(/^\[/, '').replace(/\]$/, '').trim();
+  if (!trimmed) {
+    return [];
+  }
+  return trimmed.split(',').map((item) => unquoteSimpleYamlValue(item.trim())).filter(Boolean);
 }
 
 function lineNumberAt(raw: string, offset: number): number {

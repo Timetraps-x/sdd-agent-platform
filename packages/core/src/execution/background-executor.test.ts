@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -63,6 +63,39 @@ test('background executor ingests supplied artifact and reaches terminal state',
   }
 });
 
+test('claude code subagent worker spawns host process and ingests stdout artifact', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-background-claude-host-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', validTaskMarkdown('B1', []));
+    const hostScript = path.join(root, 'fake-claude-host.mjs');
+    await writeFile(hostScript, [
+      "const prompt = process.argv[2] ?? '';",
+      "if (!prompt.includes('Queue item id:')) process.exit(2);",
+      "process.stdout.write('# implementer result\\n\\n```sdd-result\\ncontract: sdd-result-v1\\nversion: 1.3.0\\nagent: implementer\\ntask: B1\\nstatus: PASS\\nartifacts:\\n  - artifacts/implementer-B1.md\\n```\\n');"
+    ].join('\n'), 'utf8');
+
+    const completed = await runBackgroundExecutor(root, {
+      taskId: 'B1',
+      workerAdapterId: 'claude-code-subagent-worker',
+      timeoutSeconds: 10,
+      hostInvocation: { command: process.execPath, args: [hostScript, '{prompt}'] }
+    });
+    const state = await readRunState(root, completed.runId);
+    const inspection = await inspectBackgroundExecutor(root, completed.runId);
+
+    assert.equal(completed.status, 'completed');
+    assert.equal(completed.hostInvocation?.exitCode, 0);
+    assert.equal(completed.hostInvocation?.artifactPath, 'artifacts/implementer-B1.md');
+    assert.equal(completed.ingestion?.delegationStatus, 'COMPLETED');
+    assert.equal(state.delegations['B-B1-implementer-001']?.status, 'COMPLETED');
+    assert.equal(inspection.terminalDelegations, 1);
+    assert.equal(inspection.artifactIngestions.length, 1);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('background executor blocks invalid artifact evidence instead of completing silently', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-background-invalid-'));
   try {
@@ -82,6 +115,34 @@ test('background executor blocks invalid artifact evidence instead of completing
     assert.equal(blocked.status, 'blocked');
     assert.equal(blocked.issues.length > 0, true);
     assert.equal(state.status, 'blocked');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('background executor requires approval for database manual gate and accepts approved artifact ingestion', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-background-approved-manual-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', validTaskMarkdown('B1', []).replace('risk: []', 'risk:\n  - database'));
+
+    const blocked = await runBackgroundExecutor(root, { taskId: 'B1' });
+    assert.equal(blocked.status, 'blocked');
+    assert.equal(blocked.issues.some((issue) => issue.field === 'isolation' && /manual isolation gate/.test(issue.message)), true);
+    assert.equal(blocked.issues.some((issue) => issue.field === 'governance.confirmation' && /database/.test(issue.message)), true);
+
+    const claimed = await runBackgroundExecutor(root, { taskId: 'B1', approved: true });
+    await writeArtifact(root, claimed.runId, 'implementer-B1.md', validResultArtifact('implementer', 'B1', 'PASS', 'artifacts/implementer-B1.md'));
+    const completed = await runBackgroundExecutor(root, {
+      runId: claimed.runId,
+      taskId: 'B1',
+      artifactPath: 'artifacts/implementer-B1.md',
+      approved: true
+    });
+
+    assert.equal(claimed.status, 'claimed');
+    assert.equal(completed.status, 'completed');
+    assert.equal(completed.ingestion?.delegationStatus, 'COMPLETED');
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -16,8 +16,10 @@ import { bindRunStateToTaskContext } from '../sdd-docs/run-binding.js';
 import { inspectSddTask } from '../sdd-docs/task-inspection.js';
 import { parseSddBranch } from '../sdd-docs/task-parser.js';
 import { routeSddTask } from '../router/route-sdd-task.js';
+import { ensureExecutionOrchestration, completeExecutionOrchestration } from '../orchestration/runtime.js';
 import { inspectWorktreeIsolation } from '../worktree/isolation.js';
 import { buildAgentExecutionRecord, writeAgentExecutionRecord } from './agent-execution-records.js';
+import { invokeClaudeCodeSubagentHost, type HostInvocationCommandOptions, type HostInvocationResult } from './host-invocation.js';
 
 export type BackgroundExecutorStatus = 'claimed' | 'completed' | 'failed' | 'blocked';
 
@@ -30,6 +32,8 @@ export interface BackgroundExecutorRunOptions {
   artifactPath?: string;
   delegationId?: string;
   timeoutSeconds?: number;
+  hostInvocation?: HostInvocationCommandOptions;
+  approved?: boolean;
 }
 
 export interface BackgroundExecutorResult {
@@ -42,6 +46,7 @@ export interface BackgroundExecutorResult {
   status: BackgroundExecutorStatus;
   artifactPath: string | null;
   ingestion: ArtifactResultIngestionRecord | null;
+  hostInvocation: HostInvocationResult | null;
   issues: ContractValidationIssue[];
   message: string;
 }
@@ -95,7 +100,7 @@ export async function runBackgroundExecutor(projectRoot: string, options: Backgr
     issues.push(contractIssue('workerAdapterId', `Worker adapter ${workerAdapterId} is manual handoff only.`, 'Use a runnable worker adapter for background executor claim/run/ingest.'));
   }
 
-  const route = await routeSddTask(projectRoot, { taskId: options.taskId, branch, agent });
+  const route = await routeSddTask(projectRoot, { taskId: options.taskId, branch, agent, approved: options.approved });
   if (!inspected.task || inspected.gaps.some((gap) => gap.severity === 'blocking')) {
     issues.push(...inspected.gaps.map((gap) => contractIssue(gap.field, gap.message, gap.recommendation)));
   }
@@ -107,9 +112,9 @@ export async function runBackgroundExecutor(projectRoot: string, options: Backgr
   }
 
   const decision = await inspectWorktreeIsolation(projectRoot, { branch, taskId: options.taskId, capabilityId: worker?.capabilityId ?? 'sdd-cli' });
-  if (decision.mode === 'blocked' || decision.mode === 'manual') {
+  if (decision.mode === 'blocked' || decision.mode === 'manual' && options.approved !== true) {
     for (const reason of decision.reasons) {
-      issues.push(contractIssue('isolation', reason, 'Resolve isolation gates or use explicit worktree/manual routing before running the background executor.'));
+      issues.push(contractIssue('isolation', reason, 'Resolve isolation gates or pass --approved after explicit user approval before running the background executor.'));
     }
   }
 
@@ -126,6 +131,7 @@ export async function runBackgroundExecutor(projectRoot: string, options: Backgr
     taskId: options.taskId,
     workerAdapterId,
     riskTags: inspected.task?.risk ?? [],
+    approved: options.approved,
     excludeQueueItemId: `${runId}:${delegationId}`
   });
   if (!governance.allowed) {
@@ -157,9 +163,21 @@ export async function runBackgroundExecutor(projectRoot: string, options: Backgr
       artifactPath: options.artifactPath ?? null,
       ingestion: null,
       issues,
+      hostInvocation: null,
       message: 'Background executor blocked before delegation claim.'
     };
   }
+
+  await ensureExecutionOrchestration(projectRoot, model, inspected.task ?? null, {
+    branch,
+    runId,
+    taskId: options.taskId,
+    agent,
+    workerKind: worker?.kind ?? null,
+    delegationId,
+    expectedArtifact,
+    dispatchBlocking: worker?.kind === 'claude_code_subagent'
+  });
 
   const delegation = existingDelegation ?? createDelegationRecord({
     delegationId,
@@ -196,7 +214,31 @@ export async function runBackgroundExecutor(projectRoot: string, options: Backgr
     evidenceSummary: `Background executor claimed ${delegationId}; host execution remains provenance until artifact ingestion.`
   }));
 
-  if (!options.artifactPath) {
+  let hostInvocation: HostInvocationResult | null = null;
+  let artifactPath = options.artifactPath ?? null;
+
+  if (!artifactPath && worker?.kind === 'claude_code_subagent') {
+    hostInvocation = await invokeClaudeCodeSubagentHost({
+      projectRoot,
+      runId,
+      taskId: options.taskId,
+      agent,
+      delegationId,
+      queueItemId: `${runId}:${delegationId}`,
+      expectedArtifact,
+      timeoutSeconds: options.timeoutSeconds,
+      commandOptions: options.hostInvocation
+    });
+    artifactPath = hostInvocation.artifactPath;
+    await appendEvent(projectRoot, runId, {
+      event: 'host_invocation_completed',
+      runId,
+      summary: `Host invocation completed for ${delegationId}`,
+      data: { delegationId, taskId: options.taskId, workerAdapterId, artifactPath, exitCode: hostInvocation.exitCode, signal: hostInvocation.signal, timedOut: hostInvocation.timedOut }
+    });
+  }
+
+  if (!artifactPath) {
     return {
       version: BACKGROUND_EXECUTOR_CONTRACT_VERSION,
       runId,
@@ -207,13 +249,27 @@ export async function runBackgroundExecutor(projectRoot: string, options: Backgr
       status: 'claimed',
       artifactPath: null,
       ingestion: null,
+      hostInvocation: null,
       issues: [],
       message: `Background executor claimed ${delegationId}; provide ${expectedArtifact} and rerun with --artifact to ingest terminal evidence.`
     };
   }
 
-  const ingestion = await ingestArtifactResult(projectRoot, runId, { delegationId, artifactPath: options.artifactPath });
+  const ingestion = await ingestArtifactResult(projectRoot, runId, { delegationId, artifactPath });
   const executorStatus = ingestion.valid ? ingestion.record.delegationStatus === 'COMPLETED' ? 'completed' : 'failed' : 'blocked';
+  await completeExecutionOrchestration(projectRoot, model, inspected.task ?? null, {
+    branch,
+    runId,
+    taskId: options.taskId,
+    agent,
+    workerKind: worker?.kind ?? null,
+    delegationId,
+    expectedArtifact,
+    artifactPath: ingestion.record.artifactPath,
+    resultStatus: ingestion.record.resultStatus,
+    completed: executorStatus === 'completed',
+    dispatchBlocking: worker?.kind === 'claude_code_subagent'
+  });
   const ingestedState = await readRunState(projectRoot, runId);
   await writeRunState(projectRoot, {
     ...ingestedState,
@@ -242,6 +298,7 @@ export async function runBackgroundExecutor(projectRoot: string, options: Backgr
     status: executorStatus,
     artifactPath: ingestion.record.artifactPath,
     ingestion: ingestion.record,
+    hostInvocation,
     issues: ingestion.record.issues,
     message: ingestion.valid ? `Background executor ingested terminal artifact for ${delegationId}.` : `Background executor artifact ingestion blocked for ${delegationId}.`
   };

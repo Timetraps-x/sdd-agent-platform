@@ -8,6 +8,7 @@ export function renderTaskGraphPlan(graph: TaskGraphPlan): string {
   lines.push(`tasks=${graph.summary.tasks} dependencies=${graph.summary.dependencies} file_overlaps=${graph.summary.fileOverlaps}`);
   lines.push(`high_risk_tasks=${graph.summary.highRiskTasks.length > 0 ? graph.summary.highRiskTasks.join(',') : 'none'}`);
   lines.push(`validation=${graph.summary.validationCommands.length > 0 ? graph.summary.validationCommands.join(' | ') : 'none'}`);
+  lines.push(`risk_notes=${graph.summary.riskNotes.length > 0 ? graph.summary.riskNotes.join(' | ') : 'none'}`);
   lines.push('nodes');
   for (const node of graph.nodes) {
     lines.push(`- ${node.taskId} status=${node.status} wave=${node.wave ?? 'n/a'} deps=${node.dependsOn.join(',') || 'none'} files=${node.affectedFiles.length} agent_fit=${node.agentFit.join(',') || 'none'} verification=${node.verificationAvailability.join(',') || 'none'} autonomy=${node.autonomy ?? 'n/a'}`);

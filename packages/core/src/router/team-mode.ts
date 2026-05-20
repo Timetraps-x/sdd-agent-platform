@@ -13,7 +13,8 @@ import type {
   TeamModeSelection
 } from './agent-runtime.js';
 import type { SddTask } from '../sdd-docs/task-parser.js';
-import { hasSecurityRisk, isHighRiskValues, taskAutonomyCeiling } from './risk-policy.js';
+import { buildTaskRiskProfile } from '../task-risk-profile.js';
+import { taskAutonomyCeiling } from './risk-policy.js';
 
 export function resolveTeamModeActivation(options: { teamModeEnabled?: boolean; teamModeActivation?: TeamModeActivation }, defaultActivation: TeamModeActivation): TeamModeActivation {
   if (options.teamModeActivation) {
@@ -70,9 +71,6 @@ function selectTeamWaves(ids: Array<DelegationWavePolicy['id']>): DelegationWave
   return ids.map((id) => BUILT_IN_DELEGATION_WAVES.find((wave) => wave.id === id)).filter((wave): wave is DelegationWavePolicy => Boolean(wave));
 }
 
-function hasReviewArtifactRequirement(task: SddTask | null | undefined): boolean {
-  return Boolean(task?.requiredArtifacts.some((artifact) => /review|validation|security|验证|评审|安全/i.test(artifact)));
-}
 
 export function buildTeamModePolicy(options: { activation: TeamModeActivation; task?: SddTask | null; category?: AgentRouterCategory; risk?: string[]; autonomyCeiling?: LifecycleAutonomyCeiling; blockedReason?: string | null }): TeamModePolicy {
   const activation = options.activation;
@@ -103,13 +101,13 @@ export function buildTeamModePolicy(options: { activation: TeamModeActivation; t
   }
 
   const task = options.task ?? null;
-  const risk = options.risk ?? task?.risk ?? [];
+  const profile = buildTaskRiskProfile(task ? { ...task, risk: options.risk ?? task.risk } : null);
   const category = options.category ?? 'planning';
   const autonomyCeiling = options.autonomyCeiling ?? (task ? taskAutonomyCeiling(task) : 'direct_execution_allowed');
-  const highRisk = isHighRiskValues(risk) || autonomyCeiling === 'full_sdd_with_checkpoint' || autonomyCeiling === 'research_before_implementation';
-  const reviewNeeded = category === 'implementation_review' || category === 'validation' || hasReviewArtifactRequirement(task);
+  const highRisk = profile.riskLevel === 'high' || autonomyCeiling === 'full_sdd_with_checkpoint' || autonomyCeiling === 'research_before_implementation';
+  const reviewNeeded = category === 'implementation_review' || category === 'validation' || profile.teamRecommendation === 'review-lite';
 
-  if (hasSecurityRisk(risk) || category === 'security_research') {
+  if (profile.securitySensitive || category === 'security_research') {
     return baseTeamModePolicy({
       activation,
       mode: 'security-research',
@@ -132,7 +130,7 @@ export function buildTeamModePolicy(options: { activation: TeamModeActivation; t
       enabled: true,
       decision: 'enabled',
       costClass: highRisk ? 'high' : 'medium',
-      reason: 'High-risk or research-before-implementation task automatically requires adversarial planning/review evidence.',
+      reason: profile.sourceBoundary ? 'Source-boundary or high-risk task requires adversarial planning/review evidence.' : 'High-risk or research-before-implementation task automatically requires adversarial planning/review evidence.',
       costRoute: 'no_downgrade',
       trustPolicyEnforced: true,
       allowedWaves: selectTeamWaves(['hyperplan', 'implementation_review', 'validation']),
@@ -164,9 +162,9 @@ export function buildTeamModePolicy(options: { activation: TeamModeActivation; t
     enabled: false,
     decision: 'disabled',
     costClass: 'none',
-    reason: 'Low-risk task does not need an agent team.',
+    reason: 'No shared task risk profile signals require an agent team.',
     costRoute: 'downgraded',
-    downgradeReason: 'Low-risk task uses no team automation, but artifact trust policy and policy-backed verify remain mandatory.',
+    downgradeReason: 'Shared risk profile is low; artifact trust policy and policy-backed verify remain mandatory.',
     trustPolicyEnforced: true
   });
 }

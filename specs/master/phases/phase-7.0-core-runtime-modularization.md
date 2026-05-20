@@ -9,8 +9,8 @@ Phase 7.0 插入在 Phase 6.10 Context Budget Runtime and Non-authoritative Log 
 ## 2. 依赖
 
 - depends_on: Phase 6.10 Context Budget Runtime and Non-authoritative Log Workers
-- blocks: Phase 8.0 Code Knowledge Graph Baseline
-- required_by: Phase 8.0 Code Knowledge Graph Baseline
+- blocks: Phase 7.1 Runtime Architecture and Storage v2 Research
+- required_by: Phase 7.1 Runtime Architecture and Storage v2 Research
 
 ## 3. 当前路线
 

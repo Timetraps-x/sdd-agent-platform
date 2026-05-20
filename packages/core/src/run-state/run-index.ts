@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { LOCAL_RUN_INDEX_CONTRACT_VERSION } from '../contracts.js';
-import { getLocalRunIndexPath, getRunsDir } from '../runtime-paths.js';
+import { getLocalRunIndexPath } from '../runtime-paths.js';
 import { exists } from '../storage/json-io.js';
 import { recordRuntimeProjection } from '../storage/runtime-store.js';
 import { readRunEvents } from './events.js';
 import type { RunState, RunStateDelegationRecord, RunStatus, RunSummary } from './model.js';
-import { readRunState, summarizeRunState } from './run-state.js';
+import { readAllRunStates, summarizeRunState } from './run-state.js';
 
 export interface ContractValidationIssue {
   field: string;
@@ -152,7 +152,7 @@ export async function inspectLocalRunIndex(projectRoot: string): Promise<LocalRu
       exists: false,
       indexPath,
       index: null,
-      issues: [contractIssue('run_index', 'Local run index is missing.', 'Run sdd run index rebuild to recreate the derived index from .sdd/runs.')]
+      issues: [contractIssue('run_index', 'Local run index projection is missing.', 'Run sdd run index rebuild to recreate the derived index from runtime.sqlite.')]
     };
   }
 
@@ -164,25 +164,25 @@ export async function inspectLocalRunIndex(projectRoot: string): Promise<LocalRu
       issues.push(contractIssue('contract', `Local run index contract is ${index.contract}.`, 'Run sdd run index rebuild to refresh the index contract.'));
     }
     if (JSON.stringify(index.runs) !== JSON.stringify(rebuilt.runs)) {
-      issues.push(contractIssue('runs', 'Local run index run summaries differ from .sdd/runs state.', 'Run sdd run index rebuild.'));
+      issues.push(contractIssue('runs', 'Local run index run summaries differ from runtime.sqlite state.', 'Run sdd run index rebuild.'));
     }
     if (JSON.stringify(index.tasks) !== JSON.stringify(rebuilt.tasks)) {
-      issues.push(contractIssue('tasks', 'Local run index task entries differ from .sdd/runs state.', 'Run sdd run index rebuild.'));
+      issues.push(contractIssue('tasks', 'Local run index task entries differ from runtime.sqlite state.', 'Run sdd run index rebuild.'));
     }
     if (JSON.stringify(index.delegations) !== JSON.stringify(rebuilt.delegations)) {
-      issues.push(contractIssue('delegations', 'Local run index delegation entries differ from .sdd/runs state.', 'Run sdd run index rebuild.'));
+      issues.push(contractIssue('delegations', 'Local run index delegation entries differ from runtime.sqlite state.', 'Run sdd run index rebuild.'));
     }
     if (JSON.stringify(index.artifacts) !== JSON.stringify(rebuilt.artifacts)) {
-      issues.push(contractIssue('artifacts', 'Local run index artifact entries differ from .sdd/runs state.', 'Run sdd run index rebuild.'));
+      issues.push(contractIssue('artifacts', 'Local run index artifact entries differ from runtime.sqlite state.', 'Run sdd run index rebuild.'));
     }
     if (JSON.stringify(index.waves) !== JSON.stringify(rebuilt.waves)) {
-      issues.push(contractIssue('waves', 'Local run index wave summaries differ from .sdd/runs events.', 'Run sdd run index rebuild.'));
+      issues.push(contractIssue('waves', 'Local run index wave summaries differ from runtime.sqlite events.', 'Run sdd run index rebuild.'));
     }
     if (JSON.stringify(index.latestByPartitionTask) !== JSON.stringify(rebuilt.latestByPartitionTask)) {
-      issues.push(contractIssue('latestByPartitionTask', 'Local run index partition/task latest view differs from .sdd/runs state.', 'Run sdd run index rebuild.'));
+      issues.push(contractIssue('latestByPartitionTask', 'Local run index partition/task latest view differs from runtime.sqlite state.', 'Run sdd run index rebuild.'));
     }
     if (JSON.stringify(index.activeByAffectedFile) !== JSON.stringify(rebuilt.activeByAffectedFile)) {
-      issues.push(contractIssue('activeByAffectedFile', 'Local run index affected-file active view differs from .sdd/runs state.', 'Run sdd run index rebuild.'));
+      issues.push(contractIssue('activeByAffectedFile', 'Local run index affected-file active view differs from runtime.sqlite state.', 'Run sdd run index rebuild.'));
     }
     return {
       valid: issues.length === 0,
@@ -203,19 +203,7 @@ export async function inspectLocalRunIndex(projectRoot: string): Promise<LocalRu
 }
 
 async function buildLocalRunIndexSnapshot(projectRoot: string): Promise<LocalRunIndex> {
-  const runsDir = getRunsDir(projectRoot);
-  const states: RunState[] = [];
-  if (await exists(runsDir)) {
-    const entries = await readdir(runsDir, { withFileTypes: true });
-    for (const entry of entries.filter((candidate) => candidate.isDirectory())) {
-      try {
-        states.push(await readRunState(projectRoot, entry.name));
-      } catch {
-        continue;
-      }
-    }
-  }
-
+  const states = await readAllRunStates(projectRoot);
   const tasks: LocalRunIndexTaskEntry[] = [];
   const artifacts: LocalRunIndexArtifactEntry[] = [];
   const delegations: DelegationQueueItem[] = [];

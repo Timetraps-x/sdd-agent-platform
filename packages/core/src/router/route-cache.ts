@@ -57,7 +57,7 @@ export function runtimeProfileSpan(name: string, startedAtMs: number, startedAt 
   };
 }
 
-export function routeCacheKey(input: { taskId: string; branch: string; agent: string | null; teamModeActivation: TeamModeActivation; documents: RouteCacheDocuments }): string {
+export function routeCacheKey(input: { taskId: string; branch: string; agent: string | null; teamModeActivation: TeamModeActivation; approved?: boolean; documents: RouteCacheDocuments }): string {
   return createHash('sha256')
     .update(JSON.stringify({
       contract: ROUTE_CACHE_CONTRACT_VERSION,
@@ -72,6 +72,7 @@ export function routeCacheKey(input: { taskId: string; branch: string; agent: st
       branch: input.branch,
       agent: input.agent,
       teamModeActivation: input.teamModeActivation,
+      approved: input.approved === true,
       specHash: input.documents.specHash ?? null,
       planHash: input.documents.planHash ?? null,
       tasksHash: input.documents.tasksHash ?? null,

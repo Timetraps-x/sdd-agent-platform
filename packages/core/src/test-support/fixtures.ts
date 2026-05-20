@@ -234,11 +234,13 @@ ${riskBlock}
 `;
 }
 
-export function adaptiveTeamTaskMarkdown(taskId: string, options: { allowedAgents: string[]; requiredArtifacts?: string[]; risk?: string[]; autonomy?: string }): string {
+export function adaptiveTeamTaskMarkdown(taskId: string, options: { allowedAgents: string[]; requiredArtifacts?: string[]; risk?: string[]; autonomy?: string; affectedFiles?: string[] }): string {
   const risk = options.risk ?? [];
   const requiredArtifacts = options.requiredArtifacts ?? [];
+  const affectedFiles = options.affectedFiles ?? ['packages/core/src/index.ts'];
   const allowedAgentsBlock = `allowed_agents:\n${options.allowedAgents.map((agent) => `  - ${agent}`).join('\n')}`;
   const requiredArtifactsBlock = requiredArtifacts.length === 0 ? 'required_artifacts: []' : `required_artifacts:\n${requiredArtifacts.map((artifact) => `  - ${artifact}`).join('\n')}`;
+  const affectedFilesBlock = affectedFiles.length === 0 ? 'affected_files: []' : `affected_files:\n${affectedFiles.map((file) => `  - ${file}`).join('\n')}`;
   const riskBlock = risk.length === 0 ? 'risk: []' : `risk:\n${risk.map((item) => `  - ${item}`).join('\n')}`;
   const autonomyBlock = options.autonomy ? `autonomy: ${options.autonomy}\n` : '';
   return `### ${taskId}: Adaptive team task
@@ -248,8 +250,7 @@ id: ${taskId}
 status: pending
 wave: 1
 depends_on: []
-affected_files:
-  - packages/core/src/index.ts
+${affectedFilesBlock}
 validation:
   - npm test
 ${allowedAgentsBlock}

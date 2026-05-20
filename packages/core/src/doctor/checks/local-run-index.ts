@@ -7,7 +7,7 @@ export async function inspectLocalRunIndexEvidence(projectRoot: string): Promise
     return [{
       level: 'WARN',
       check: 'local_run_index',
-      message: 'Local run index is missing; .sdd/runs remains the source of truth.',
+      message: 'Local run index projection is missing; runtime.sqlite remains the source of truth.',
       action: 'Run sdd run index rebuild to create the derived index.'
     }];
   }

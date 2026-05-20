@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { initProject } from '../config/init-project.js';
+import { readRunEvents } from '../run-state/events.js';
 import { createRun, readRunState } from '../run-state/run-state.js';
 import { evaluateLifecycleDecisionGate, recordLifecycleDecision } from './decision-gate.js';
 import { renderLifecycleDecisionGate } from './rendering.js';
@@ -91,7 +92,10 @@ test('Phase 5.1 lifecycle risk extraction maps Chinese hard-gate text', () => {
   assert.equal(result.record.decision.profile, 'full');
   assert.equal(result.record.decision.hard_gate_hits.includes('state_machine_concurrency_liveness'), true);
   assert.equal(result.record.decision.hard_gate_hits.includes('database_or_data_loss'), true);
-  assert.equal(rendered.includes('autonomy_ceiling=full_sdd_with_checkpoint'), true);
+  assert.equal(result.autonomyCeiling, 'full_sdd_with_checkpoint');
+  assert.equal(rendered.includes('Lifecycle checkpoint is required.'), true);
+  assert.equal(rendered.includes('Why:'), true);
+  assert.equal(rendered.includes('Next:'), true);
 });
 
 test('lifecycle checkpoint triggers are recorded without executing workflow', () => {
@@ -159,12 +163,11 @@ test('recordLifecycleDecision persists command gate output to run state and even
 
     await recordLifecycleDecision(root, state.runId, result.record);
     const restored = await readRunState(root, state.runId);
-    const events = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'events.jsonl'), 'utf8');
-
+    const events = await readRunEvents(root, state.runId);
     assert.equal(restored.lifecycleDecision?.decision.profile, 'full');
     assert.equal(restored.lifecycleDecision?.decision.hard_gate_hits.includes('database_or_data_loss'), true);
     assert.equal(restored.lifecycleDecision?.decision.human_checkpoint_required, true);
-    assert.match(events, /Lifecycle decision recorded by Phase 1.7 command gate/);
+    assert.equal(events.some((event) => /Lifecycle decision recorded by Phase 1.7 command gate/.test(event.summary ?? '')), true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

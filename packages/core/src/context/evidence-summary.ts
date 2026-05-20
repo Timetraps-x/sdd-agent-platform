@@ -4,6 +4,7 @@ import {
   SDD_EVIDENCE_CONTRACT,
   SDD_EVIDENCE_VERSION
 } from '../contracts.js';
+import { branchToSafePartition } from '../path-safety.js';
 import { listInvocationLedgerEntries } from '../run-state/invocation-ledger.js';
 import { readRunEvents } from '../run-state/events.js';
 import { readRunState } from '../run-state/run-state.js';
@@ -73,14 +74,15 @@ export async function buildEvidenceSummaryProjection(projectRoot: string, option
   const ledgerArtifactRefs = invocationLedger
     .filter((entry) => entry.kind === 'artifact_hash' && entry.artifactPath)
     .map((entry) => ({ path: entry.artifactPath as string, kind: 'artifact' as const }));
+  const branchEvidenceRoot = `.sdd/runs/${branchToSafePartition(state.gitBranch ?? state.partition ?? 'unscoped')}/evidence`;
   const artifactSourceRefs = [
-    ...artifacts.map((artifact) => ({ path: `.sdd/runs/${state.runId}/${artifact.path}`, kind: 'artifact' as const })),
-    ...ledgerArtifactRefs.map((artifact) => ({ path: `.sdd/runs/${state.runId}/${artifact.path}`, kind: artifact.kind }))
+    ...artifacts.map((artifact) => ({ path: `${branchEvidenceRoot}/${artifact.path}`, kind: 'artifact' as const })),
+    ...ledgerArtifactRefs.map((artifact) => ({ path: `${branchEvidenceRoot}/${artifact.path}`, kind: artifact.kind }))
   ];
   const sources = await uniqueContextSourceRefs([
-    await contextSourceRefForProjectPath(projectRoot, `.sdd/runs/${state.runId}/state.json`, 'run_state'),
-    await contextSourceRefForProjectPath(projectRoot, `.sdd/runs/${state.runId}/events.jsonl`, 'command_output'),
-    await contextSourceRefForProjectPath(projectRoot, `.sdd/runs/${state.runId}/invocations.jsonl`, 'ledger'),
+    await contextSourceRefForProjectPath(projectRoot, `.sdd/runtime.sqlite`, 'run_state'),
+    await contextSourceRefForProjectPath(projectRoot, `.sdd/runtime.sqlite`, 'command_output'),
+    await contextSourceRefForProjectPath(projectRoot, `.sdd/runtime.sqlite`, 'ledger'),
     ...(await Promise.all(artifactSourceRefs.map((artifact) => contextSourceRefForProjectPath(projectRoot, artifact.path, artifact.kind))))
   ]);
   const issueCodes = uniqueEvidenceIssueCodes(artifactIngestions.flatMap((record) => record.issues));

@@ -9,6 +9,7 @@ import { doctor } from '../doctor/doctor.js';
 import { writeArtifact } from '../run-state/artifacts.js';
 import { createRun, readRunState } from '../run-state/run-state.js';
 import { graphTaskMarkdown, validResultArtifact, writeBranchDocs } from '../test-support/fixtures.js';
+import { bindTestRunState } from '../test-support/run-state.js';
 import { inspectWaveExecutor, runWaveExecutor } from './wave-executor.js';
 
 test('wave executor completes planner-safe waves from supplied artifacts', async () => {
@@ -17,6 +18,7 @@ test('wave executor completes planner-safe waves from supplied artifacts', async
     await initProject(root);
     await writeBranchDocs(root, 'master', `# Tasks\n\n${graphTaskMarkdown('WX1', [], ['src/a.ts'], [])}\n${graphTaskMarkdown('WX2', [], ['src/b.ts'], [])}`);
     const run = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, run.runId, 'master', 'WX1');
     await writeArtifact(root, run.runId, 'implementer-WX1.md', validResultArtifact('implementer', 'WX1', 'PASS', 'artifacts/implementer-WX1.md'));
     await writeArtifact(root, run.runId, 'implementer-WX2.md', validResultArtifact('implementer', 'WX2', 'PASS', 'artifacts/implementer-WX2.md'));
 
@@ -67,6 +69,7 @@ test('wave executor safe-continue finishes current safe wave but does not cross 
     await initProject(root);
     await writeBranchDocs(root, 'master', `# Tasks\n\n${graphTaskMarkdown('WX1', [], ['src/a.ts'], [])}\n${graphTaskMarkdown('WX2', [], ['src/b.ts'], [])}\n${graphTaskMarkdown('WX3', ['WX1'], ['src/c.ts'], [])}`);
     const run = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, run.runId, 'master', 'WX1');
     await writeArtifact(root, run.runId, 'implementer-WX2.md', validResultArtifact('implementer', 'WX2', 'PASS', 'artifacts/implementer-WX2.md'));
     await writeArtifact(root, run.runId, 'implementer-WX3.md', validResultArtifact('implementer', 'WX3', 'PASS', 'artifacts/implementer-WX3.md'));
 

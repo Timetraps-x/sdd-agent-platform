@@ -3,6 +3,7 @@ import type { ToolCapabilitySideEffect } from '../registries/tool-capabilities.j
 import { resolveSddContext } from '../sdd-docs/context.js';
 import { inspectSddTask } from '../sdd-docs/task-inspection.js';
 import { parseSddBranch } from '../sdd-docs/task-parser.js';
+import { buildTaskRiskProfile } from '../task-risk-profile.js';
 
 export const WORKTREE_ISOLATION_CONTRACT_VERSION = 'phase-3.7-worktree-isolation-contract-v1';
 
@@ -52,8 +53,9 @@ export async function inspectWorktreeIsolation(projectRoot: string, options: { b
   const overlaps = peers
     .map((peer) => ({ peerTaskId: peer.taskId, files: overlappingFiles(affectedFiles, peer.affectedFiles) }))
     .filter((overlap) => overlap.files.length > 0);
-  const highRisk = risk.some((item) => ['database', 'schema', 'security', 'state-machine', 'ci'].includes(item));
-  const manualRisk = risk.some((item) => ['database', 'security'].includes(item));
+  const riskProfile = buildTaskRiskProfile(task);
+  const highRisk = riskProfile.riskLevel === 'high';
+  const manualRisk = riskProfile.securitySensitive || riskProfile.normalizedTags.includes('database');
   const unsafeOverlap = overlaps.length > 0 && sideEffect !== 'read_only';
   const reasons: string[] = [];
   const gates: WorktreeIsolationGate[] = [];
@@ -68,9 +70,9 @@ export async function inspectWorktreeIsolation(projectRoot: string, options: { b
     reasons.push(`Writable task overlaps peer affected file(s): ${overlaps.map((overlap) => `${overlap.peerTaskId}:${overlap.files.join(',')}`).join('; ')}.`);
   }
   if (manualRisk) {
-    reasons.push('Database/security risk requires manual isolation gate before worktree lifecycle automation.');
+    reasons.push('Database/security risk profile requires manual isolation gate before worktree lifecycle automation.');
   } else if (highRisk && sideEffect !== 'read_only') {
-    reasons.push('High-risk writable task requires worktree isolation.');
+    reasons.push('High-risk writable task risk profile requires worktree isolation.');
   } else if (sideEffect === 'read_only') {
     reasons.push('Read-only capability does not require worktree isolation.');
   } else if (sideEffect === 'local_write' || sideEffect === 'command_execution') {

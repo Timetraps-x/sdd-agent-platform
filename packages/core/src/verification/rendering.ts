@@ -25,6 +25,8 @@ export interface GoalVerifyResultLike {
   syncBackProposalPath: string;
   acceptanceCoverage: AcceptanceCoverageItemLike[];
   commands: string[];
+  plannedCommands?: string[];
+  executedCommands?: string[];
   gaps: SddTaskGap[];
   message: string;
 }
@@ -63,10 +65,11 @@ export function renderGoalVerifyResult(result: GoalVerifyResultLike): string {
   lines.push('evidence');
   lines.push(`- run=${result.runId}`);
   lines.push(`- task=${result.taskId}`);
-  lines.push('- artifact_path_scope=CLI flags use run-relative artifacts/<file>; physical files live under .sdd/runs/<run_id>/artifacts/<file>');
+  lines.push('- artifact_path_scope=CLI flags use run-relative artifacts/<file>; physical files live under branch evidence .sdd/runs/<branchSlug>/evidence/artifacts/<file>');
   lines.push(`- review_artifact=${result.reviewArtifact ?? 'none'}`);
   lines.push(`- validation_artifact=${result.validationArtifact ?? 'none'}`);
-  lines.push(`- commands=${result.commands.join(', ') || 'none'}`);
+  lines.push(`- planned_commands=${(result.plannedCommands ?? result.commands).join(', ') || 'none'}`);
+  lines.push(`- executed_commands=${(result.executedCommands ?? []).join(', ') || 'none'}`);
   if (result.acceptanceCoverage.length === 0) {
     lines.push('- acceptance_coverage=none');
   } else {
@@ -84,7 +87,7 @@ export function renderGoalVerifyResult(result: GoalVerifyResultLike): string {
   if (result.status === 'PASS') {
     lines.push(`- sdd sync-back inspect ${result.runId} --task ${result.taskId}`);
   } else {
-    lines.push(`- update review/validator artifacts and rerun sdd verify task ${result.taskId} --run ${result.runId}`);
+    lines.push(`- update review/validator artifacts and rerun sdd test task ${result.taskId} --run ${result.runId}`);
   }
   return lines.join('\n');
 }
@@ -101,7 +104,7 @@ export function renderSingleTaskLoopResult(result: SingleTaskLoopResultLike): st
   lines.push(`- router category=${result.routeDecision.category} recommended_profile=${result.routeDecision.recommendedProfile ?? 'none'} autonomy=${result.routeDecision.autonomyCeiling}`);
   lines.push(`- team_mode=${result.routeDecision.teamMode.decision} mode=${result.routeDecision.teamMode.mode} activation=${result.routeDecision.teamMode.activation} cost=${result.routeDecision.teamMode.costClass}`);
   lines.push('evidence');
-  lines.push('- artifact_path_scope=CLI flags use run-relative artifacts/<file>; physical files live under .sdd/runs/<run_id>/artifacts/<file>');
+  lines.push('- artifact_path_scope=CLI flags use run-relative artifacts/<file>; physical files live under branch evidence .sdd/runs/<branchSlug>/evidence/artifacts/<file>');
   lines.push(`- required_artifacts=${result.requiredArtifacts.join(',') || 'none'}`);
   lines.push(`- accepted_artifacts=${result.acceptedArtifacts.join(',') || 'none'}`);
   lines.push(`- sync_back_proposal=${result.syncBackProposalPath || 'none'}`);
@@ -115,12 +118,12 @@ export function renderSingleTaskLoopResult(result: SingleTaskLoopResultLike): st
   }
   lines.push('next');
   if (result.status === 'completed') {
-    lines.push(`- sdd verify task ${result.taskId} --run ${result.runId}`);
+    lines.push(`- sdd test task ${result.taskId} --run ${result.runId}`);
   } else {
     const missingArtifacts = result.requiredArtifacts.filter((artifact) => !result.acceptedArtifacts.includes(artifact));
     if (missingArtifacts.length > 0) {
       lines.push(`- create or validate missing run-relative artifacts: ${missingArtifacts.join(', ')}`);
-      lines.push(`- physical artifact files belong under .sdd/runs/${result.runId}/artifacts/`);
+      lines.push('- physical artifact files belong under branch evidence .sdd/runs/<branchSlug>/evidence/artifacts/');
     }
     const artifactFlags = missingArtifacts
       .map((artifact) => ({ artifact, agent: agentForLoopArtifact(artifact) }))

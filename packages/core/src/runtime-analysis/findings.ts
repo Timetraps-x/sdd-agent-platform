@@ -76,7 +76,7 @@ export function buildRuntimeAnalysisFindings(input: RuntimeAnalysisReportInput):
       category: 'run',
       source: input.status.latestRun?.runId ?? 'latest-run',
       message: reason,
-      action: input.status.latestRun?.currentTask ? `sdd verify task ${input.status.latestRun.currentTask} --branch ${input.branch}` : undefined,
+      action: input.status.latestRun?.currentTask ? `sdd test task ${input.status.latestRun.currentTask} --branch ${input.branch}` : undefined,
       runId: input.status.latestRun?.runId ?? undefined,
       taskId: input.status.latestRun?.currentTask ?? undefined
     });
@@ -209,7 +209,7 @@ function addRunInspectionFindings(run: RuntimeAnalysisRunInspectionLike, add: (f
       category: 'run',
       source: `${run.summary.runId}:validation`,
       message: `Run validation status is ${run.validation.status}.`,
-      action: run.summary.currentTask ? `sdd verify task ${run.summary.currentTask} --branch ${run.summary.partition ?? run.summary.gitBranch ?? 'master'}` : undefined,
+      action: run.summary.currentTask ? `sdd test task ${run.summary.currentTask} --branch ${run.summary.partition ?? run.summary.gitBranch ?? 'master'}` : undefined,
       runId: run.summary.runId,
       taskId: run.summary.currentTask ?? undefined
     });
@@ -233,7 +233,7 @@ function addEvidenceSummaryFindings(summary: RuntimeAnalysisEvidenceSummaryLike,
     category: 'evidence',
     source: `evidence:${summary.runId}`,
     message: 'Evidence summary is derived guidance only and cannot satisfy PASS evidence.',
-    action: summary.taskId ? `sdd verify task ${summary.taskId}` : undefined,
+    action: summary.taskId ? `sdd test task ${summary.taskId}` : undefined,
     runId: summary.runId,
     taskId: summary.taskId ?? undefined
   });
@@ -243,7 +243,7 @@ function addEvidenceSummaryFindings(summary: RuntimeAnalysisEvidenceSummaryLike,
       category: 'evidence',
       source: `evidence:${summary.runId}`,
       message: `Evidence projection has pass=${summary.passCount}, blocked=${summary.blockedCount}, fail=${summary.failCount}.`,
-      action: summary.taskId ? `sdd verify task ${summary.taskId}` : undefined,
+      action: summary.taskId ? `sdd test task ${summary.taskId}` : undefined,
       runId: summary.runId,
       taskId: summary.taskId ?? undefined
     });

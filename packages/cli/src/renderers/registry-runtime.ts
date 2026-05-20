@@ -1,6 +1,89 @@
+import type { AgentCapabilityCatalog, AgentCapabilityCatalogValidation, CommandTeamRuntimeDecision, CommandTeamRuntimeInspection, CommandTeamRuntimeValidation } from '@sdd-agent-platform/core/registries';
 import type { AgentSkillTeamRuntimeInspection, CapabilitySourceCatalogEntry, ExternalAgentPackImportInspection, RuntimeRegistryEntrySource, SkillCapabilityContract, TeamModePolicy } from '@sdd-agent-platform/core/router';
 import type { AgentSkillTeamRuntimeValidation } from '@sdd-agent-platform/core/router';
 import { idsByOrigin, renderRegistryOriginCounts } from './registry-shared.js';
+
+export function renderAgentCapabilityCatalog(catalog: AgentCapabilityCatalog): string {
+  const lines = ['SDD agent capability catalog'];
+  lines.push(`version=${catalog.version}`);
+  lines.push(`capabilities=${catalog.capabilities.length} material_packs=${catalog.materialPacks.length} command_mappings=${catalog.commandMappings.length}`);
+  lines.push('capabilities');
+  for (const capability of catalog.capabilities) {
+    lines.push(`- ${capability.id} domain=${capability.domain} stages=${capability.stages.join(',')} authority=${capability.authority} materials=${capability.routing.materialPackIds.join(',') || 'none'}`);
+  }
+  lines.push('material_packs');
+  for (const pack of catalog.materialPacks) {
+    lines.push(`- ${pack.id} policy=${pack.loadPolicy} budget=${pack.contextBudget} stages=${pack.triggerStages.join(',')}`);
+  }
+  lines.push('command_mappings');
+  for (const mapping of catalog.commandMappings) {
+    lines.push(`- ${mapping.command} required=${mapping.requiredDomains.join(',') || 'none'} optional=${mapping.optionalDomains.join(',') || 'none'} material_policy=${mapping.materialPolicy}`);
+  }
+  return lines.join('\n');
+}
+
+export function renderAgentCapabilityCatalogValidation(validation: AgentCapabilityCatalogValidation): string {
+  const lines = ['SDD agent capability catalog validation'];
+  lines.push(`version=${validation.version}`);
+  lines.push(`valid=${validation.valid}`);
+  lines.push(`capabilities=${validation.catalog.capabilities.length} material_packs=${validation.catalog.materialPacks.length} command_mappings=${validation.catalog.commandMappings.length}`);
+  lines.push('issues');
+  if (validation.issues.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const issue of validation.issues) {
+      lines.push(`- ${issue}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+export function renderCommandTeamRuntimeInspection(inspection: CommandTeamRuntimeInspection): string {
+  const lines = ['SDD command team runtime'];
+  lines.push(`version=${inspection.version}`);
+  lines.push(`command_profiles=${inspection.commandProfiles.length} roles=${inspection.roles.length} independence_rules=${inspection.independenceRules.length}`);
+  lines.push('command_profiles');
+  for (const profile of inspection.commandProfiles) {
+    lines.push(`- ${profile.command} min_mode=${profile.minMode} required=${profile.requiredRoleIds.join(',')} optional=${profile.optionalRoleIds.join(',') || 'none'} material_policy=${profile.materialPolicy} telemetry=${profile.telemetry.contextBudget}`);
+  }
+  lines.push('roles');
+  for (const role of inspection.roles) {
+    lines.push(`- ${role.id} kind=${role.role} domains=${role.requiredDomains.join(',')} authority=${role.authorityCeiling} summary_only=${role.summaryOnly}`);
+  }
+  lines.push('independence_rules');
+  for (const rule of inspection.independenceRules) {
+    lines.push(`- ${rule.id} command=${rule.command} roles=${rule.leftRoleId}->${rule.rightRoleId}`);
+  }
+  return lines.join('\n');
+}
+
+export function renderCommandTeamRuntimeValidation(validation: CommandTeamRuntimeValidation): string {
+  const lines = ['SDD command team runtime validation'];
+  lines.push(`version=${validation.version}`);
+  lines.push(`valid=${validation.valid}`);
+  lines.push(`command_profiles=${validation.inspection.commandProfiles.length} roles=${validation.inspection.roles.length} independence_rules=${validation.inspection.independenceRules.length}`);
+  lines.push('issues');
+  if (validation.issues.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const issue of validation.issues) {
+      lines.push(`- ${issue}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+export function renderCommandTeamRuntimeDecision(decision: CommandTeamRuntimeDecision): string {
+  const lines = [`Command team decision ${decision.command}`];
+  lines.push(`version=${decision.version}`);
+  lines.push(`mode=${decision.mode} activation=${decision.activation}`);
+  lines.push(`roles=${decision.roleIds.join(',') || 'none'}`);
+  lines.push(`materials=${decision.materialPackIds.join(',') || 'none'}`);
+  lines.push(`independence_rules=${decision.independenceRuleIds.join(',') || 'none'}`);
+  lines.push(`telemetry=${decision.telemetryPolicy ? decision.telemetryPolicy.contextBudget : 'none'}`);
+  lines.push(`reason=${decision.reason}`);
+  return lines.join('\n');
+}
 
 export function renderAgentSkillTeamRuntimeInspection(inspection: AgentSkillTeamRuntimeInspection): string {
   const lines = ['SDD agent/skill/team runtime'];

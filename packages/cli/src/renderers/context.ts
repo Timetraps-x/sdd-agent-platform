@@ -23,6 +23,7 @@ export function renderContextBuildPackage(contextPackage: ContextBuildPackage): 
   const lines = [`Context package ${contextPackage.taskId}`];
   lines.push(`mode=${contextPackage.mode} agent=${contextPackage.agent ?? 'none'} profile=${contextPackage.profile} branch=${contextPackage.branch}`);
   lines.push(`authoritative=${contextPackage.authoritative} usable_for_pass=${contextPackage.usableForPass}`);
+  lines.push(`budget=${contextPackage.budget.estimatedBytes}/${contextPackage.budget.maxBytes} bytes estimated_tokens=${contextPackage.budget.estimatedTokens} included=${contextPackage.budget.includedRefs.length} deferred=${contextPackage.budget.deferredRefs.length} excluded=${contextPackage.budget.excludedRefs.length} truncated=${contextPackage.budget.truncatedSummaries.length}`);
   renderContextRefs(lines, 'must_read', contextPackage.mustRead, 10);
   renderContextRefs(lines, 'optional_read', contextPackage.optionalRead, 8);
   renderContextRefs(lines, 'deferred', contextPackage.doNotReadUnlessNeeded, 6);

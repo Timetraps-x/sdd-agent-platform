@@ -15,9 +15,10 @@ test('instructions API returns stable JSON contract payloads', () => {
 
   assert.equal(doctorPayload.contract, 'sdd-instructions-v1');
   assert.equal(doctorPayload.action, 'doctor');
-  assert.equal(doctorPayload.requiredCommands.includes('sdd doctor --latest-only'), true);
+  assert.equal(doctorPayload.requiredCommands.includes('sdd doctor fast --branch <branch>'), true);
   assert.equal(doctorPayload.forbiddenSideEffects.includes('background write'), true);
-  assert.equal(overviewPayload.requiredCommands.includes('sdd verify task <task_id> [--branch <branch>] [--run <run_id>]'), true);
+  assert.equal(doctorPayload.forbiddenSideEffects.includes('run deep historical scans unless explicitly requested'), true);
+  assert.equal(overviewPayload.requiredCommands.includes('sdd test task <task_id> --branch <branch>'), true);
   assert.equal(overviewPayload.forbiddenSideEffects.includes('unapproved complex sync-back apply'), true);
   assert.match(overviewPayload.summary, /natural-language SDD intent/);
   assert.equal(overviewPayload.nextSteps.some((step) => /natural-language intent router/.test(step)), true);

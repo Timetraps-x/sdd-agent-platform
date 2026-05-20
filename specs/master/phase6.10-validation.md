@@ -52,3 +52,14 @@ Completion requires a real installed CLI chain from the current tarball:
 9. `sdd doctor --latest-only --branch master`
 
 Do not apply sync-back without explicit approval.
+
+## 6. Completion Evidence
+
+Phase 6.10 is completed.
+
+- Task closeout: PHASE6.10-1 through PHASE6.10-8 are marked completed in `phase6.10-tasks.md` and active `tasks.md`.
+- Workflow runs: `20260512-008` through `20260512-016` produced policy-backed verify PASS evidence and sync-back was applied for all Phase 6.10 tasks.
+- Implemented contracts: context profiles, context package contracts, evidence summary projection, command output summary, and non-authoritative log worker boundary.
+- Trust boundary: command/evidence/context/log summaries are derived projections and remain `authoritative=false` / unusable for PASS evidence.
+- Validation gates: context-focused tests, full `npm run typecheck`, `npm test`, `npm run build`, `npm pack --dry-run --json`, tarball install smoke, installed `sdd` status/context/tasks/route/doctor smokes, and doctor latest-only PASS are recorded as completed in `phases/PHASE_STATUS.md`.
+- Completion index: `phases/PHASE_STATUS.md` marks Phase 6.10 completed and opens Phase 7.0.

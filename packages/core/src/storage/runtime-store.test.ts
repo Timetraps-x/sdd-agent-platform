@@ -26,10 +26,12 @@ test('runtime store mirrors run state events artifacts and doctor visibility', a
       const storedRun = db.prepare('SELECT run_id, status FROM runs WHERE run_id = ?').get(run.runId) as { run_id?: string; status?: string } | undefined;
       const storedEvent = db.prepare('SELECT event_name FROM events WHERE run_id = ? AND event_name = ?').get(run.runId, 'runtime_store_test_event') as { event_name?: string } | undefined;
       const storedArtifact = db.prepare('SELECT path FROM artifacts WHERE run_id = ? AND path = ?').get(run.runId, 'artifacts/validation-T1.md') as { path?: string } | undefined;
+      const storedEvidence = db.prepare('SELECT relative_path FROM evidence_attachments WHERE run_id = ? AND relative_path = ?').get(run.runId, 'artifacts/validation-T1.md') as { relative_path?: string } | undefined;
       assert.equal(storedRun?.run_id, run.runId);
       assert.equal(storedRun?.status, 'created');
       assert.equal(storedEvent?.event_name, 'runtime_store_test_event');
       assert.equal(storedArtifact?.path, 'artifacts/validation-T1.md');
+      assert.equal(storedEvidence?.relative_path, 'artifacts/validation-T1.md');
     } finally {
       db.close();
     }
@@ -37,7 +39,7 @@ test('runtime store mirrors run state events artifacts and doctor visibility', a
     const report = await doctor(root, { latestOnly: true });
     const runtimeStoreCheck = report.checks.find((check) => check.check === 'runtime_store');
     assert.equal(runtimeStoreCheck?.level, 'PASS');
-    assert.match(runtimeStoreCheck?.message ?? '', /phase-6\.11-runtime-store-v1/);
+    assert.match(runtimeStoreCheck?.message ?? '', /phase-7\.2-runtime-store-v2/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -71,6 +73,13 @@ test('runtime store imports changed legacy run state and events', async () => {
       artifacts: [{ path: 'artifacts/validation-T1.md', kind: 'validation', task: 'T1', agent: 'validator', createdAt: '2026-01-01T00:00:00.000Z' }],
       artifactIngestions: { 'D-T1-validator-001:artifacts/validation-T1.md': legacyIngestion }
     }, null, 2)}\n`, 'utf8');
+    await writeFile(path.join(root, '.sdd', 'runs', run.runId, 'events.jsonl'), `${JSON.stringify({
+      contract: 'sdd-event-log-v1',
+      time: '2026-01-01T00:00:00.000Z',
+      event: 'legacy_event_after_store',
+      runId: run.runId,
+      summary: 'legacy event'
+    })}\n`, 'utf8');
     await writeFile(getInvocationLedgerPath(root, run.runId), `${JSON.stringify({
       contract: 'sdd-invocation-ledger-v1',
       version: '1.0.0',
@@ -85,7 +94,12 @@ test('runtime store imports changed legacy run state and events', async () => {
       materialRefs: [],
       metadata: { source: 'legacy-test' }
     })}\n`, 'utf8');
-    await appendEvent(root, run.runId, { event: 'legacy_event_after_store', runId: run.runId });
+    const dbBeforeImport = new DatabaseSync(getRuntimeStorePath(root));
+    try {
+      dbBeforeImport.prepare('DELETE FROM runs WHERE run_id = ?').run(run.runId);
+    } finally {
+      dbBeforeImport.close();
+    }
 
     const importedState = await readRunState(root, run.runId);
     const importedEvents = await readRunEvents(root, run.runId);

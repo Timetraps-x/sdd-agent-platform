@@ -1,5 +1,7 @@
 import { messageFromError } from '../../contracts/issues.js';
 import { inspectGovernancePolicy, type GovernancePolicyOperation } from '../../governance/policy.js';
+import { validateAgentCapabilityCatalog } from '../../registries/agent-capability-catalog.js';
+import { validateCommandTeamRuntime } from '../../registries/command-team-runtime.js';
 import { inspectHarnessLearningContract, inspectProjectContextPackContract, inspectSkillAgentEvalContract } from '../../registries/eval-learning-context.js';
 import { validateQueryStatusContract } from '../../registries/query-status.js';
 import { listToolCapabilities } from '../../registries/tool-capabilities.js';
@@ -177,6 +179,48 @@ export async function inspectAgentSkillTeamRuntimeDoctorContract(projectRoot: st
     }];
   } catch (error) {
     return [{ level: 'FAIL', check: 'agent_skill_team_runtime_contract', message: `Cannot inspect agent/skill/team runtime contract: ${messageFromError(error)}`, action: 'Run sdd init or fix .sdd/project.yml before inspecting Phase 6 runtime contract.' }];
+  }
+}
+
+export async function inspectAgentCapabilityCatalogDoctorContract(projectRoot: string): Promise<DoctorCheck[]> {
+  try {
+    const validation = await validateAgentCapabilityCatalog(projectRoot);
+    if (!validation.valid) {
+      return validation.issues.map((issue) => ({
+        level: 'FAIL' as const,
+        check: 'agent_capability_catalog',
+        message: issue,
+        action: 'Restore the built-in Phase 7.6 agent capability catalog.'
+      }));
+    }
+    return [{
+      level: 'PASS',
+      check: 'agent_capability_catalog',
+      message: `Agent capability catalog ${validation.version} exposes ${validation.catalog.capabilities.length} capability domain(s), ${validation.catalog.materialPacks.length} routed material pack(s), and ${validation.catalog.commandMappings.length} command mapping(s).`
+    }];
+  } catch (error) {
+    return [{ level: 'FAIL', check: 'agent_capability_catalog', message: `Cannot inspect agent capability catalog: ${messageFromError(error)}`, action: 'Run sdd init or fix .sdd/project.yml before inspecting Phase 7.6 capability catalog.' }];
+  }
+}
+
+export async function inspectCommandTeamRuntimeDoctorContract(projectRoot: string): Promise<DoctorCheck[]> {
+  try {
+    const validation = await validateCommandTeamRuntime(projectRoot);
+    if (!validation.valid) {
+      return validation.issues.map((issue) => ({
+        level: 'FAIL' as const,
+        check: 'command_team_runtime',
+        message: issue,
+        action: 'Restore the built-in Phase 7.7 command team runtime contract.'
+      }));
+    }
+    return [{
+      level: 'PASS',
+      check: 'command_team_runtime',
+      message: `Command team runtime ${validation.version} exposes ${validation.inspection.commandProfiles.length} command profile(s), ${validation.inspection.roles.length} role profile(s), and ${validation.inspection.independenceRules.length} independence rule(s).`
+    }];
+  } catch (error) {
+    return [{ level: 'FAIL', check: 'command_team_runtime', message: `Cannot inspect command team runtime: ${messageFromError(error)}`, action: 'Run sdd init or fix .sdd/project.yml before inspecting Phase 7.7 command team runtime.' }];
   }
 }
 

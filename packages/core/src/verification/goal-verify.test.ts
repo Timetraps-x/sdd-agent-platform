@@ -13,7 +13,7 @@ import { initProject } from '../config/init-project.js';
 import { getProjectStatus } from '../status/project-status.js';
 import { createDelegationRecord } from '../delegation/validation.js';
 import { doctor } from '../doctor/doctor.js';
-import { writeArtifact } from '../run-state/artifacts.js';
+import { readArtifact, writeArtifact } from '../run-state/artifacts.js';
 import { appendEvent, readRunEvents } from '../run-state/events.js';
 import { listInvocationLedgerEntries } from '../run-state/invocation-ledger.js';
 import { inspectRun } from '../run-state/inspect-run.js';
@@ -25,8 +25,13 @@ import { hashTestDocument, validResultArtifact, validTaskMarkdown, validTrustEvi
 import { bindTestRunState } from '../test-support/run-state.js';
 import { getRuntimeStorePath } from '../runtime-paths.js';
 import { runGoalVerify } from './goal-verify.js';
+import { writeVerifyContract } from './verify-contract.js';
 
 const execFileAsync = promisify(execFile);
+
+function stringifyEvents(events: Awaited<ReturnType<typeof readRunEvents>>): string {
+  return events.map((event) => `${event.event}\n${event.summary ?? ''}`).join('\n');
+}
 
 test('runGoalVerify blocks when acceptance evidence is missing', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-verify-gap-'));
@@ -46,7 +51,7 @@ test('runGoalVerify blocks when acceptance evidence is missing', async () => {
       validationArtifact: 'artifacts/validation-T1.md'
     });
     const restored = await readRunState(root, state.runId);
-    const coverage = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'acceptance-coverage-T1.md'), 'utf8');
+    const coverage = await readArtifact(root, state.runId, 'acceptance-coverage-T1.md');
 
     assert.equal(result.status, 'BLOCKED');
     assert.equal(restored.status, 'blocked');
@@ -117,6 +122,33 @@ test('runGoalVerify blocks source evidence without invocation ledger corroborati
   }
 });
 
+test('runGoalVerify selects strongest policy-backed PASS evidence', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-verify-strongest-evidence-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'feature', 'T1');
+    const weakEvidence = `\n\`\`\`sdd-evidence\ncontract: sdd-evidence-v1\nversion: 1.0.0\ntask: T1\nacceptance: AC-1\nstatus: PASS\nclaim: Weak PASS references a command that was not executed or declared.\nsource_artifact: artifacts/validation-T1.md\nevidence_refs:\n  - command:npm run missing\nprovenance_refs:\n  - artifact:artifacts/validation-T1.md\npolicy_refs:\n  - acceptance-policy-v1:require-source-evidence\n\`\`\`\n`;
+    await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
+    await writeArtifact(root, state.runId, 'validation-T1.md', `${validResultArtifact('validator', 'T1', 'PASS', 'artifacts/validation-T1.md')}${weakEvidence}${validTrustEvidence('T1', 'AC-1', 'artifacts/validation-T1.md')}`);
+
+    const result = await runGoalVerify(root, {
+      runId: state.runId,
+      branch: 'feature',
+      taskId: 'T1',
+      reviewArtifact: 'artifacts/review-T1.md',
+      validationArtifact: 'artifacts/validation-T1.md'
+    });
+
+    assert.equal(result.status, 'PASS');
+    assert.deepEqual(result.acceptanceCoverage.map((item) => item.status), ['PASS']);
+    assert.match(result.acceptanceCoverage[0].evidence, /Policy-proven/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('runGoalVerify fails closed for cross-partition admitted evidence', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-verify-partition-scope-'));
   try {
@@ -169,6 +201,7 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
     await execFileAsync('git', ['init'], { cwd: root });
     await execFileAsync('git', ['checkout', '-b', 'feature'], { cwd: root });
     await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    await writeVerifyContract(root, { branch: 'feature', branchSource: 'cli_option' });
     const state = await createRun(root, { runId: 'run-1' });
     await bindTestRunState(root, state.runId, 'feature', 'T1');
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
@@ -182,9 +215,9 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
       validationArtifact: 'artifacts/validation-T1.md'
     });
     const restored = await readRunState(root, state.runId);
-    const coverage = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'acceptance-coverage-T1.md'), 'utf8');
-    const proposal = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'sync-back-proposal.md'), 'utf8');
-    const events = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'events.jsonl'), 'utf8');
+    const coverage = await readArtifact(root, state.runId, 'acceptance-coverage-T1.md');
+    const proposal = await readArtifact(root, state.runId, 'sync-back-proposal.md');
+    const events = stringifyEvents(await readRunEvents(root, state.runId));
     const tasksBeforeSyncBack = await readFile(path.join(root, 'specs', 'feature', 'tasks.md'), 'utf8');
 
     assert.equal(result.status, 'PASS');
@@ -228,8 +261,9 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
     assert.match(syncBack.proposal ?? '', /status: verified/);
     assert.equal(syncBack.proposalDigest, restored.syncBack.proposalDigest);
     assert.equal(syncBack.proposalDigestValid, true);
-    assert.equal(syncBack.applyPolicy.mode, 'direct');
-    assert.equal(syncBack.applyPolicy.requiresApproval, false);
+    assert.equal(syncBack.applyPolicy.mode, 'confirm');
+    assert.equal(syncBack.applyPolicy.requiresApproval, true);
+    assert.equal(syncBack.applyPolicy.reasons.some((reason) => /source-boundary|CLI\/core source boundary/.test(reason)), true);
 
     const ledgerBeforeRerun = await listInvocationLedgerEntries(root, state.runId);
     await runGoalVerify(root, {
@@ -243,7 +277,7 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
     assert.equal(ledgerAfterRerun.filter((entry) => entry.kind === 'artifact_hash').length, ledgerBeforeRerun.filter((entry) => entry.kind === 'artifact_hash').length);
     assert.equal(ledgerAfterRerun.filter((entry) => entry.kind === 'command' && entry.status === 'declared').length, ledgerBeforeRerun.filter((entry) => entry.kind === 'command' && entry.status === 'declared').length);
 
-    const applied = await applySyncBack(root, { runId: state.runId, branch: 'feature', taskId: 'T1' });
+    const applied = await applySyncBack(root, { runId: state.runId, branch: 'feature', taskId: 'T1', approved: true });
     const tasksAfterSyncBack = await readFile(path.join(root, 'specs', 'feature', 'tasks.md'), 'utf8');
     const appliedState = await readRunState(root, state.runId);
     const appliedEvents = await readRunEvents(root, state.runId);
@@ -278,7 +312,7 @@ test('runGoalVerify maps validation evidence to acceptance and writes sync-back 
       validationArtifact: 'artifacts/validation-T1.md'
     });
     const reverifiedState = await readRunState(root, state.runId);
-    const reverifiedProposal = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'sync-back-proposal.md'), 'utf8');
+    const reverifiedProposal = await readArtifact(root, state.runId, 'sync-back-proposal.md');
     assert.equal(reverified.status, 'PASS');
     assert.equal(reverifiedState.syncBack.status, 'applied');
     assert.equal(reverifiedState.syncBack.proposalDigest, hashTestDocument(reverifiedProposal));

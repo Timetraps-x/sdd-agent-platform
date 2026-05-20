@@ -2,7 +2,7 @@ import { runGoalVerify } from '@sdd-agent-platform/core/verification';
 import { renderGoalVerifyResult, renderSingleTaskLoopResult } from '@sdd-agent-platform/core/verification';
 import { runSingleTaskLoop } from '@sdd-agent-platform/core/verification';
 import { readBranchOption, readOptionalPositionalArgument, readTeamModeActivation } from '../args.js';
-import { readOption } from '../options.js';
+import { hasHelpFlag, hasPreflightFlag, readOption } from '../options.js';
 import { jsonOutput, wantsJson } from '../renderers/json.js';
 
 export interface CliResult {
@@ -13,11 +13,23 @@ export interface CliResult {
 
 export async function handleVerifyCommand(projectRoot: string, command: string | undefined, subcommand: string | undefined, rest: string[]): Promise<CliResult | null> {
   if (command === 'do' && subcommand === 'task') {
+    if (hasHelpFlag(rest)) {
+      return {
+        exitCode: 0,
+        output: doTaskUsage()
+      };
+    }
     const taskId = rest.find((item) => !item.startsWith('--'));
     if (!taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd do task <task_id> [--branch <branch>] [--run <run_id>] [--team-mode [auto|force|off]] [--no-team-mode] [--implement-artifact artifacts/path.md] [--review-artifact artifacts/path.md] [--debug-artifact artifacts/path.md] [--validation-artifact artifacts/path.md]'
+        error: doTaskUsage()
+      };
+    }
+    if (hasPreflightFlag(rest)) {
+      return {
+        exitCode: 0,
+        output: commandPreflightOutput('do task', taskId, rest)
       };
     }
     const result = await runSingleTaskLoop(projectRoot, {
@@ -28,7 +40,8 @@ export async function handleVerifyCommand(projectRoot: string, command: string |
       reviewArtifact: readOption(rest, '--review-artifact') ?? undefined,
       debugArtifact: readOption(rest, '--debug-artifact') ?? undefined,
       validationArtifact: readOption(rest, '--validation-artifact') ?? undefined,
-      teamModeActivation: readTeamModeActivation(rest)
+      teamModeActivation: readTeamModeActivation(rest),
+      approved: rest.includes('--approved')
     });
     const json = wantsJson(rest);
     return {
@@ -38,12 +51,24 @@ export async function handleVerifyCommand(projectRoot: string, command: string |
   }
 
   if (command === 'verify' && subcommand === 'task') {
+    if (hasHelpFlag(rest)) {
+      return {
+        exitCode: 0,
+        output: verifyTaskUsage()
+      };
+    }
     const taskId = readOptionalPositionalArgument(rest);
     const runId = readOption(rest, '--run');
     if (!taskId) {
       return {
         exitCode: 2,
-        error: 'Usage: sdd verify task <task_id> [--run <run_id>] [--branch <branch>] [--review-artifact artifacts/path.md] [--validation-artifact artifacts/path.md] [--json]'
+        error: verifyTaskUsage()
+      };
+    }
+    if (hasPreflightFlag(rest)) {
+      return {
+        exitCode: 0,
+        output: commandPreflightOutput('verify task', taskId, rest)
       };
     }
     const result = await runGoalVerify(projectRoot, {
@@ -61,4 +86,18 @@ export async function handleVerifyCommand(projectRoot: string, command: string |
   }
 
   return null;
+}
+function doTaskUsage(): string {
+  return 'Usage: sdd do task <task_id> [--branch <branch>] [--run <run_id>] [--approved] [--team-mode [auto|force|off]] [--no-team-mode] [--preflight] [--implement-artifact artifacts/path.md] [--review-artifact artifacts/path.md] [--debug-artifact artifacts/path.md] [--validation-artifact artifacts/path.md]';
+}
+
+function verifyTaskUsage(): string {
+  return 'Usage: sdd verify task <task_id> [--run <run_id>] [--branch <branch>] [--preflight] [--review-artifact artifacts/path.md] [--validation-artifact artifacts/path.md] [--json]';
+}
+
+function commandPreflightOutput(commandName: string, taskId: string, args: string[]): string {
+  if (wantsJson(args)) {
+    return jsonOutput({ contract: 'sdd-command-preflight-v1', command: commandName, taskId, sideEffects: 'none', status: 'PASS' }, args);
+  }
+  return `SDD command preflight PASS\ncommand=${commandName}\ntask=${taskId}\nside_effects=none`;
 }

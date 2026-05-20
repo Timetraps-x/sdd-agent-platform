@@ -1,6 +1,6 @@
 {
   "name": "@sdd-agent-platform/core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -27,6 +27,14 @@
     "./registries": { "types": "./dist/registries.d.ts", "import": "./dist/registries.js" },
     "./router": { "types": "./dist/router.d.ts", "import": "./dist/router.js" },
     "./doctor": { "types": "./dist/doctor.d.ts", "import": "./dist/doctor.js" },
+    "./workflow-state": { "types": "./dist/workflow-state.d.ts", "import": "./dist/workflow-state.js" },
+    "./coding-facts": { "types": "./dist/coding-facts.d.ts", "import": "./dist/coding-facts.js" },
+    "./risk": { "types": "./dist/risk.d.ts", "import": "./dist/risk.js" },
+    "./stage-runtime": { "types": "./dist/stage-runtime.d.ts", "import": "./dist/stage-runtime.js" },
+    "./work-units": { "types": "./dist/work-units.d.ts", "import": "./dist/work-units.js" },
+    "./subagents": { "types": "./dist/subagents.d.ts", "import": "./dist/subagents.js" },
+    "./context-offload": { "types": "./dist/context-offload.d.ts", "import": "./dist/context-offload.js" },
+    "./evidence-runtime": { "types": "./dist/evidence-runtime.d.ts", "import": "./dist/evidence-runtime.js" },
     "./test-support": { "types": "./dist/test-support.d.ts", "import": "./dist/test-support.js" }
   }
 }

@@ -29,14 +29,14 @@ export async function validateSddResultArtifact(projectRoot: string, runId: stri
   try {
     artifactRootRelativePath = toArtifactRootRelativePath(runRelativeArtifactPath);
   } catch (error) {
-    return { valid: false, result: null, issues: [contractIssue('artifacts', messageFromError(error), 'Use a run-relative artifacts/<file> path; the physical file lives under .sdd/runs/<run_id>/artifacts/<file>. Source/test files belong in ## Evidence, not in sdd-result.artifacts.')] };
+    return { valid: false, result: null, issues: [contractIssue('artifacts', messageFromError(error), 'Use a run-relative artifacts/<file> path; the physical file lives under branch evidence .sdd/runs/<branchSlug>/evidence/artifacts/<file>. Source/test files belong in ## Evidence, not in sdd-result.artifacts.')] };
   }
 
   let raw: string;
   try {
     raw = await readArtifact(projectRoot, runId, artifactRootRelativePath);
   } catch (error) {
-    return { valid: false, result: null, issues: [contractIssue('artifacts', `Cannot read artifact ${runRelativeArtifactPath}: ${messageFromError(error)}`, `Create the expected artifact at .sdd/runs/${runId}/${runRelativeArtifactPath} and pass the run-relative path ${runRelativeArtifactPath}.`)] };
+    return { valid: false, result: null, issues: [contractIssue('artifacts', `Cannot read artifact ${runRelativeArtifactPath}: ${messageFromError(error)}`, `Create the expected artifact in branch evidence and pass the run-relative path ${runRelativeArtifactPath}.`)] };
   }
 
   if (raw.trim().length === 0) {

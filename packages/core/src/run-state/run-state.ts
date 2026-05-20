@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   getAgentExecutionsDir,
-  getArtifactsDir,
+  getEvidenceDir,
   getProjectConfigPath,
   getRunDir,
   getRunsDir,
@@ -11,21 +11,25 @@ import {
   getWorkerRuntimesDir
 } from '../runtime-paths.js';
 import { exists } from '../storage/json-io.js';
-import { RuntimeStoreError, legacyImportId, recordLegacyImportFailure, runtimeScopedId, withRuntimeStore } from '../storage/runtime-store.js';
+import { RuntimeStoreError, legacyImportId, listRuntimeRunStates, readRuntimeRunState, recordLegacyImportFailure, runtimeScopedId, upsertRuntimeRunState, withRuntimeStore } from '../storage/runtime-store.js';
 import type { RunDocumentSnapshot, RunState, RunStateLifecycleDecisionRecord, RunSummary } from './model.js';
 import { appendEvent } from './events.js';
 import { LIFECYCLE_DECISION_CONTRACT, LIFECYCLE_DECISION_VERSION, RUN_STATE_CONTRACT, RUNTIME_VERSION } from '../contracts.js';
 import { parseProjectConfig } from '../config/project-config.js';
+import { branchToSafePartition } from '../path-safety.js';
+import { resolveSddContext } from '../sdd-docs/context.js';
+import { parseSddBranch } from '../sdd-docs/task-parser.js';
+import { inspectSddTask } from '../sdd-docs/task-inspection.js';
 
 export async function readRunState(projectRoot: string, runId: string): Promise<RunState> {
+  const storedState = await readRuntimeRunState(projectRoot, runId);
+  if (storedState) {
+    return normalizeRunState(storedState);
+  }
   const statePath = path.join(getRunDir(projectRoot, runId), 'state.json');
   const legacyState = await importLegacyRunStateIfNeeded(projectRoot, runId, statePath);
   if (legacyState) {
     return legacyState;
-  }
-  const storedState = await readRuntimeRunState(projectRoot, runId);
-  if (storedState) {
-    return storedState;
   }
   throw new Error(`Run state not found for ${runId}.`);
 }
@@ -35,9 +39,7 @@ export async function writeRunState(projectRoot: string, state: RunState): Promi
     ...state,
     updatedAt: new Date().toISOString()
   });
-  const statePath = path.join(getRunDir(projectRoot, state.runId), 'state.json');
   const serializedState = `${JSON.stringify(nextState, null, 2)}\n`;
-  await writeFile(statePath, serializedState, 'utf8');
   await upsertRuntimeRunState(projectRoot, nextState, serializedState);
 }
 
@@ -76,17 +78,26 @@ export async function archiveRun(projectRoot: string, runId: string, options: { 
   return readRunState(projectRoot, runId);
 }
 
-export async function createRun(projectRoot: string, options: { runId?: string; lifecycleDecision?: RunStateLifecycleDecisionRecord } = {}): Promise<RunState> {
+export interface CreateRunOptions {
+  runId?: string;
+  branch?: string;
+  taskId?: string;
+  lifecycleDecision?: RunStateLifecycleDecisionRecord;
+}
+
+export async function createRun(projectRoot: string, options: CreateRunOptions = {}): Promise<RunState> {
   await validateProjectConfig(projectRoot);
+  if (Boolean(options.branch) !== Boolean(options.taskId)) {
+    throw new Error('Scoped run creation requires both --branch <branch> and --task <task_id>.');
+  }
+  const scope = options.branch && options.taskId ? await resolveCreateRunScope(projectRoot, options.branch, options.taskId) : null;
   await mkdir(getRunsDir(projectRoot), { recursive: true });
   const runId = options.runId ?? await createUniqueRunId(projectRoot);
-  const runDir = getRunDir(projectRoot, runId);
-  const artifactsDir = getArtifactsDir(projectRoot, runId);
+
   const agentExecutionsDir = getAgentExecutionsDir(projectRoot, runId);
   const teamSessionsDir = getTeamSessionsDir(projectRoot, runId);
   const workerRuntimesDir = getWorkerRuntimesDir(projectRoot, runId);
   await Promise.all([
-    mkdir(artifactsDir, { recursive: true }),
     mkdir(agentExecutionsDir, { recursive: true }),
     mkdir(teamSessionsDir, { recursive: true }),
     mkdir(workerRuntimesDir, { recursive: true })
@@ -99,18 +110,18 @@ export async function createRun(projectRoot: string, options: { runId?: string; 
     runId,
     status: 'created',
     phase: null,
-    currentTask: null,
-    partition: null,
-    gitBranch: null,
-    taskId: null,
-    affectedFiles: [],
-    documentSnapshot: emptyRunDocumentSnapshot(),
+    currentTask: scope?.taskId ?? null,
+    partition: scope?.partition ?? null,
+    gitBranch: scope?.rawBranch ?? null,
+    taskId: scope?.taskId ?? null,
+    affectedFiles: scope?.affectedFiles ?? [],
+    documentSnapshot: scope?.documentSnapshot ?? emptyRunDocumentSnapshot(),
     createdAt: now,
     updatedAt: now,
     projectRoot: path.resolve(projectRoot),
     projectConfigPath: path.relative(projectRoot, getProjectConfigPath(projectRoot)),
-    eventLogPath: path.relative(projectRoot, path.join(runDir, 'events.jsonl')),
-    artifactRoot: path.relative(projectRoot, artifactsDir),
+    eventLogPath: getRuntimeStoreEventRef(),
+    artifactRoot: path.relative(projectRoot, getEvidenceDir(projectRoot, stateEvidenceBranchSlug(scope?.partition ?? null))),
     lifecycleDecision: options.lifecycleDecision ?? emptyRunLifecycleDecisionRecord(),
     tasks: {},
     agents: {},
@@ -134,10 +145,13 @@ export async function createRun(projectRoot: string, options: { runId?: string; 
   await appendEvent(projectRoot, runId, {
     event: 'run_started',
     runId,
-    summary: 'Run created by Phase 1.2 runtime skeleton',
+    summary: scope ? `Scoped run created for ${scope.partition}/${scope.taskId}.` : 'Run created by Phase 7.2 SQLite-first runtime storage',
     data: {
       runtimeVersion: RUNTIME_VERSION,
-      statePath: path.relative(projectRoot, path.join(runDir, 'state.json'))
+      stateRef: '.sdd/runtime.sqlite:runs',
+      partition: scope?.partition ?? null,
+      gitBranch: scope?.rawBranch ?? null,
+      taskId: scope?.taskId ?? null
     }
   });
   if (state.lifecycleDecision) {
@@ -160,7 +174,8 @@ export async function createUniqueRunId(projectRoot: string): Promise<string> {
   const base = formatDateForRunId(new Date());
   for (let sequence = 1; sequence <= 999; sequence += 1) {
     const runId = `${base}-${String(sequence).padStart(3, '0')}`;
-    if (!await exists(getRunDir(projectRoot, runId))) {
+    const storedState = await readRuntimeRunState(projectRoot, runId);
+    if (!storedState && !await exists(getRunDir(projectRoot, runId))) {
       return runId;
     }
   }
@@ -168,24 +183,27 @@ export async function createUniqueRunId(projectRoot: string): Promise<string> {
 }
 
 export async function listRuns(projectRoot: string): Promise<RunSummary[]> {
-  const runsDir = getRunsDir(projectRoot);
-  if (!await exists(runsDir)) {
-    return [];
+  const states = await listRuntimeRunStates(projectRoot);
+  if (states.length > 0) {
+    return states.map((state) => summarizeRunState(normalizeRunState(state)));
   }
-  const entries = await readdir(runsDir, { withFileTypes: true });
-  const summaries: RunSummary[] = [];
-  for (const entry of entries.filter((candidate) => candidate.isDirectory())) {
-    try {
-      const state = await readRunState(projectRoot, entry.name);
-      summaries.push(summarizeRunState(state));
-    } catch {
-      continue;
-    }
-  }
-  return summaries.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+  return listLegacyRunSummaries(projectRoot);
 }
 
 export async function readAllRunStates(projectRoot: string): Promise<RunState[]> {
+  const states = await listRuntimeRunStates(projectRoot);
+  if (states.length > 0) {
+    return states.map((state) => normalizeRunState(state));
+  }
+  return readAllLegacyRunStates(projectRoot);
+}
+
+async function listLegacyRunSummaries(projectRoot: string): Promise<RunSummary[]> {
+  const states = await readAllLegacyRunStates(projectRoot);
+  return states.map((state) => summarizeRunState(state)).sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+}
+
+async function readAllLegacyRunStates(projectRoot: string): Promise<RunState[]> {
   const runsDir = getRunsDir(projectRoot);
   if (!await exists(runsDir)) {
     return [];
@@ -290,18 +308,34 @@ function emptyRunLifecycleDecisionRecord(): RunStateLifecycleDecisionRecord {
   };
 }
 
-async function upsertRuntimeRunState(projectRoot: string, state: RunState, serializedState: string): Promise<void> {
-  await withRuntimeStore(projectRoot, ({ db }) => {
-    db.prepare(`INSERT INTO runs (run_id, status, phase, current_task, partition, git_branch, task_id, created_at, updated_at, state_json, state_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(run_id) DO UPDATE SET status=excluded.status, phase=excluded.phase, current_task=excluded.current_task, partition=excluded.partition, git_branch=excluded.git_branch, task_id=excluded.task_id, updated_at=excluded.updated_at, state_json=excluded.state_json, state_hash=excluded.state_hash`)
-      .run(state.runId, state.status, state.phase, state.currentTask, state.partition, state.gitBranch, state.taskId, state.createdAt, state.updatedAt, serializedState, hashDocumentContent(serializedState));
-  });
+async function resolveCreateRunScope(projectRoot: string, branch: string, taskId: string): Promise<{ partition: string; rawBranch: string; taskId: string; affectedFiles: string[]; documentSnapshot: RunDocumentSnapshot }> {
+  const context = await resolveSddContext(projectRoot, { branch, branchSource: 'cli_option' });
+  const model = await parseSddBranch(projectRoot, context.partition);
+  const task = inspectSddTask(model, taskId).task;
+  if (!task) {
+    throw new Error(`Cannot create scoped run: task ${taskId} was not found in specs/${context.partition}/tasks.md.`);
+  }
+  return {
+    partition: context.partition,
+    rawBranch: context.rawBranch,
+    taskId,
+    affectedFiles: task.affectedFiles,
+    documentSnapshot: {
+      specHash: model.documents.specHash ?? null,
+      planHash: model.documents.planHash ?? null,
+      tasksHash: model.documents.tasksHash ?? null,
+      planBasedOnSpecHash: model.documents.planBasedOnSpecHash ?? null,
+      tasksBasedOnPlanHash: model.documents.tasksBasedOnPlanHash ?? null
+    }
+  };
 }
 
-async function readRuntimeRunState(projectRoot: string, runId: string): Promise<RunState | null> {
-  return withRuntimeStore(projectRoot, ({ db }) => {
-    const row = db.prepare('SELECT state_json FROM runs WHERE run_id = ?').get(runId) as { state_json?: string } | undefined;
-    return row?.state_json ? normalizeRunState(JSON.parse(row.state_json) as Partial<RunState>) : null;
-  });
+function getRuntimeStoreEventRef(): string {
+  return '.sdd/runtime.sqlite#events';
+}
+
+function stateEvidenceBranchSlug(branch: string | null): string {
+  return branch ? branchToSafePartition(branch) : 'unscoped';
 }
 
 async function importLegacyRunStateIfNeeded(projectRoot: string, runId: string, statePath: string): Promise<RunState | null> {

@@ -3,7 +3,7 @@ import { WORKFLOW_GATE_CONTRACT_VERSION } from '../contracts.js';
 import { parseProjectConfig } from '../config/project-config.js';
 import { getProjectConfigPath } from '../runtime-paths.js';
 
-export type WorkflowGateId = 'spec' | 'plan' | 'tasks' | 'do' | 'verify' | 'doctor';
+export type WorkflowGateId = 'spec' | 'plan' | 'tasks' | 'do' | 'test' | 'doctor';
 
 export interface WorkflowGateContract {
   version: typeof WORKFLOW_GATE_CONTRACT_VERSION;
@@ -65,17 +65,17 @@ const BUILT_IN_WORKFLOW_GATES: WorkflowGateContract[] = [
     requiredArtifacts: ['artifacts/implement-<task>.md', 'artifacts/review-<task>.md', 'artifacts/validation-<task>.md'],
     gateConditions: ['single selected task', 'no blocking task gaps', 'artifact template available'],
     gapClosureBehavior: 'Block on missing boundary, missing validation, invalid artifact, or expanded scope.',
-    nextAction: 'Run inside the selected task boundary and record sdd-result artifacts before verify.'
+    nextAction: 'Run inside the selected task boundary and record sdd-result artifacts before test.'
   },
   {
     version: WORKFLOW_GATE_CONTRACT_VERSION,
-    id: 'verify',
-    command: 'sdd verify task <task_id> [--run <run_id>]',
-    requiredInputs: ['task id', 'review evidence', 'validation evidence'],
+    id: 'test',
+    command: 'sdd test task <task_id> [--branch <branch>] [--run <run_id>]',
+    requiredInputs: ['task id', 'validation command ledger', 'validation evidence'],
     allowedAgents: ['validator', 'reviewer'],
     requiredArtifacts: ['artifacts/validation-<task>.md', 'sync-back proposal when PASS'],
     gateConditions: ['acceptance mapped to evidence', 'validation gaps explicit', 'sync-back policy known'],
-    gapClosureBehavior: 'Return PASS_WITH_GAPS, FAIL, or BLOCKED when acceptance evidence is incomplete.',
+    gapClosureBehavior: 'Return PASS, FAIL, or BLOCKED when command execution or acceptance evidence is incomplete.',
     nextAction: 'Inspect sync-back proposal after PASS and follow apply_policy.'
   },
   {

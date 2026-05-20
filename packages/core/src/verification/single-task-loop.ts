@@ -33,6 +33,7 @@ export interface SingleTaskLoopOptions {
   debugArtifact?: string;
   teamModeEnabled?: boolean;
   teamModeActivation?: TeamModeActivation;
+  approved?: boolean;
 }
 
 export interface SingleTaskLoopResult {
@@ -56,7 +57,7 @@ export async function runSingleTaskLoop(projectRoot: string, options: SingleTask
   const runState = options.runId ? await readRunState(projectRoot, options.runId) : await createRun(projectRoot);
   const boundRunState = await bindRunStateToTask(projectRoot, runState, context, model, inspected.task ?? null, options.taskId);
   const runId = boundRunState.runId;
-  const routeDecision = await routeSddTask(projectRoot, { taskId: options.taskId, branch, teamModeEnabled: options.teamModeEnabled, teamModeActivation: options.teamModeActivation });
+  const routeDecision = await routeSddTask(projectRoot, { taskId: options.taskId, branch, teamModeEnabled: options.teamModeEnabled, teamModeActivation: options.teamModeActivation, approved: options.approved });
   await appendEvent(projectRoot, runId, {
     event: 'agent_router_preflight',
     runId,
@@ -141,7 +142,7 @@ export async function runSingleTaskLoop(projectRoot: string, options: SingleTask
   let validationStatus: RunState['validation']['status'] = 'pass';
 
   for (const step of steps) {
-    const stepRouteDecision = await routeSddTask(projectRoot, { taskId: options.taskId, branch, agent: step.agent, teamModeEnabled: options.teamModeEnabled, teamModeActivation: options.teamModeActivation });
+    const stepRouteDecision = await routeSddTask(projectRoot, { taskId: options.taskId, branch, agent: step.agent, teamModeEnabled: options.teamModeEnabled, teamModeActivation: options.teamModeActivation, approved: options.approved });
     if (!step.suppliedArtifact) {
       if (!step.required) {
         await appendEvent(projectRoot, runId, {
@@ -161,7 +162,7 @@ export async function runSingleTaskLoop(projectRoot: string, options: SingleTask
         }));
         continue;
       }
-      const gap = taskGap(options.taskId, step.agent, `${step.agent} artifact was not supplied; the task loop facade does not invoke external agents directly.`, `Run the ${step.agent} step in Claude Code and pass ${artifactOptionName(step.agent)} artifacts/<file>; physical file path is .sdd/runs/${runId}/artifacts/<file>.`);
+      const gap = taskGap(options.taskId, step.agent, `${step.agent} artifact was not supplied; the task loop facade does not invoke external agents directly.`, `Run the ${step.agent} step in Claude Code and pass ${artifactOptionName(step.agent)} artifacts/<file>; physical evidence is branch-scoped under .sdd/runs/<branchSlug>/evidence/artifacts/<file>.`);
       gaps.push(gap);
       await appendEvent(projectRoot, runId, {
         event: 'delegation_failed',
@@ -189,7 +190,8 @@ export async function runSingleTaskLoop(projectRoot: string, options: SingleTask
       taskId: options.taskId,
       agent: step.agent,
       artifactPath: step.suppliedArtifact,
-      delegationId: `B-${options.taskId}-${step.agent}-001`
+      delegationId: `B-${options.taskId}-${step.agent}-001`,
+      approved: options.approved
     });
 
     if (!result.ingestion || !result.ingestion.resultStatus) {

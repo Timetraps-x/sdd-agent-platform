@@ -10,9 +10,12 @@ import { handleLifecycleCommand } from './commands/lifecycle.js';
 import { handleRegistryCommand } from './commands/registry.js';
 import { handleRunCommand } from './commands/run.js';
 import { handleStatusCommand } from './commands/status.js';
+import { handleShipCommand } from './commands/ship.js';
 import { handleSyncBackCommand } from './commands/sync-back.js';
 import { handleTasksCommand } from './commands/tasks.js';
+import { handleTestCommand } from './commands/test.js';
 import { handleVerifyCommand } from './commands/verify.js';
+import { handleVerifiesCommand } from './commands/verifies.js';
 import { helpText } from './help.js';
 import { getCliIdentity } from './identity.js';
 import { jsonOutput, wantsJson } from './renderers/json.js';
@@ -94,6 +97,11 @@ export async function dispatchCli(args: string[], importMetaUrl = import.meta.ur
     return syncBackResult;
   }
 
+  const shipResult = await handleShipCommand(projectRoot, command, subcommand, rest);
+  if (shipResult) {
+    return shipResult;
+  }
+
   const contextResult = await handleContextCommand(projectRoot, command, subcommand, rest);
   if (contextResult) {
     return contextResult;
@@ -107,6 +115,16 @@ export async function dispatchCli(args: string[], importMetaUrl = import.meta.ur
   const lifecycleResult = await handleLifecycleCommand(projectRoot, command, subcommand, rest);
   if (lifecycleResult) {
     return lifecycleResult;
+  }
+
+  const verifiesResult = await handleVerifiesCommand(projectRoot, command, subcommand, rest);
+  if (verifiesResult) {
+    return verifiesResult;
+  }
+
+  const testResult = await handleTestCommand(projectRoot, command, subcommand, rest);
+  if (testResult) {
+    return testResult;
   }
 
   const verifyResult = await handleVerifyCommand(projectRoot, command, subcommand, rest);

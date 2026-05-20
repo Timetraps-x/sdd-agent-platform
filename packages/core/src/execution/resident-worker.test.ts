@@ -87,7 +87,7 @@ test('resident worker runtime stale lease is visible to status and doctor', asyn
 
     const list = await listResidentWorkerRuntimes(root, { runId: claimed.runId });
     const status = await getProjectStatus(root, { branch: 'master' });
-    const report = await doctor(root, { latestOnly: true });
+    const report = await doctor(root);
 
     assert.equal(list.staleRuntimes, 1);
     assert.equal(list.valid, false);

@@ -1,6 +1,6 @@
 {
   "name": "sdd-agent-platform",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Local SDD + subagent workflow platform for Claude Code.",
   "license": "MIT",
@@ -47,9 +47,21 @@
   "workspaces": [
     "packages/*"
   ],
+  "dependencies": {
+    "@sdd-agent-platform/core": "file:packages/core"
+  },
   "devDependencies": {
     "@types/node": "^24.10.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.0"
-  }
+  },
+  "bundleDependencies": [
+    "@sdd-agent-platform/core"
+  ],
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "author": ""
 }

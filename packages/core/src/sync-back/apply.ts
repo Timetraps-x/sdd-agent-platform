@@ -8,6 +8,7 @@ import { parseSddBranch } from '../sdd-docs/task-parser.js';
 import type { SddTask, SddTaskModel, SddTaskStatus } from '../sdd-docs/task-parser.js';
 import { inspectSyncBack } from './inspect.js';
 import type { SyncBackInspection } from './inspect.js';
+import { writeVerifyContract } from '../verification/verify-contract.js';
 
 export interface SyncBackApplyResult {
   runId: string;
@@ -16,10 +17,17 @@ export interface SyncBackApplyResult {
   tasksPath: string;
   inspection: SyncBackInspection;
   message: string;
+  verifyRefreshed: boolean;
 }
 
-export async function applySyncBack(projectRoot: string, options: { runId?: string; branch?: string; taskId?: string; approved?: boolean }): Promise<SyncBackApplyResult> {
-  const inspection = await inspectSyncBack(projectRoot, options);
+export async function applySyncBack(projectRoot: string, options: { runId?: string; branch?: string; taskId?: string; approved?: boolean; refreshVerify?: boolean }): Promise<SyncBackApplyResult> {
+  let inspection = await inspectSyncBack(projectRoot, options);
+  let verifyRefreshed = false;
+  if (options.refreshVerify === true && inspection.staleVerifyRecoveryCommand) {
+    await writeVerifyContract(projectRoot, { branch: inspection.branch, branchSource: 'cli_option', force: true });
+    verifyRefreshed = true;
+    inspection = await inspectSyncBack(projectRoot, { ...options, runId: inspection.runId, taskId: inspection.taskId ?? options.taskId });
+  }
   if (!inspection.taskId) {
     throw new Error('Cannot apply sync-back without a task id.');
   }
@@ -30,13 +38,21 @@ export async function applySyncBack(projectRoot: string, options: { runId?: stri
     throw new Error(`Cannot apply sync-back for ${inspection.runId}: target task is missing.`);
   }
   if (inspection.status === 'applied') {
+    const appliedTaskId = inspection.taskId;
+    const appliedMarkdownTask = inspection.markdownTask;
+    if (options.refreshVerify === true && inspection.staleVerifyRecoveryCommand) {
+      await writeVerifyContract(projectRoot, { branch: inspection.branch, branchSource: 'cli_option', force: true });
+      verifyRefreshed = true;
+      inspection = await inspectSyncBack(projectRoot, { ...options, runId: inspection.runId, taskId: appliedTaskId });
+    }
     return {
       runId: inspection.runId,
-      taskId: inspection.taskId,
+      taskId: appliedTaskId,
       applied: false,
-      tasksPath: inspection.markdownTask.source.filePath,
+      tasksPath: appliedMarkdownTask.source.filePath,
       inspection,
-      message: `Sync-back for ${inspection.runId}/${inspection.taskId} was already applied.`
+      message: `Sync-back for ${inspection.runId}/${appliedTaskId} was already applied.`,
+      verifyRefreshed
     };
   }
   if (inspection.applyPolicy.requiresApproval && options.approved !== true) {
@@ -69,6 +85,10 @@ export async function applySyncBack(projectRoot: string, options: { runId?: stri
       proposal: inspection.proposalPath
     }
   });
+  if (options.refreshVerify === true) {
+    await writeVerifyContract(projectRoot, { branch: inspection.branch, branchSource: 'cli_option', force: true });
+    verifyRefreshed = true;
+  }
 
   await rebuildLocalRunIndex(projectRoot);
 
@@ -79,7 +99,8 @@ export async function applySyncBack(projectRoot: string, options: { runId?: stri
     applied: true,
     tasksPath,
     inspection: appliedInspection,
-    message: `Sync-back applied for ${state.runId}/${inspection.taskId}.`
+    message: `Sync-back applied for ${state.runId}/${inspection.taskId}.`,
+    verifyRefreshed
   };
 }
 

@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
-import { appendFile, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { INVOCATION_LEDGER_CONTRACT_VERSION } from '../contracts.js';
 import { getInvocationLedgerPath } from '../runtime-paths.js';
 import { exists } from '../storage/json-io.js';
-import { RuntimeStoreError, legacyImportId, recordLegacyImportFailure, withRuntimeStore } from '../storage/runtime-store.js';
+import { RuntimeStoreError, legacyImportId, readRuntimeActivities, recordLegacyImportFailure, recordRuntimeActivity, withRuntimeStore } from '../storage/runtime-store.js';
 import type { InvocationLedgerEntry } from './model.js';
 
 export async function appendInvocationLedgerEntry(projectRoot: string, input: Omit<InvocationLedgerEntry, 'contract' | 'version' | 'entryId' | 'timestamp'>): Promise<InvocationLedgerEntry> {
@@ -15,19 +15,18 @@ export async function appendInvocationLedgerEntry(projectRoot: string, input: Om
     timestamp,
     ...input
   };
-  await appendFile(getInvocationLedgerPath(projectRoot, input.runId), `${JSON.stringify(entry)}\n`, 'utf8');
   await recordRuntimeActivity(projectRoot, entry);
   return entry;
 }
 
 export async function listInvocationLedgerEntries(projectRoot: string, runId: string): Promise<InvocationLedgerEntry[]> {
-  const ledgerPath = getInvocationLedgerPath(projectRoot, runId);
-  if (!await exists(ledgerPath)) {
-    return [];
+  const entries = await readRuntimeActivities(projectRoot, runId);
+  if (entries.length > 0) {
+    return entries;
   }
+  const ledgerPath = getInvocationLedgerPath(projectRoot, runId);
   await importLegacyInvocationLedgerIfNeeded(projectRoot, runId, ledgerPath);
-  const raw = await readFile(ledgerPath, 'utf8');
-  return raw.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line) as InvocationLedgerEntry);
+  return readRuntimeActivities(projectRoot, runId);
 }
 
 export async function appendArtifactHashLedgerEntry(projectRoot: string, input: { runId: string; taskId?: string | null; branch?: string | null; artifactPath: string; content: string; status?: string }): Promise<InvocationLedgerEntry> {
@@ -95,26 +94,11 @@ async function importLegacyInvocationLedgerIfNeeded(projectRoot: string, runId: 
 }
 
 async function findMatchingInvocationLedgerEntry(projectRoot: string, input: Omit<InvocationLedgerEntry, 'contract' | 'version' | 'entryId' | 'timestamp'>): Promise<InvocationLedgerEntry | null> {
-  const ledgerPath = getInvocationLedgerPath(projectRoot, input.runId);
-  if (!await exists(ledgerPath)) {
-    return null;
-  }
-  const raw = await readFile(ledgerPath, 'utf8');
-  for (const line of raw.split(/\r?\n/).filter(Boolean)) {
-    const entry = JSON.parse(line) as InvocationLedgerEntry;
-    if (entry.kind === input.kind && entry.ref === input.ref && entry.status === input.status && entry.outputHash === input.outputHash) {
-      return entry;
-    }
-  }
-  return null;
+  const entries = await listInvocationLedgerEntries(projectRoot, input.runId);
+  return entries.find((entry) => entry.kind === input.kind && entry.ref === input.ref && entry.status === input.status && entry.outputHash === input.outputHash) ?? null;
 }
 
-async function recordRuntimeActivity(projectRoot: string, entry: InvocationLedgerEntry): Promise<void> {
-  await withRuntimeStore(projectRoot, ({ db }) => {
-    db.prepare('INSERT OR REPLACE INTO activities (activity_id, run_id, task_id, branch, kind, ref, status, created_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(entry.entryId, entry.runId, entry.taskId ?? null, entry.branch ?? null, entry.kind, entry.ref, entry.status ?? null, entry.timestamp, JSON.stringify(entry));
-  });
-}
+
 
 function hashDocumentContent(raw: string): string {
   return createHash('sha256').update(raw.replace(/\r\n/g, '\n'), 'utf8').digest('hex');

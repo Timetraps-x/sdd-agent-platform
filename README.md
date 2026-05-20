@@ -27,7 +27,7 @@ Sufficient SDD, not maximum SDD.
 | 路径选择 | 依赖 prompt 判断 | lifecycle decision 选择 direct / compact / full / research |
 | 任务边界 | 容易随实现扩大 | `sdd tasks inspect` 固定 Boundary / Acceptance / affected files |
 | agent 参与 | 证据混在主会话 | implementer / reviewer / validator 输出 run-relative artifacts |
-| 验收 | 自然语言总结 | `.sdd/runs/<run_id>/artifacts` + acceptance coverage |
+| 验收 | 自然语言总结 | `.sdd/runtime.sqlite` + branch evidence artifacts + acceptance coverage |
 | 写回 | 人工记得改状态 | `sync-back inspect/apply` 显式回流到 `tasks.md` |
 | 健康检查 | 临时脚本 | `sdd doctor` 检查配置、run evidence、generated entry drift |
 
@@ -53,7 +53,7 @@ npm uninstall -g sdd-agent-platform
 
 ```bash
 npm run build
-node ./dist/packages/cli/src/main.js --help
+node ./packages/cli/dist/main.js --help
 ```
 
 ### 2. 在目标项目初始化
@@ -85,68 +85,68 @@ sdd doctor
 /sdd
 ```
 
-`/sdd` 会先读取 `sdd status`，再根据 CLI/core 的 recommended next command 判断下一步是补 spec、写 plan、拆 tasks、执行 task、verify，还是处理 sync-back。
+`/sdd` 会先读取 `sdd status`，再根据 CLI/core 的 recommended next command 判断下一步是补 spec、写 plan、拆 tasks、执行 task、运行 `/sdd:test`，还是处理 sync-back。
 
 ## 主工作流
 
-常见单任务路径如下：
+常见单任务路径如下。`/sdd:test` 是当前主运行时门禁；`sdd verify task` 只保留给兼容诊断和旧 run replay。
 
 ```bash
-# 读状态和任务边界
+# 读状态、任务边界和路由
 sdd status --branch master
 sdd tasks inspect <task_id> --branch master
 sdd tasks route <task_id> --branch master
 
-# 创建 run
-sdd run create
+# 确保 verify contract 与 tasks.md 一致
+sdd verifies inspect --branch master
+sdd verifies write --branch master --force   # 仅在缺失或 stale 时刷新
 
-# 用真实 run 写入 artifacts 模板
-sdd artifact template artifacts/implement-<task_id>.md --task <task_id> --agent implementer --branch master --run <run_id> --write
-sdd artifact template artifacts/review-<task_id>.md --task <task_id> --agent reviewer --branch master --run <run_id> --write
-sdd artifact template artifacts/validation-<task_id>.md --task <task_id> --agent validator --branch master --run <run_id> --write
-
-# 填写 Evidence 后先校验 artifact
-sdd artifact validate <run_id> artifacts/implement-<task_id>.md --task <task_id> --agent implementer
-sdd artifact validate <run_id> artifacts/review-<task_id>.md --task <task_id> --agent reviewer
-sdd artifact validate <run_id> artifacts/validation-<task_id>.md --task <task_id> --agent validator
-
-# 执行、验证、写回
-sdd do task <task_id> --branch master --run <run_id> \
-  --implement-artifact artifacts/implement-<task_id>.md \
+# 执行 task。若 review-lite / validation gate 要求外部 artifacts，先用 artifact template/validate 补齐后重跑。
+sdd do task <task_id> --branch master --approved \
   --review-artifact artifacts/review-<task_id>.md \
   --validation-artifact artifacts/validation-<task_id>.md
 
-sdd verify task <task_id> --branch master --run <run_id>
+# 执行验证命令、生成 test evidence、判断 acceptance coverage
+sdd test task <task_id> --branch master --run <run_id>
+
+# 写回前先 inspect；复杂/跨 branch 场景按 approval card 决定是否加 --approved
 sdd sync-back inspect <run_id> --task <task_id> --branch master
-sdd sync-back apply <run_id> --task <task_id> --branch master
+sdd sync-back apply <run_id> --task <task_id> --branch master [--approved]
+
+# 可选：让前台 subagent 做观察/调研，主 agent 先消费 digest，需要时再 deep-read artifact
+sdd subagents run <task_id> --branch master --run <run_id> --agent observer --json
+
+# 出货前本地只读门禁
+sdd ship --branch master --dry-run
 ```
 
-复杂或高风险任务如果 `sync-back inspect` 输出 `approval_required=true`，必须人工确认后才使用 `--approved`。
+subagent 输出的 `agents[].digest`、`summaryRefs` 和 `doNotReadUnlessNeededRefs` 用于主 agent 快速消费观察结果；它们始终是 non-authoritative guidance，不能替代 `/sdd:test`、sync-back、ship 或最终风险判断。
 
 ## 核心事实源
 
 | 事实源 | 含义 |
 |---|---|
-| `specs/<branch>/spec.md` | 需求、范围、验收标准 |
-| `specs/<branch>/plan.md` | 设计方案、风险控制、验证矩阵 |
-| `specs/<branch>/tasks.md` | 可执行 task、边界、artifact 要求 |
-| `.sdd/runs/<run_id>/state.json` | 运行状态 |
-| `.sdd/runs/<run_id>/events.jsonl` | 运行事件 |
-| `.sdd/runs/<run_id>/artifacts/*.md` | implement/review/validation/coverage 证据 |
+| `specs/<partition>/spec.md` | 需求、范围、验收标准 |
+| `specs/<partition>/plan.md` | 设计方案、风险控制、验证矩阵 |
+| `specs/<partition>/tasks.md` | 可执行 task、边界、artifact 要求 |
+| `specs/<partition>/verify.md` | 验证设计契约；独立于 task planning / implementation authority |
+| `.sdd/runtime.sqlite` | runtime state、events、projections、evidence ledger 的事实源 |
+| `.sdd/run-index.json` | 可重建的本地查询索引，不是权威事实源 |
+| `.sdd/runs/<branchSlug>/evidence/artifacts/*` | branch-scoped review / validation / test / subagent artifacts |
 | `.claude/**` | managed AI entry projection，不是手写事实源 |
 
 ## 文档地图
 
 | 文档 | 面向对象 | 用途 |
 |---|---|---|
-| [用户指南](docs/user-guide.md) | 人类用户 | 安装、初始化、执行任务、verify、sync-back、doctor、常见问题 |
+| [用户指南](docs/user-guide.md) | 人类用户 | 安装、初始化、执行任务、`/sdd:test`、sync-back、subagent digest、doctor、常见问题 |
 | [AI README](docs/ai-readme.md) | Claude Code / AI 操作者 | status-first、artifact、task boundary、sync-back 策略 |
 | [文档信息架构](docs/documentation-information-architecture.md) | 维护者 | Markdown 分类、迁移风险、当前入口地图 |
 | [命令信息架构](docs/architecture/command-information-architecture.md) | 平台维护者 | CLI 命令分层、入口职责和用户路径 |
 | [架构设计](docs/architecture/sdd-agent-platform-architecture.md) | 平台维护者 | 平台架构和核心设计 |
 | [Lifecycle Decision Model](docs/architecture/lifecycle-decision-model.md) | 平台维护者 | direct / compact / full / research 的决策模型 |
 | [Phase artifacts index](specs/master/phases/README.md) | 平台维护者 | 本仓库 SDD phase 归档入口 |
-| [Phase status](specs/master/phases/PHASE_STATUS.md) | 平台维护者 | 当前阶段状态；截至 Phase 7.0 core modularization completed，Phase 8.0 code graph planned |
+| [Phase status](specs/master/phases/PHASE_STATUS.md) | 平台维护者 | 当前阶段状态；截至 Phase 8 coding runtime convergence completed，Phase 9 code graph signals planned |
 
 研究与历史分析材料保留在 `docs/research/`；runtime contract assets 保留在 `commands/`、`agents/`、`templates/`、`workflows/` 等目录，不作为普通 Markdown 文档搬迁。
 
@@ -183,7 +183,7 @@ npm run sdd -- instructions overview --json
 npm run sdd -- tasks list --branch master
 ```
 
-健康检查按需要单独运行 `sdd doctor --latest-only`；如果本地 generated entries 或历史 run evidence 有已知漂移，应先判断是否属于当前验证范围。
+健康检查按需要单独运行 `sdd doctor fast --branch master`；如果本地 run index 与 runtime.sqlite 漂移，先运行 `sdd run index rebuild`，再判断是否属于当前验证范围。
 
 ## npm 发布维护速查
 
@@ -236,4 +236,4 @@ sdd doctor
 
 ## 当前状态
 
-截至当前主线文档，Phase 1~6 已完成到 Phase 6.10：全局安装、project init/update、Claude Code entry projection、artifact UX、run index、governance、wave/background/worktree contracts、agent/skill/team runtime、resident worker、声明式 runtime registry、`/sdd:spec` 分区入口、多分支 run 隔离、runtime trust、context budget 和 non-authoritative log worker boundary 已进入主路径。Phase 7.0 正在执行 Core Runtime Modularization：以 package-local build、explicit core subpath exports、domain façade 和 CLI/core import boundary 收敛 core，并继续拆分 doctor、router/routing、CLI registry 职责；原代码知识图谱顺延为 Phase 8.0 planned。
+截至当前主线文档，Phase 1~7 已完成平台编排、入口投影、分发、harness engineering、agent/skill/team runtime、storage v2、verification/test、sync-back/ship 和 core modularization 等基础；Phase 8 已定稿为 Coding Runtime Convergence：围绕 verifies-centered lifecycle、`/sdd:test` 主运行时门禁、risk workflow gates、subagent 非授权边界、context offload、task-scoped sync-back readiness 和 ship diagnostics/readiness 语义收敛。代码知识图谱不再作为 Phase 8 当前目标，顺延为 Phase 9 Code Graph Signals，并只能作为可选风险、上下文、test-impact、status/doctor 信号源。

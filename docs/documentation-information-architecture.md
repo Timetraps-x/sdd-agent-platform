@@ -11,9 +11,9 @@
 | `README.md` | 新用户 / 维护者 | 项目定位、快速开始、文档地图、当前主线状态。 |
 | `docs/user-guide.md` | 人类用户 | 安装、初始化、branch/partition、任务执行、verify、sync-back、常见问题。 |
 | `docs/ai-readme.md` | Claude Code / AI 操作者 | status-first 执行规则、task boundary、artifact、sync-back 策略。 |
-| `docs/architecture/sdd-agent-platform-architecture.md` | 平台维护者 | 当前架构、contract 分层、Phase 7 core modularization 与 Phase 8 graph handoff。 |
+| `docs/architecture/sdd-agent-platform-architecture.md` | 平台维护者 | 当前架构、contract 分层、Phase 8 coding runtime convergence 与 Phase 9 code graph handoff。 |
 | `docs/architecture/command-information-architecture.md` | 平台维护者 | CLI 命令分层、用户入口和 advanced/runtime 命令边界。 |
-| `specs/master/phases/PHASE_STATUS.md` | 平台维护者 | 阶段完成状态事实源；当前主线到 Phase 6.10 completed，Phase 7.0 core modularization planned，Phase 8.0 code graph planned。 |
+| `specs/master/phases/PHASE_STATUS.md` | 平台维护者 | 阶段完成状态事实源；当前主线到 Phase 8 coding runtime convergence completed，Phase 9 code graph signals planned。 |
 
 ## 目标分类
 
@@ -43,13 +43,13 @@
 3. 第一批只移动低风险导航文档，并同步 README / docs index。
 4. 高风险资产默认保持原位；确需迁移时，必须把代码、测试、workflow、generated projection、package contents 更新放入同一个任务。
 5. 对研究材料只做 archive 标记和索引，不把历史结论当成当前实现事实。
-6. Phase 8 code graph 消费本 IA 的分类和边界，把 runtime/generated/archive 的语义保留下来；Phase 7 先收敛 core 模块边界，避免图谱阶段继续扩张 `packages/core/src/index.ts`。
+6. Phase 8 先消费本 IA 的分类和边界来收敛 coding runtime，保留 runtime/generated/archive 的语义；Phase 9 code graph 再消费这些结构化边界，不反向改变 Phase 8 lifecycle authority。
 
 ## 验证门禁
 
 | 场景 | 必跑检查 |
 |---|---|
-| 任意文档移动 | reference grep、README/docs index 检查、`sdd status --branch master`；`sdd doctor --latest-only` 只在当前任务声明健康检查为验收范围时作为门禁 |
+| 任意文档移动 | reference grep、README/docs index 检查、`sdd status --branch master`；`sdd doctor fast --branch master` 只在当前任务声明健康检查为验收范围时作为门禁 |
 | generated AI entry 相关变更 | `sdd update --check`、generated manifest/drift 检查 |
 | runtime contract asset 迁移 | `npm run typecheck`、`npm test`、`npm run build`、CLI focused smoke、package contents 检查 |
 | package 可见文档变更 | `npm pack --dry-run --json` |

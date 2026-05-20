@@ -54,8 +54,8 @@ test('evidence summary projection is hash-backed and not usable for PASS', async
       assert.equal(summary.authoritative, false);
       assert.equal(summary.usableForPass, false);
       assert.equal(summary.taskId, 'T1');
-      assert.ok(summary.sources.some((source) => source.path.endsWith('state.json') && source.hash.length === 64));
-      assert.ok(summary.sources.some((source) => source.path.endsWith('artifacts/validation-T1.md') && source.kind === 'artifact'));
+      assert.ok(summary.sources.some((source) => source.path.endsWith('runtime.sqlite') && source.kind === 'run_state' && source.hash.length === 64));
+      assert.ok(summary.sources.some((source) => source.path.endsWith('.sdd/runs/master/evidence/artifacts/validation-T1.md') && source.kind === 'artifact'));
       assert.ok(summary.policyRefs.some((ref) => ref.includes('reject-derived-source-evidence')));
       assert.equal(projection?.scope_key, 'summary-run:T1');
       assert.equal(payload.contract, 'sdd-evidence-summary-v1');
@@ -79,7 +79,7 @@ test('context build packages differ by mode and agent while remaining derived gu
     const db = new DatabaseSync(getRuntimeStorePath(root), { readOnly: true });
     try {
       const projections = db.prepare('SELECT projection_type, scope_key, payload_json FROM projections WHERE projection_type = ? ORDER BY scope_key').all('context_build') as Array<{ projection_type?: string; scope_key?: string; payload_json?: string }>;
-      const payloads = projections.map((projection) => JSON.parse(projection.payload_json ?? '{}') as { contract?: string; authoritative?: boolean; usableForPass?: boolean });
+      const payloads = projections.map((projection) => JSON.parse(projection.payload_json ?? '{}') as { contract?: string; authoritative?: boolean; usableForPass?: boolean; budget?: { estimatedBytes?: number; maxBytes?: number; includedRefs?: unknown[]; deferredRefs?: unknown[]; excludedRefs?: unknown[] } });
       assert.equal(implementerPackage.contract, 'sdd-context-package-v1');
       assert.equal(implementerPackage.authoritative, false);
       assert.equal(implementerPackage.usableForPass, false);
@@ -88,13 +88,48 @@ test('context build packages differ by mode and agent while remaining derived gu
       assert.ok(validatorPackage.mustRead.some((ref) => ref.path === 'artifacts/validation-T1.md'));
       assert.notDeepEqual(implementerPackage.mustRead.map((ref) => ref.path), validatorPackage.mustRead.map((ref) => ref.path));
       assert.ok(validatorPackage.warnings.some((warning) => warning.includes('cannot satisfy PASS evidence')));
+      assert.ok(validatorPackage.nextCommands.includes('sdd test task T1 --branch master'));
+      assert.equal(validatorPackage.nextCommands.some((command) => command.startsWith('sdd verify task')), false);
+      assert.ok(implementerPackage.budget.estimatedBytes <= implementerPackage.budget.maxBytes);
+      assert.ok(implementerPackage.budget.estimatedTokens > 0);
+      assert.ok(implementerPackage.budget.includedRefs.some((ref) => ref.path.endsWith('tasks.md')));
+      assert.ok(implementerPackage.budget.deferredRefs.length > 0);
+      assert.ok(implementerPackage.budget.excludedRefs.length > 0);
       assert.equal(projections.length, 2);
       assert.ok(projections.some((projection) => projection.scope_key === 'master:T1:do:implementer:brief'));
       assert.ok(projections.some((projection) => projection.scope_key === 'master:T1:verify:validator:brief'));
       assert.equal(payloads.every((payload) => payload.contract === 'sdd-context-package-v1' && payload.authoritative === false && payload.usableForPass === false), true);
+      assert.equal(payloads.every((payload) => typeof payload.budget?.estimatedBytes === 'number' && Array.isArray(payload.budget.includedRefs) && Array.isArray(payload.budget.deferredRefs)), true);
     } finally {
       db.close();
     }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('context build packages scope materials by runtime role without PASS authority', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-context-build-roles-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', contextBuildTaskMarkdown('T1'));
+    const implementerPackage = await buildContextBuildPackage(root, { taskId: 'T1', branch: 'master', mode: 'do', agent: 'implementer' });
+    const reviewerPackage = await buildContextBuildPackage(root, { taskId: 'T1', branch: 'master', mode: 'do', agent: 'reviewer' });
+    const validatorPackage = await buildContextBuildPackage(root, { taskId: 'T1', branch: 'master', mode: 'do', agent: 'validator' });
+    const curatorPackage = await buildContextBuildPackage(root, { taskId: 'T1', branch: 'master', mode: 'do', agent: 'context-curator' });
+
+    assert.equal(implementerPackage.role, 'implementer');
+    assert.equal(reviewerPackage.role, 'reviewer');
+    assert.equal(validatorPackage.role, 'validator');
+    assert.equal(curatorPackage.role, 'context-curator');
+    assert.equal([implementerPackage, reviewerPackage, validatorPackage, curatorPackage].every((contextPackage) => contextPackage.authoritative === false && contextPackage.usableForPass === false), true);
+    assert.ok(implementerPackage.mustRead.some((ref) => ref.path === 'packages/core/src/index.ts'));
+    assert.ok(reviewerPackage.mustRead.some((ref) => ref.path === '.sdd/run-index.json'));
+    assert.ok(validatorPackage.mustRead.some((ref) => ref.path === 'artifacts/validation-T1.md'));
+    assert.ok(curatorPackage.mustRead.some((ref) => ref.path.endsWith('spec.md')));
+    assert.ok(curatorPackage.mustRead.some((ref) => ref.path === '.sdd/cache/routes'));
+    assert.notDeepEqual(implementerPackage.mustRead.map((ref) => ref.path), reviewerPackage.mustRead.map((ref) => ref.path));
+    assert.notDeepEqual(validatorPackage.mustRead.map((ref) => ref.path), curatorPackage.mustRead.map((ref) => ref.path));
   } finally {
     await rm(root, { recursive: true, force: true });
   }

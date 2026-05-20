@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { assertSafePathSegment, normalizePortablePath } from './path-safety.js';
+import { assertSafePathSegment, branchToSafePartition, normalizePortablePath } from './path-safety.js';
 
 export function getWorktreesDir(projectRoot: string): string {
   return path.join(getSddDir(projectRoot), 'worktrees');
@@ -28,6 +28,24 @@ export function getRuntimeStorePath(projectRoot: string): string {
 export function getRunDir(projectRoot: string, runId: string): string {
   assertSafePathSegment(runId, 'runId');
   return path.join(getRunsDir(projectRoot), runId);
+}
+
+export function getBranchRunRoot(projectRoot: string, branchSlug: string): string {
+  return path.join(getRunsDir(projectRoot), branchToSafePartition(branchSlug));
+}
+
+export function getEvidenceDir(projectRoot: string, branchSlug: string): string {
+  return path.join(getBranchRunRoot(projectRoot, branchSlug), 'evidence');
+}
+
+export function getEvidenceAttachmentPath(projectRoot: string, branchSlug: string, relativeEvidencePath: string): string {
+  const evidenceDir = getEvidenceDir(projectRoot, branchSlug);
+  const normalized = normalizeEvidenceRootRelativePath(relativeEvidencePath);
+  const resolved = path.resolve(evidenceDir, normalized);
+  if (!resolved.startsWith(path.resolve(evidenceDir) + path.sep) && resolved !== path.resolve(evidenceDir)) {
+    throw new Error(`Evidence path escapes evidence directory: ${relativeEvidencePath}`);
+  }
+  return resolved;
 }
 
 export function getArtifactsDir(projectRoot: string, runId: string): string {
@@ -102,6 +120,17 @@ export function normalizeArtifactRootRelativePath(value: string): string {
   }
   if (normalized.startsWith('artifacts/')) {
     throw new Error(`Artifact helper paths must be artifact-root-relative, not run-relative: ${value}`);
+  }
+  return normalized;
+}
+
+export function normalizeEvidenceRootRelativePath(value: string): string {
+  const normalized = normalizePortablePath(value);
+  if (!normalized || normalized === '.' || normalized.startsWith('../') || normalized === '..' || path.isAbsolute(value)) {
+    throw new Error(`Evidence path must be relative and stay under evidence/: ${value}`);
+  }
+  if (normalized.startsWith('evidence/')) {
+    throw new Error(`Evidence helper paths must be evidence-root-relative, not branch-run-relative: ${value}`);
   }
   return normalized;
 }

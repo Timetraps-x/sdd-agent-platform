@@ -9,9 +9,11 @@ import { promisify } from 'node:util';
 import { initProject } from './config/init-project.js';
 import { writeArtifact } from './run-state/artifacts.js';
 import { createRun } from './run-state/run-state.js';
+import { rebuildLocalRunIndex } from './run-state/run-index.js';
 import { validResultArtifact, validTaskMarkdown, validTrustEvidence, writeBranchDocs } from './test-support/fixtures.js';
 import { bindTestRunState } from './test-support/run-state.js';
 import { runGoalVerify } from './verification/goal-verify.js';
+import { writeVerifyContract } from './verification/verify-contract.js';
 import { buildRuntimeAnalysisReport } from './runtime-analysis.js';
 
 const execFileAsync = promisify(execFile);
@@ -23,6 +25,7 @@ test('runtime analysis report composes workflow runtime evidence and non-authori
     await execFileAsync('git', ['init'], { cwd: root });
     await execFileAsync('git', ['checkout', '-b', 'feature'], { cwd: root });
     await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    await writeVerifyContract(root, { branch: 'feature', branchSource: 'cli_option' });
     const state = await createRun(root, { runId: 'run-1' });
     await bindTestRunState(root, state.runId, 'feature', 'T1');
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
@@ -34,6 +37,7 @@ test('runtime analysis report composes workflow runtime evidence and non-authori
       reviewArtifact: 'artifacts/review-T1.md',
       validationArtifact: 'artifacts/validation-T1.md'
     });
+    await rebuildLocalRunIndex(root);
 
     const report = await buildRuntimeAnalysisReport(root, { branch: 'feature', runId: state.runId, taskId: 'T1', profile: 'brief' });
 

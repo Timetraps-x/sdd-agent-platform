@@ -6,14 +6,18 @@ import { toArtifactRootRelativePath } from '../runtime-paths.js';
 import type { RunState } from '../run-state/model.js';
 import { readArtifact } from '../run-state/artifacts.js';
 import { readRunEvents } from '../run-state/events.js';
-import { readRunState } from '../run-state/run-state.js';
-import { rebuildLocalRunIndex } from '../run-state/run-index.js';
-import type { LocalRunIndexAffectedFileEntry } from '../run-state/run-index.js';
+import { readAllRunStates, readRunState } from '../run-state/run-state.js';
+import { resolveWorkflowState } from '../workflow-state/resolve.js';
+import { affectedFileConflictsForSelectedRun, type WorkflowAffectedFileConflict } from '../workflow-state/affected-file-conflicts.js';
 import { resolveRunStateContext, resolveSddContext } from '../sdd-docs/context.js';
 import type { ContextResolverContract } from '../sdd-docs/context.js';
 import { inspectSddTask } from '../sdd-docs/task-inspection.js';
 import { parseSddBranch } from '../sdd-docs/task-parser.js';
 import type { SddTask, SddTaskGap, SddTaskModel, SddTaskStatus } from '../sdd-docs/task-parser.js';
+import { buildTaskRiskProfile } from '../task-risk-profile.js';
+import { inspectVerifyContract, type VerifyContractIssue, type VerifyContractStatus } from '../verification/verify-contract.js';
+import { evaluateLifecycleRiskDecisionForModel, inspectLifecycleRiskDecisionForModel, type LifecycleRiskConsumerDiagnostic } from '../risk.js';
+import { dependencyBlockingReasonsForTask } from '../workflow-state/dependencies.js';
 
 export interface ResolvedTaskRun {
   runId: string;
@@ -23,8 +27,10 @@ export interface ResolvedTaskRun {
   task: SddTask | null;
   explicitRunId: boolean;
   staleReasons: string[];
-  affectedFileConflicts: LocalRunIndexAffectedFileEntry[];
+  affectedFileConflicts: WorkflowAffectedFileConflict[];
 }
+
+export type SyncBackInspectionStatus = 'ready' | 'blocked' | 'applied';
 
 export interface SyncBackApplyPolicy {
   mode: 'direct' | 'confirm';
@@ -32,11 +38,44 @@ export interface SyncBackApplyPolicy {
   reasons: string[];
 }
 
+export interface SyncBackApprovalCard {
+  contract: 'sdd-sync-back-approval-card-v1';
+  scope: {
+    runId: string;
+    branch: string;
+    taskId: string | null;
+    targetTasksPath: string;
+  };
+  status: SyncBackInspectionStatus;
+  risk: 'low' | 'review' | 'blocked';
+  proposal: {
+    path: string | null;
+    digest: string | null;
+    digestValid: boolean | null;
+  };
+  approval: SyncBackApplyPolicy;
+  blockers: string[];
+  staleReasons: string[];
+  affectedFileConflicts: Array<{
+    file: string;
+    partition: string;
+    taskId: string;
+    runId: string;
+    runStatus: string;
+    syncBackStatus: string;
+  }>;
+  nextAction: string;
+  verifyContractStatus: VerifyContractStatus;
+  verifyContractIssues: VerifyContractIssue[];
+  staleVerifyRecoveryCommand: string | null;
+  lifecycleRisk: LifecycleRiskConsumerDiagnostic;
+}
+
 export interface SyncBackInspection {
   runId: string;
   branch: string;
   taskId: string | null;
-  status: 'ready' | 'blocked' | 'applied';
+  status: SyncBackInspectionStatus;
   reasons: string[];
   proposalPath: string | null;
   proposal: string | null;
@@ -49,8 +88,13 @@ export interface SyncBackInspection {
   artifacts: string[];
   gaps: SddTaskGap[];
   applyPolicy: SyncBackApplyPolicy;
+  approvalCard: SyncBackApprovalCard;
   staleReasons: string[];
-  affectedFileConflicts: LocalRunIndexAffectedFileEntry[];
+  affectedFileConflicts: WorkflowAffectedFileConflict[];
+  verifyContractStatus: VerifyContractStatus;
+  verifyContractIssues: VerifyContractIssue[];
+  staleVerifyRecoveryCommand: string | null;
+  lifecycleRisk: LifecycleRiskConsumerDiagnostic;
 }
 
 export async function resolveTaskRun(projectRoot: string, options: { runId?: string; branch?: string; taskId: string }): Promise<ResolvedTaskRun> {
@@ -79,27 +123,25 @@ export async function resolveTaskRun(projectRoot: string, options: { runId?: str
     };
   }
 
-  const context = await resolveSddContext(projectRoot, options.branch ? { branch: options.branch, branchSource: 'cli_option' } : {});
-  const model = await parseSddBranch(projectRoot, context.partition);
-  const inspected = inspectSddTask(model, options.taskId);
-  const index = await rebuildLocalRunIndex(projectRoot);
-  const candidates = index.latestByPartitionTask.filter((entry) => entry.partition === context.partition && entry.taskId === options.taskId);
-  if (candidates.length === 0) {
-    throw new Error(`No eligible run found for ${context.partition}/${options.taskId}. Run sdd do task ${options.taskId} first, or pass --run <run_id>.`);
+  const workflow = await resolveWorkflowState(projectRoot, {
+    branch: options.branch,
+    branchSource: options.branch ? 'cli_option' : undefined,
+    taskId: options.taskId
+  });
+  const inspected = inspectSddTask(workflow.model, options.taskId);
+  const candidate = workflow.latestRunsByTask.find((entry) => entry.taskId === options.taskId);
+  if (!candidate || !workflow.latestRunState) {
+    throw new Error(`No eligible run found for ${workflow.context.partition}/${options.taskId}. Run sdd do task ${options.taskId} first, or pass --run <run_id>.`);
   }
-  if (candidates.length > 1) {
-    throw new Error(`Ambiguous runs found for ${context.partition}/${options.taskId}: ${candidates.map((candidate) => candidate.runId).join(', ')}. Pass --run <run_id>.`);
-  }
-  const state = await readRunState(projectRoot, candidates[0].runId);
   return {
-    runId: state.runId,
-    state,
-    context,
-    model,
+    runId: workflow.latestRunState.runId,
+    state: workflow.latestRunState,
+    context: workflow.context,
+    model: workflow.model,
     task: inspected.task,
     explicitRunId: false,
-    staleReasons: await runDocumentStaleReasons(projectRoot, state, model),
-    affectedFileConflicts: await affectedFileConflictsForRun(projectRoot, state)
+    staleReasons: await runDocumentStaleReasons(projectRoot, workflow.latestRunState, workflow.model),
+    affectedFileConflicts: workflow.affectedFileConflicts
   };
 }
 
@@ -120,6 +162,9 @@ export async function inspectSyncBack(projectRoot: string, options: { runId?: st
   if (!inspected.task) {
     reasons.push(`Task ${taskId} is missing or ambiguous in specs/${branch}/tasks.md.`);
   }
+  if (markdownTask) {
+    reasons.push(...dependencyBlockingReasonsForTask(model, taskId));
+  }
   for (const reason of resolved.staleReasons) {
     reasons.push(reason);
   }
@@ -127,6 +172,9 @@ export async function inspectSyncBack(projectRoot: string, options: { runId?: st
     reasons.push(`Affected file ${conflict.file} is active in run ${conflict.runId} for ${conflict.partition}/${conflict.taskId}.`);
   }
 
+  const verifyContract = await inspectVerifyContract(projectRoot, { branch, branchSource: 'cli_option' });
+  const blockingVerifyIssues = verifyContract.status === 'PASS' ? [] : verifyContract.issues;
+  const staleVerifyRecoveryCommand = verifyContract.status === 'PASS' ? null : `sdd verifies write --branch ${branch} --force && sdd sync-back inspect ${state.runId} --branch ${branch} --task ${taskId}`;
   const proposalPath = state.syncBack.proposalPath;
   const expectedProposalDigest = state.syncBack.proposalDigest ?? null;
   let proposal: string | null = null;
@@ -159,17 +207,23 @@ export async function inspectSyncBack(projectRoot: string, options: { runId?: st
   if (blockingGaps.length > 0) {
     reasons.push(`Sync-back is blocked by ${blockingGaps.length} blocking gap(s).`);
   }
+  const lifecycleRisk = await inspectLifecycleRiskDecisionForModel(projectRoot, branch, model);
+  reasons.push(...syncBackTaskLifecycleRiskReasons(branch, model, markdownTask));
 
   let applyPolicy = deriveSyncBackApplyPolicy(state, markdownTask);
   if (state.gitBranch && resolved.context.currentGitBranch && state.gitBranch !== resolved.context.currentGitBranch) {
     applyPolicy = requireSyncBackApproval(applyPolicy, `Current Git branch is ${resolved.context.currentGitBranch}, but run ${state.runId} belongs to ${state.gitBranch}.`);
   }
 
+  const status: SyncBackInspectionStatus = state.syncBack.status === 'applied' ? 'applied' : reasons.length === 0 ? 'ready' : 'blocked';
+  const artifacts = state.validation.evidence.length > 0 ? state.validation.evidence : state.artifacts.map((artifact) => artifact.path);
+  const gaps = [...taskGaps, ...runtimeGaps];
+
   return {
     runId: state.runId,
     branch,
     taskId,
-    status: state.syncBack.status === 'applied' ? 'applied' : reasons.length === 0 ? 'ready' : 'blocked',
+    status,
     reasons,
     proposalPath,
     proposal,
@@ -179,12 +233,108 @@ export async function inspectSyncBack(projectRoot: string, options: { runId?: st
     markdownTask,
     markdownStatus: markdownTask?.status ?? null,
     targetTasksPath: model.tasksPath,
-    artifacts: state.validation.evidence.length > 0 ? state.validation.evidence : state.artifacts.map((artifact) => artifact.path),
-    gaps: [...taskGaps, ...runtimeGaps],
+    artifacts,
+    gaps,
     applyPolicy,
+    approvalCard: buildSyncBackApprovalCard({
+      runId: state.runId,
+      branch,
+      taskId,
+      status,
+      reasons,
+      proposalPath,
+      proposalDigest: expectedProposalDigest,
+      proposalDigestValid,
+      targetTasksPath: model.tasksPath,
+      applyPolicy,
+      staleReasons: resolved.staleReasons,
+      affectedFileConflicts: resolved.affectedFileConflicts,
+      verifyContractStatus: verifyContract.status,
+      verifyContractIssues: blockingVerifyIssues,
+      staleVerifyRecoveryCommand,
+      lifecycleRisk
+    }),
     staleReasons: resolved.staleReasons,
-    affectedFileConflicts: resolved.affectedFileConflicts
+    affectedFileConflicts: resolved.affectedFileConflicts,
+    verifyContractStatus: verifyContract.status,
+    verifyContractIssues: blockingVerifyIssues,
+    staleVerifyRecoveryCommand,
+    lifecycleRisk
   };
+}
+
+function buildSyncBackApprovalCard(input: {
+  runId: string;
+  branch: string;
+  taskId: string | null;
+  status: SyncBackInspectionStatus;
+  reasons: string[];
+  proposalPath: string | null;
+  proposalDigest: string | null;
+  proposalDigestValid: boolean | null;
+  targetTasksPath: string;
+  applyPolicy: SyncBackApplyPolicy;
+  staleReasons: string[];
+  affectedFileConflicts: WorkflowAffectedFileConflict[];
+  verifyContractStatus: VerifyContractStatus;
+  verifyContractIssues: VerifyContractIssue[];
+  staleVerifyRecoveryCommand: string | null;
+  lifecycleRisk: LifecycleRiskConsumerDiagnostic;
+}): SyncBackApprovalCard {
+  return {
+    contract: 'sdd-sync-back-approval-card-v1',
+    scope: {
+      runId: input.runId,
+      branch: input.branch,
+      taskId: input.taskId,
+      targetTasksPath: input.targetTasksPath
+    },
+    status: input.status,
+    risk: syncBackApprovalRisk(input.status, input.applyPolicy),
+    proposal: {
+      path: input.proposalPath,
+      digest: input.proposalDigest,
+      digestValid: input.proposalDigestValid
+    },
+    approval: input.applyPolicy,
+    blockers: input.reasons,
+    staleReasons: input.staleReasons,
+    affectedFileConflicts: input.affectedFileConflicts.map((conflict) => ({
+      file: conflict.file,
+      partition: conflict.partition,
+      taskId: conflict.taskId,
+      runId: conflict.runId,
+      runStatus: conflict.runStatus,
+      syncBackStatus: conflict.syncBackStatus
+    })),
+    verifyContractStatus: input.verifyContractStatus,
+    verifyContractIssues: input.verifyContractIssues,
+    staleVerifyRecoveryCommand: input.staleVerifyRecoveryCommand,
+    lifecycleRisk: input.lifecycleRisk,
+    nextAction: syncBackApprovalNextAction(input.status, input.applyPolicy, input.runId, input.branch, input.taskId, input.staleVerifyRecoveryCommand, input.proposalPath)
+  };
+}
+
+function syncBackApprovalRisk(status: SyncBackInspectionStatus, applyPolicy: SyncBackApplyPolicy): SyncBackApprovalCard['risk'] {
+  if (status === 'blocked') {
+    return 'blocked';
+  }
+  return applyPolicy.requiresApproval ? 'review' : 'low';
+}
+
+function syncBackApprovalNextAction(status: SyncBackInspectionStatus, applyPolicy: SyncBackApplyPolicy, runId: string, branch: string, taskId: string | null, staleVerifyRecoveryCommand: string | null, proposalPath: string | null): string {
+  if (status === 'applied') {
+    return 'sdd status';
+  }
+  if (status === 'blocked') {
+    return staleVerifyRecoveryCommand ?? 'Resolve the listed blockers, rerun the required validation or verify step, then inspect sync-back again.';
+  }
+  const taskFlag = taskId ? ` --task ${taskId}` : '';
+  const approvedFlag = applyPolicy.requiresApproval ? ' --approved' : '';
+  const command = `sdd sync-back apply ${runId} --branch ${branch}${taskFlag}${approvedFlag}`;
+  return applyPolicy.requiresApproval
+    ? `Review ${proposalPath ?? 'the sync-back proposal'} and apply policy, then run ${command}.`
+    : `Run ${command}.`;
 }
 
 async function taskIdFromRun(projectRoot: string, runId: string): Promise<string | null> {
@@ -196,7 +346,7 @@ export async function runDocumentStaleReasons(projectRoot: string, state: RunSta
   const reasons: string[] = [];
   const snapshot = state.documentSnapshot;
   if (!snapshot.specHash && !snapshot.planHash && !snapshot.tasksHash) {
-    reasons.push('Run has no document snapshot hashes; rerun do task before verify or sync-back apply.');
+    reasons.push('Run has no document snapshot hashes; rerun do task before test or sync-back apply.');
   }
   appendDocumentHashMismatch(reasons, 'spec.md', snapshot.specHash, model.documents.specHash ?? null);
   appendDocumentHashMismatch(reasons, 'plan.md', snapshot.planHash, model.documents.planHash ?? null);
@@ -252,13 +402,26 @@ async function isAppliedSyncBackTasksWritebackCurrent(projectRoot: string, state
   }
 }
 
-export async function affectedFileConflictsForRun(projectRoot: string, state: RunState): Promise<LocalRunIndexAffectedFileEntry[]> {
-  if (!state.partition || !state.taskId || state.affectedFiles.length === 0) {
+export async function affectedFileConflictsForRun(projectRoot: string, state: RunState): Promise<WorkflowAffectedFileConflict[]> {
+  const states = await readAllRunStates(projectRoot);
+  return affectedFileConflictsForSelectedRun(states, state);
+}
+
+function syncBackTaskLifecycleRiskReasons(branch: string, model: SddTaskModel, task: SddTask | null): string[] {
+  if (!task) {
     return [];
   }
-  const files = new Set(state.affectedFiles);
-  const index = await rebuildLocalRunIndex(projectRoot);
-  return index.activeByAffectedFile.filter((entry) => entry.runId !== state.runId && files.has(entry.file));
+
+  const decision = evaluateLifecycleRiskDecisionForModel(branch, {
+    ...model,
+    tasks: [task],
+    gaps: model.gaps.filter((gap) => gap.taskId === task.id)
+  });
+
+  if (decision.profile === 'blocked' || decision.approvalPolicy === 'blocked') {
+    return [`Lifecycle risk blocks sync-back for ${task.id}: ${decision.reasons.join(' ')}`];
+  }
+  return [];
 }
 
 function deriveSyncBackApplyPolicy(state: RunState, task: SddTask | null): SyncBackApplyPolicy {
@@ -277,8 +440,9 @@ function deriveSyncBackApplyPolicy(state: RunState, task: SddTask | null): SyncB
   if ((decision?.hard_gate_hits.length ?? 0) > 0) {
     reasons.push(`Lifecycle hard gates were hit: ${decision?.hard_gate_hits.join(', ')}.`);
   }
-  if ((task?.risk.length ?? 0) > 0) {
-    reasons.push(`Task declares risk tags: ${task?.risk.join(', ')}.`);
+  const profile = buildTaskRiskProfile(task);
+  if (profile.approvalRecommendation !== 'direct') {
+    reasons.push(`Task risk profile is ${profile.riskLevel}: ${profile.reasons.join(' ')}`);
   }
   if ((task?.dependsOn.length ?? 0) > 0) {
     reasons.push(`Task depends on ${task?.dependsOn.length} other task(s).`);
@@ -298,7 +462,7 @@ function deriveSyncBackApplyPolicy(state: RunState, task: SddTask | null): SyncB
   return {
     mode: 'direct',
     requiresApproval: false,
-    reasons: ['Task is direct-safe: no checkpoint, hard gate, risk tag, dependency, or broad file fan-out was detected.']
+    reasons: ['Task is direct-safe: shared risk profile found no checkpoint, source-boundary, runtime-state, security, external, dependency, or broad file fan-out signal.']
   };
 }
 

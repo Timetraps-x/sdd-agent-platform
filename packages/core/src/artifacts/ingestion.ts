@@ -214,7 +214,7 @@ function artifactIngestionGaps(delegation: RunStateDelegationRecord, status: Sdd
   if (status === 'PASS') {
     return [];
   }
-  return [taskGap(delegation.task, delegation.agent, `Artifact ingestion returned ${status} for ${delegation.delegationId}.`, 'Inspect the ingested artifact evidence before verify or sync-back apply.')];
+  return [taskGap(delegation.task, delegation.agent, `Artifact ingestion returned ${status} for ${delegation.delegationId}.`, 'Inspect the ingested artifact evidence before test or sync-back apply.')];
 }
 
 function contractIssue(field: string, message: string, recommendation: string): RunStateContractValidationIssue {

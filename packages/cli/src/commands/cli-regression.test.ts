@@ -30,7 +30,7 @@ import { applyAiToolEntries, checkAiToolEntryDrift } from '@sdd-agent-platform/c
 import { getSddInstructions } from '@sdd-agent-platform/core/instructions';
 import { buildRuntimeAnalysisReport } from '@sdd-agent-platform/core/runtime-analysis';
 import { appendEvent, readRunEvents } from '@sdd-agent-platform/core/run-state';
-import { writeArtifact } from '@sdd-agent-platform/core/run-state';
+import { readArtifact, writeArtifact } from '@sdd-agent-platform/core/run-state';
 import { listInvocationLedgerEntries } from '@sdd-agent-platform/core/run-state';
 import { archiveRun, createRun, listRuns, readRunState, writeRunState } from '@sdd-agent-platform/core/run-state';
 import { queryLocalRunIndex, rebuildLocalRunIndex } from '@sdd-agent-platform/core/run-state';
@@ -42,12 +42,25 @@ import { createDelegationRecord } from '@sdd-agent-platform/core/delegation';
 import { validateSddResultArtifact } from '@sdd-agent-platform/core/artifacts';
 import { renderSddResultArtifactTemplate } from '@sdd-agent-platform/core/artifacts';
 import { ingestArtifactResult, inspectArtifactResultIngestions } from '@sdd-agent-platform/core/artifacts';
-import { runGoalVerify } from '@sdd-agent-platform/core/verification';
+import { runGoalVerify, writeVerifyContract } from '@sdd-agent-platform/core/verification';
 import { inspectSyncBack } from '@sdd-agent-platform/core/sync-back';
 import { applySyncBack } from '@sdd-agent-platform/core/sync-back';
 import { getArtifactPath, getRuntimeStorePath } from '@sdd-agent-platform/core/runtime-paths';
 
 const execFileAsync = promisify(execFile);
+
+type CliRegressionRunState = Awaited<ReturnType<typeof readRunState>>;
+
+function forceRuntimeRunState(projectRoot: string, state: CliRegressionRunState): void {
+  const serialized = `${JSON.stringify(state, null, 2)}\n`;
+  const db = new DatabaseSync(getRuntimeStorePath(projectRoot));
+  try {
+    db.prepare('UPDATE runs SET status = ?, phase = ?, current_task = ?, partition = ?, git_branch = ?, task_id = ?, updated_at = ?, state_json = ? WHERE run_id = ?')
+      .run(state.status, state.phase, state.currentTask, state.partition, state.gitBranch, state.taskId, state.updatedAt, serialized, state.runId);
+  } finally {
+    db.close();
+  }
+}
 
 
 
@@ -95,6 +108,65 @@ test('CLI tasks list uses configured default SDD branch when branch is omitted',
   }
 });
 
+test('CLI exposes verifies inspect write and JSON output', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-verifies-cli-'));
+  const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
+  const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+
+    const missing = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'verifies', 'inspect', '--branch', 'feature'], { cwd: root });
+    const write = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'verifies', 'write', '--branch', 'feature'], { cwd: root });
+    const inspect = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'verifies', 'inspect', '--branch', 'feature'], { cwd: root });
+    const inspectJson = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'verifies', 'inspect', '--branch', 'feature', '--json'], { cwd: root });
+    const parsed = JSON.parse(inspectJson.stdout) as { status: string; exists: boolean; taskCount: number };
+
+    assert.match(missing.stdout, /status=WARN/);
+    assert.match(missing.stdout, /sdd verifies write --branch feature/);
+    assert.match(write.stdout, /SDD verify contract created/);
+    assert.match(write.stdout, /specs\/feature\/verify.md/);
+    assert.match(inspect.stdout, /status=PASS/);
+    assert.match(inspect.stdout, /sdd test task <task_id> --branch <branch>/);
+    assert.equal(parsed.status, 'PASS');
+    assert.equal(parsed.exists, true);
+    assert.equal(parsed.taskCount, 1);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('CLI exposes test task runtime and JSON output', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-test-cli-'));
+  const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
+  const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []).replace('packages/core/src/index.ts', 'docs/t1.md').replace('  - npm test', '  - node -e "process.stdout.write(\'ok\')" => AC-1\n  - node -e "process.stdout.write(\'json\')" => AC-1'));
+
+    await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'verifies', 'write', '--branch', 'feature'], { cwd: root });
+    const result = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'test', 'task', 'T1', '--branch', 'feature', '--command', 'node -e "process.stdout.write(\'ok\')"'], { cwd: root });
+    const json = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'test', 'task', 'T1', '--branch', 'feature', '--command', 'node -e "process.stdout.write(\'json\')"', '--json'], { cwd: root });
+    const argvJson = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'test', 'task', 'T1', '--branch', 'feature', '--json', '--', process.execPath, '-e', 'process.stdout.write(process.argv[1])', 'literal;not-shell'], { cwd: root }).catch((error: { code: number; stdout: string }) => error) as { code: number; stdout: string };
+    const parsed = JSON.parse(json.stdout) as { status: string; steps: unknown[]; validationArtifact: string | null };
+    const parsedArgv = JSON.parse(argvJson.stdout) as { status: string; commandStatus: string; steps: Array<{ argv: string[] | null; shell: boolean }> };
+
+    assert.match(result.stdout, /SDD test T1/);
+    assert.match(result.stdout, /Validation passed/);
+    assert.match(result.stdout, /Next:/);
+    assert.equal(parsed.status, 'PASS');
+    assert.equal(parsed.steps.length, 1);
+    assert.equal(parsed.validationArtifact, 'artifacts/validation-T1.md');
+    assert.equal(argvJson.code, 1);
+    assert.equal(parsedArgv.status, 'BLOCKED');
+    assert.equal(parsedArgv.commandStatus, 'PASS');
+    assert.equal(parsedArgv.steps[0].shell, false);
+    assert.deepEqual(parsedArgv.steps[0].argv, [process.execPath, '-e', 'process.stdout.write(process.argv[1])', 'literal;not-shell']);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('CLI status warns when latest run predates current tasks contract', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-status-stale-run-cli-'));
   const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
@@ -105,9 +177,8 @@ test('CLI status warns when latest run predates current tasks contract', async (
     const run = await createRun(root, { runId: 'run-stale' });
     await bindTestRunState(root, run.runId, 'feature', 'T1');
     const boundRun = await readRunState(root, run.runId);
-    const statePath = path.join(root, '.sdd', 'runs', run.runId, 'state.json');
-    const staleState = { ...boundRun, status: 'completed', currentTask: 'T1', updatedAt: '2000-01-01T00:00:00.000Z' };
-    await writeFile(statePath, `${JSON.stringify(staleState, null, 2)}\n`, 'utf8');
+    const staleState = { ...boundRun, status: 'completed' as const, currentTask: 'T1', updatedAt: '2000-01-01T00:00:00.000Z' };
+    forceRuntimeRunState(root, staleState);
 
     const staleStatus = await getProjectStatus(root, { branch: 'feature' });
     const staleCli = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'status', '--branch', 'feature'], { cwd: root });
@@ -117,7 +188,7 @@ test('CLI status warns when latest run predates current tasks contract', async (
     assert.match(staleCli.stdout, /latest_run_evidence may be stale/);
 
     const appliedState = { ...staleState, syncBack: { ...staleState.syncBack, status: 'applied' as const } };
-    await writeFile(statePath, `${JSON.stringify(appliedState, null, 2)}\n`, 'utf8');
+    forceRuntimeRunState(root, appliedState);
     const appliedStatus = await getProjectStatus(root, { branch: 'feature' });
     const appliedCli = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'status', '--branch', 'feature'], { cwd: root });
     assert.deepEqual(appliedStatus.latestRunStaleReasons, []);
@@ -125,7 +196,7 @@ test('CLI status warns when latest run predates current tasks contract', async (
     assert.match(appliedCli.stdout, /tasks.md changed after sync-back apply/);
 
     const freshState = { ...staleState, updatedAt: '2999-01-01T00:00:00.000Z' };
-    await writeFile(statePath, `${JSON.stringify(freshState, null, 2)}\n`, 'utf8');
+    forceRuntimeRunState(root, freshState);
     const freshStatus = await getProjectStatus(root, { branch: 'feature' });
     const freshCli = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'status', '--branch', 'feature'], { cwd: root });
 
@@ -222,6 +293,11 @@ test('CLI exposes Phase 6 runtime, catalog, quarantine, team-mode, and route com
 
     const runtime = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'agent-runtime', 'inspect'], { cwd: root });
     const runtimeJson = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'agent-runtime', 'validate', '--json'], { cwd: root });
+    const agentCapabilities = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'agent-capabilities', 'list'], { cwd: root });
+    const agentCapabilitiesJson = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'agent-capabilities', 'validate', '--json'], { cwd: root });
+    const commandTeam = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'command-team', 'inspect'], { cwd: root });
+    const commandTeamJson = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'command-team', 'validate', '--json'], { cwd: root });
+    const commandTeamDecision = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'command-team', 'decide', '--command', 'verify', '--risk', 'runtime_evidence'], { cwd: root });
     const capability = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'skill-capabilities', 'inspect', 'host.edit.hashline'], { cwd: root });
     const source = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'capability-sources', 'inspect', 'ohmy_team_mode'], { cwd: root });
     const pack = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'external-packs', 'inspect', 'agency_agents_material'], { cwd: root });
@@ -231,11 +307,31 @@ test('CLI exposes Phase 6 runtime, catalog, quarantine, team-mode, and route com
     const routeOff = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'tasks', 'route', 'ONBOARDING-1', '--no-team-mode'], { cwd: root });
     const routeProfileCache = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'tasks', 'route', 'ONBOARDING-1', '--profile', '--cache'], { cwd: root });
     const parsedRuntime = JSON.parse(runtimeJson.stdout) as { valid: boolean; version: string };
+    const parsedAgentCapabilities = JSON.parse(agentCapabilitiesJson.stdout) as { valid: boolean; version: string; catalog: { capabilities: Array<{ domain: string }>; materialPacks: Array<{ loadPolicy: string }> } };
+    const parsedCommandTeam = JSON.parse(commandTeamJson.stdout) as { valid: boolean; version: string; inspection: { commandProfiles: Array<{ command: string }>; independenceRules: Array<{ id: string }> } };
 
     assert.match(runtime.stdout, /SDD agent\/skill\/team runtime/);
     assert.match(runtime.stdout, /team_mode_default=disabled/);
     assert.equal(parsedRuntime.valid, true);
     assert.equal(parsedRuntime.version, 'phase-6.0-agent-skill-team-runtime-v1');
+    assert.match(agentCapabilities.stdout, /SDD agent capability catalog/);
+    assert.match(agentCapabilities.stdout, /domain=norm_discovery/);
+    assert.match(agentCapabilities.stdout, /material_packs/);
+    assert.match(agentCapabilities.stdout, /material_policy=summary_only/);
+    assert.equal(parsedAgentCapabilities.valid, true);
+    assert.equal(parsedAgentCapabilities.version, 'phase-7.6-agent-capability-catalog-v1');
+    assert.equal(parsedAgentCapabilities.catalog.capabilities.some((item) => item.domain === 'context_curation'), true);
+    assert.equal(parsedAgentCapabilities.catalog.materialPacks.some((item) => item.loadPolicy === 'never_inline'), false);
+    assert.match(commandTeam.stdout, /SDD command team runtime/);
+    assert.match(commandTeam.stdout, /command_profiles=11/);
+    assert.match(commandTeam.stdout, /role\.evidence-runner/);
+    assert.match(commandTeamDecision.stdout, /Command team decision verify/);
+    assert.match(commandTeamDecision.stdout, /mode=team-lite/);
+    assert.match(commandTeamDecision.stdout, /ind\.verify\.runner-designer/);
+    assert.equal(parsedCommandTeam.valid, true);
+    assert.equal(parsedCommandTeam.version, 'phase-7.7-command-team-runtime-v1');
+    assert.equal(parsedCommandTeam.inspection.commandProfiles.some((item) => item.command === 'recover'), true);
+    assert.equal(parsedCommandTeam.inspection.independenceRules.some((item) => item.id === 'ind.verify.runner-designer'), true);
     assert.match(capability.stdout, /Skill capability host\.edit\.hashline/);
     assert.match(capability.stdout, /reuse_decision=reuse_direct/);
     assert.match(source.stdout, /Capability source ohmy_team_mode/);
@@ -243,18 +339,13 @@ test('CLI exposes Phase 6 runtime, catalog, quarantine, team-mode, and route com
     assert.match(pack.stdout, /status=quarantined/);
     assert.match(pack.stdout, /dangerous_command_scan/);
     assert.match(team.stdout, /decision=disabled mode=off activation=off cost=none/);
-    assert.match(route.stdout, /Agent router decision ONBOARDING-1/);
-    assert.match(route.stdout, /recommended_profile=researcher/);
-    assert.match(route.stdout, /required_capabilities=.*context7\.docs/);
-    assert.match(route.stdout, /activation=auto/);
-    assert.match(route.stdout, /team_mode_reason=/);
-    assert.match(routeForce.stdout, /activation=force/);
-    assert.match(routeForce.stdout, /mode=review-lite/);
-    assert.match(routeOff.stdout, /team_mode=disabled mode=off activation=off cost=none/);
-    assert.match(routeProfileCache.stdout, /route_cache=stored/);
-    assert.match(routeProfileCache.stdout, /authoritative=false/);
-    assert.match(routeProfileCache.stdout, /trust_policy_enforced=true/);
-    assert.match(routeProfileCache.stdout, /profile\n- /);
+    assert.match(route.stdout, /SDD route ONBOARDING-1/);
+    assert.match(route.stdout, /Routed through the direct workflow/);
+    assert.match(route.stdout, /Why:/);
+    assert.match(route.stdout, /Next:/);
+    assert.match(routeForce.stdout, /SDD route ONBOARDING-1/);
+    assert.match(routeOff.stdout, /SDD route ONBOARDING-1/);
+    assert.match(routeProfileCache.stdout, /SDD route ONBOARDING-1/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -284,10 +375,9 @@ test('CLI exposes Phase 6.3 project agent runtime config routes', async () => {
     assert.equal(sourceListText.stdout.includes('project_frontend_material'), true);
     assert.equal(sourceListText.stdout.includes('origin=project_config'), true);
     assert.equal(packText.stdout.includes('status=quarantined'), true);
-    assert.equal(routeText.stdout.includes('recommended_profile=frontend'), true);
-    assert.equal(routeText.stdout.includes('alias_resolutions=frontend-dev->frontend:project_config'), true);
-    assert.equal(routeText.stdout.includes('routing_rule_hits=frontend-default'), true);
-    assert.equal(routeText.stdout.includes('quarantine_warnings'), true);
+    assert.equal(routeText.stdout.includes('SDD route FRONTEND-1'), true);
+    assert.equal(routeText.stdout.includes('Why:'), true);
+    assert.equal(routeText.stdout.includes('Next:'), true);
     assert.equal(parsedRoute.recommendedProfile, 'frontend');
     assert.deepEqual(parsedRoute.routingRuleHits, ['frontend-default']);
     assert.equal(parsedRoute.resolvedAliases.some((alias) => alias.input === 'frontend-dev' && alias.resolved === 'frontend'), true);
@@ -407,6 +497,10 @@ test('CLI help groups common workflow commands and links advanced help', async (
   assert.match(stdout, /Common workflow:/);
   assert.match(stdout, /sdd init \[--force\] \[--ai <mode>\] \[--scaffold-docs\] \[--json\]/);
   assert.match(stdout, /sdd status \[--branch <branch>\] \[--json\|--compact-json\]/);
+  assert.match(stdout, /sdd statusline \[--branch <branch>\] \[--json\|--compact-json\]/);
+  assert.match(stdout, /sdd subagents run <task_id> \[--agent <agent>\]/);
+  assert.match(stdout, /sdd ship \[--branch <branch>\] \[--dry-run\] \[--json\|--compact-json\]/);
+  assert.match(stdout, /sdd doctor \[fast\|deep\]/);
   assert.match(stdout, /sdd artifact template <path> --task <task_id> --agent <agent> \[--run <run_id> --write\]/);
   assert.match(stdout, /More help:/);
   assert.match(stdout, /init --branch is legacy starter-doc scaffolding/);
@@ -416,6 +510,42 @@ test('CLI help groups common workflow commands and links advanced help', async (
   assert.match(advanced.stdout, /sdd advanced help/);
   assert.match(advanced.stdout, /sdd plugins list\|inspect \[--json\]/);
   assert.match(advanced.stdout, /sdd init --branch <branch> creates starter docs/);
+  assert.match(advanced.stdout, /sdd progress \[--branch <branch>\] \[--json\|--compact-json\]/);
+  assert.match(advanced.stdout, /Foreground subagents:/);
+});
+
+
+test('CLI help and preflight for side-effect commands do not write runtime artifacts', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-command-lifecycle-cli-'));
+  const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
+  const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+
+    const doHelp = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'do', 'task', 'T1', '--branch', 'feature', '--help'], { cwd: root });
+    const doPreflight = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'do', 'task', 'T1', '--branch', 'feature', '--preflight'], { cwd: root });
+    const runPreflight = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'run', 'create', '--preflight'], { cwd: root });
+    const artifactPreflight = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'artifact', 'template', 'artifacts/review-T1.md', '--task', 'T1', '--agent', 'reviewer', '--run', 'run-1', '--write', '--preflight'], { cwd: root });
+    const syncBackPreflight = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'sync-back', 'apply', '--task', 'T1', '--branch', 'feature', '--preflight'], { cwd: root });
+    const shipHelp = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'ship', '--branch', 'feature', '--help'], { cwd: root });
+    const shipPreflight = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'ship', '--branch', 'feature', '--preflight'], { cwd: root });
+    const runs = await listRuns(root);
+
+    assert.match(doHelp.stdout, /Usage: sdd do task/);
+    assert.match(doHelp.stdout, /--approved/);
+    assert.match(doPreflight.stdout, /command=do task/);
+    assert.match(runPreflight.stdout, /command=run create/);
+    assert.match(artifactPreflight.stdout, /command=artifact template/);
+    assert.match(syncBackPreflight.stdout, /command=sync-back apply/);
+    assert.match(shipHelp.stdout, /Usage: sdd ship/);
+    assert.match(shipPreflight.stdout, /command=ship/);
+    assert.equal(runs.length, 0);
+    await assert.rejects(readFile(path.join(root, 'specs', 'feature', 'release.md'), 'utf8'));
+    await assert.rejects(readFile(path.join(root, '.sdd', 'runs', 'run-1', 'evidence', 'artifacts', 'review-T1.md'), 'utf8'));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 
@@ -679,6 +809,46 @@ test('CLI background run and inspect render executor evidence', async () => {
 });
 
 
+test('CLI subagents run collects foreground evidence', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-subagents-cli-'));
+  const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
+  const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
+  const hostCommand = [
+    "const prompt = process.argv[1];",
+    "const agent = prompt.match(/^Agent: (.+)$/m)?.[1] ?? 'agent';",
+    "const task = prompt.match(/^Task id: (.+)$/m)?.[1] ?? 'TASK';",
+    "const artifact = prompt.match(/^Expected result artifact: (.+)$/m)?.[1] ?? 'artifacts/result.md';",
+    "const result = '# ' + agent + ' result\\n\\n```sdd-result\\ncontract: sdd-result-v1\\nversion: 1.3.0\\nagent: ' + agent + '\\ntask: ' + task + '\\nstatus: PASS\\nartifacts:\\n  - ' + artifact + '\\n```\\n\\n## Summary\\n' + agent + ' produced a compact digest for the parent main agent.\\n\\n## Key findings\\n- ' + agent + ' completed foreground evidence collection.\\n\\n## Recommendation\\nRead the digest first and inspect the artifact only if more detail is required.\\n\\n## Deep-read triggers\\n- Inspect ' + artifact + ' for full details.\\n';",
+    "const evidence = agent === 'validator' ? '\\n```sdd-evidence\\ncontract: sdd-evidence-v1\\nversion: 1.0.0\\ntask: ' + task + '\\nacceptance: AC-1\\nstatus: PASS\\nclaim: Validation proves AC-1.\\nsource_artifact: ' + artifact + '\\nevidence_refs:\\n  - command:npm test\\nprovenance_refs:\\n  - artifact:' + artifact + '\\npolicy_refs:\\n  - acceptance-policy-v1:require-source-evidence\\n```\\n' : '';",
+    "process.stdout.write(result + evidence);"
+  ].join('\n');
+  const env = { ...process.env, SDD_CLAUDE_CODE_COMMAND: process.execPath, SDD_CLAUDE_CODE_ARGS: JSON.stringify(['-e', hostCommand, '{prompt}']) };
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []).replace('packages/core/src/index.ts', 'docs/t1.md'));
+
+    const text = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'subagents', 'run', 'T1', '--branch', 'feature', '--agent', 'reviewer', '--agent', 'validator'], { cwd: root, env });
+    const json = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'subagents', 'run', 'T1', '--branch', 'feature', '--agent', 'reviewer', '--agent', 'validator', '--compact-json'], { cwd: root, env });
+    const parsed = JSON.parse(json.stdout) as { status: string; summaryRefs: unknown[]; doNotReadUnlessNeededRefs: unknown[]; agents: Array<{ agent: string; status: string; artifactPath: string | null; digest?: { summary: string; keyFindings: string[] } }> };
+
+    assert.match(text.stdout, /Foreground subagents completed for T1/);
+    assert.match(text.stdout, /non-authoritative evidence only/);
+    assert.match(text.stdout, /summary_refs=2 deep_read_refs=2/);
+    assert.match(text.stdout, /digest=.*compact digest/);
+    assert.match(text.stdout, /deep_read=artifacts\//);
+    assert.equal(parsed.status, 'completed');
+    assert.deepEqual(parsed.agents.map((agent) => `${agent.agent}:${agent.status}`), ['reviewer:completed', 'validator:completed']);
+    assert.equal(parsed.agents.every((agent) => agent.artifactPath?.startsWith('artifacts/')), true);
+    assert.equal(parsed.summaryRefs.length, 2);
+    assert.equal(parsed.doNotReadUnlessNeededRefs.length, 2);
+    assert.equal(parsed.agents.every((agent) => agent.digest?.summary.includes('compact digest')), true);
+    assert.equal(parsed.agents.every((agent) => agent.digest?.keyFindings.length), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+
 test('CLI worker-runtime claim status heartbeat and inspect render resident evidence', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-resident-worker-cli-'));
   const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
@@ -718,6 +888,8 @@ test('CLI wave run and executor inspect render wave execution evidence', async (
     await writeBranchDocs(root, 'master', `# Tasks\n\n${graphTaskMarkdown('WX1', [], ['src/a.ts'], [])}`);
     const run = await createRun(root, { runId: 'run-1' });
     const jsonRun = await createRun(root, { runId: 'run-json' });
+    await bindTestRunState(root, run.runId, 'master', 'WX1');
+    await bindTestRunState(root, jsonRun.runId, 'master', 'WX1');
     await writeArtifact(root, run.runId, 'implementer-WX1.md', validResultArtifact('implementer', 'WX1', 'PASS', 'artifacts/implementer-WX1.md'));
     await writeArtifact(root, jsonRun.runId, 'implementer-WX1.md', validResultArtifact('implementer', 'WX1', 'PASS', 'artifacts/implementer-WX1.md'));
     const waveRun = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'wave', 'run', '--run', run.runId, '--artifact', 'WX1:artifacts/implementer-WX1.md'], { cwd: root });
@@ -774,6 +946,7 @@ test('CLI compact JSON supports instructions run-index sync-back and artifact va
     await execFileAsync('git', ['init'], { cwd: root });
     await execFileAsync('git', ['checkout', '-b', 'feature'], { cwd: root });
     await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    await writeVerifyContract(root, { branch: 'feature', branchSource: 'cli_option' });
     const state = await createRun(root, { runId: 'compact-run' });
     await bindTestRunState(root, state.runId, 'feature', 'T1');
     await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
@@ -789,11 +962,25 @@ test('CLI compact JSON supports instructions run-index sync-back and artifact va
     const instructions = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'instructions', 'overview', '--compact-json'], { cwd: root });
     const rebuild = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'run', 'index', 'rebuild', '--compact-json'], { cwd: root });
     const syncBack = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'sync-back', 'inspect', state.runId, '--branch', 'feature', '--task', 'T1', '--compact-json'], { cwd: root });
+    await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'sync-back', 'apply', state.runId, '--branch', 'feature', '--task', 'T1', '--approved', '--compact-json'], { cwd: root });
+    const statusline = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'statusline', '--branch', 'feature', '--compact-json'], { cwd: root }).catch((error: { stdout: string }) => error);
+    const ship = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'ship', '--branch', 'feature', '--dry-run', '--compact-json'], { cwd: root }).catch((error: { stdout: string }) => error);
+    const doctorFast = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'doctor', 'fast', '--branch', 'feature'], { cwd: root }).catch((error: { stdout: string }) => error);
+    const doctorRecover = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'doctor', 'recover', '--branch', 'feature'], { cwd: root }).catch((error: { stdout: string }) => error);
     const artifact = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'artifact', 'validate', state.runId, 'artifacts/validation-T1.md', '--task', 'T1', '--agent', 'validator', '--compact-json'], { cwd: root });
 
     assert.equal(parseCompactJson<{ action: string }>(instructions.stdout).action, 'overview');
     assert.equal(parseCompactJson<{ contract: string }>(rebuild.stdout).contract, 'phase-3.13-local-run-index-v1');
     assert.equal(parseCompactJson<{ status: string }>(syncBack.stdout).status, 'ready');
+    assert.equal(parseCompactJson<{ contract: string; branch: string }>(syncBack.stdout).contract, undefined);
+    assert.equal(parseCompactJson<{ approvalCard: { contract: string } }>(syncBack.stdout).approvalCard.contract, 'sdd-sync-back-approval-card-v1');
+    assert.equal(parseCompactJson<{ contract: string; branch: string }>(statusline.stdout).contract, 'sdd-statusline-projection-v1');
+    assert.equal(parseCompactJson<{ contract: string; branch: string; dryRun: boolean; releasePath: string }>(ship.stdout).contract, 'sdd-ship-readiness-v1');
+    assert.equal(parseCompactJson<{ dryRun: boolean; releasePath: string }>(ship.stdout).dryRun, true);
+    assert.match(parseCompactJson<{ releasePath: string }>(ship.stdout).releasePath, /specs[\\/]feature[\\/]release\.md/);
+    assert.match(doctorFast.stdout, /SDD doctor/);
+    assert.match(doctorFast.stdout, /Why:/);
+    assert.match(doctorRecover.stdout, /Next:/);
     assert.equal(parseCompactJson<{ valid: boolean }>(artifact.stdout).valid, true);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -862,13 +1049,60 @@ test('CLI governance inspect and evaluate render policy evidence', async () => {
 
 
 
-test('CLI artifact template can write directly into a run artifact directory', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'sdd-artifact-template-write-'));
+test('CLI run create scopes branch task and artifact template rejects unscoped or mismatched writes', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-scoped-run-artifact-cli-'));
   const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
   const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
   try {
     await initProject(root);
-    const state = await createRun(root, { runId: 'run-1' });
+    await writeBranchDocs(root, 'feature', validTaskMarkdown('T1', []));
+    await writeBranchDocs(root, 'other', validTaskMarkdown('T1', []));
+    const scoped = await execFileAsync(process.execPath, [
+      '--import',
+      tsxLoader,
+      cliPath,
+      'run',
+      'create',
+      '--branch',
+      'feature',
+      '--task',
+      'T1'
+    ], { cwd: root });
+    const parsed = JSON.parse(scoped.stdout) as { runId: string; partition: string; gitBranch: string; taskId: string; artifactRoot: string };
+    const state = await readRunState(root, parsed.runId);
+    const unscoped = await createRun(root, { runId: 'unscoped-run' });
+    const unscopedWrite = await execFileAsync(process.execPath, [
+      '--import',
+      tsxLoader,
+      cliPath,
+      'artifact',
+      'template',
+      'artifacts/review-T1.md',
+      '--task',
+      'T1',
+      '--agent',
+      'reviewer',
+      '--run',
+      unscoped.runId,
+      '--write'
+    ], { cwd: root }).catch((error: { stderr: string }) => error);
+    const mismatchWrite = await execFileAsync(process.execPath, [
+      '--import',
+      tsxLoader,
+      cliPath,
+      'artifact',
+      'template',
+      'artifacts/review-T1.md',
+      '--task',
+      'T1',
+      '--agent',
+      'reviewer',
+      '--run',
+      parsed.runId,
+      '--branch',
+      'other',
+      '--write'
+    ], { cwd: root }).catch((error: { stderr: string }) => error);
     const result = await execFileAsync(process.execPath, [
       '--import',
       tsxLoader,
@@ -881,11 +1115,19 @@ test('CLI artifact template can write directly into a run artifact directory', a
       '--agent',
       'reviewer',
       '--run',
-      state.runId,
+      parsed.runId,
       '--write'
     ], { cwd: root });
-    const report = await validateSddResultArtifact(root, state.runId, 'artifacts/review-T1.md', { expectedTask: 'T1', expectedAgent: 'reviewer' });
+    const report = await validateSddResultArtifact(root, parsed.runId, 'artifacts/review-T1.md', { expectedTask: 'T1', expectedAgent: 'reviewer' });
 
+    assert.equal(parsed.partition, 'feature');
+    assert.equal(parsed.gitBranch, 'feature');
+    assert.equal(parsed.taskId, 'T1');
+    assert.match(parsed.artifactRoot, /\.sdd[\\/]runs[\\/]feature[\\/]evidence/);
+    assert.equal(state.partition, 'feature');
+    assert.equal(state.taskId, 'T1');
+    assert.match(unscopedWrite.stderr, /Run unscoped-run is unscoped/);
+    assert.match(mismatchWrite.stderr, /scoped to branch feature, not other/);
     assert.match(result.stdout, /Artifact template written: artifacts\/review-T1\.md/);
     assert.equal(report.valid, true);
   } finally {
@@ -902,7 +1144,7 @@ test('CLI version compact JSON reports package identity', async () => {
     const result = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, '--version', '--compact-json'], { cwd: root });
     const identity = JSON.parse(result.stdout) as { version?: string; cliEntryPath?: string; packageJsonPath?: string | null };
 
-    assert.equal(identity.version, '0.3.0');
+    assert.equal(identity.version, '0.4.0');
     assert.match(identity.cliEntryPath ?? '', /packages[\\/]cli[\\/]src[\\/]main\.ts$/);
     assert.match(identity.packageJsonPath ?? '', /package\.json$/);
   } finally {
@@ -934,7 +1176,7 @@ test('CLI artifact template uses run partition when branch is omitted', async ()
       state.runId,
       '--write'
     ], { cwd: root });
-    const raw = await readFile(path.join(root, '.sdd', 'runs', state.runId, 'artifacts', 'validation-T1.md'), 'utf8');
+    const raw = await readArtifact(root, state.runId, 'validation-T1.md');
 
     assert.match(result.stdout, /Artifact template written: artifacts\/validation-T1\.md/);
     assert.match(raw, /Acceptance AC-1: TODO\. Add validation evidence for Parser behavior is covered\./);
@@ -963,11 +1205,10 @@ test('CLI lifecycle decide extracts from text and file', async () => {
 
     assert.match(fromText.stdout, /Lifecycle Risk Gate/);
     assert.match(fromText.stdout, /source=from_text/);
-    assert.match(fromText.stdout, /profile=full/);
-    assert.match(fromText.stdout, /database_or_data_loss/);
-    assert.match(fromText.stdout, /state_machine_concurrency_liveness/);
-    assert.match(fromText.stdout, /required_stages=spec -> plan -> tasks -> do -> verify -> sync-back-proposal/);
-    assert.match(fromText.stdout, /autonomy_ceiling=full_sdd_with_checkpoint/);
+    assert.match(fromText.stdout, /Lifecycle decision/);
+    assert.match(fromText.stdout, /Lifecycle checkpoint is required/);
+    assert.match(fromText.stdout, /Why:/);
+    assert.match(fromText.stdout, /Next:/);
     assert.equal(parsed.riskExtraction.source, 'from_file');
     assert.equal(parsed.record.decision.profile, 'full');
     assert.equal(parsed.autonomyCeiling, 'full_sdd_with_checkpoint');
@@ -985,6 +1226,25 @@ test('CLI lifecycle decide extracts from text and file', async () => {
 
 
 
+
+
+test('CLI ship exits non-zero when readiness is blocked', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-cli-ship-blocked-'));
+  try {
+    await initProject(root);
+    const cliPath = path.join(process.cwd(), 'packages/cli/src/main.ts');
+    const tsxLoader = pathToFileURL(path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'loader.mjs')).href;
+
+    const blocked = await execFileAsync(process.execPath, ['--import', tsxLoader, cliPath, 'ship', '--branch', 'master', '--dry-run', '--compact-json'], { cwd: root })
+      .catch((error: { code: number; stdout: string }) => error) as { code: number; stdout: string };
+    const parsed = JSON.parse(blocked.stdout) as { status: string };
+
+    assert.equal(blocked.code, 1);
+    assert.equal(parsed.status, 'BLOCKED');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 
 test('CLI doctor honors explicit branch for document-chain scope', async () => {

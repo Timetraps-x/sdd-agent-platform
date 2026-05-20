@@ -12,7 +12,10 @@ import { buildTeamModePolicy, resolveTeamModeActivation } from './team-mode.js';
 import { matchRoutingRules } from './routing-rules.js';
 import { chooseRecommendedProfile, deriveAllowedProfiles, toAgentProfileId } from './profile-resolution.js';
 import { adapterMappingForProfile, buildRejectedProfiles, buildToolPermissionSpec, modelPolicyForProfile, quarantineWarningsForSources, routeCategory, routeRegistrySources, selectRequiredSkillCapabilities } from './route-projection.js';
+import { lifecycleAutonomyCeilingFromDecision, ensureLifecycleRiskDecision } from '../orchestration/runtime.js';
 import { taskAutonomyCeiling } from './risk-policy.js';
+import { evaluateTaskWorkflowGate } from '../risk.js';
+import { nextDependencyTaskId, resolveTaskDependencyReadiness } from '../workflow-state/dependencies.js';
 import type {
   AgentRouterDecision,
   TeamModePolicy
@@ -38,7 +41,7 @@ export async function inspectTeamModePolicy(projectRoot: string, options: { task
   return buildTeamModePolicy({ activation, task, category, risk: task?.risk ?? [], autonomyCeiling, blockedReason: blockingGap?.message ?? null });
 }
 
-export async function routeSddTask(projectRoot: string, options: { taskId: string; branch?: string; agent?: string; teamModeEnabled?: boolean; teamModeActivation?: TeamModeActivation; profile?: boolean; cache?: boolean } = { taskId: '' }): Promise<AgentRouterDecision> {
+export async function routeSddTask(projectRoot: string, options: { taskId: string; branch?: string; agent?: string; teamModeEnabled?: boolean; teamModeActivation?: TeamModeActivation; profile?: boolean; cache?: boolean; approved?: boolean } = { taskId: '' }): Promise<AgentRouterDecision> {
   const profileSpans: RuntimeProfileSpan[] = [];
   const routeStart = Date.now();
   const routeStartedAt = new Date(routeStart).toISOString();
@@ -48,7 +51,7 @@ export async function routeSddTask(projectRoot: string, options: { taskId: strin
   const branch = options.branch ?? (await resolveSddContext(projectRoot)).branch;
   const model = await parseSddBranch(projectRoot, branch);
   profileSpans.push(runtimeProfileSpan('document_parse', branchStart));
-  const cacheKey = routeCacheKey({ taskId: options.taskId, branch, agent: options.agent ?? null, teamModeActivation: resolveTeamModeActivation(options, 'auto'), documents: model.documents });
+  const cacheKey = routeCacheKey({ taskId: options.taskId, branch, agent: options.agent ?? null, teamModeActivation: resolveTeamModeActivation(options, 'auto'), approved: options.approved, documents: model.documents });
   const cachedDecision = options.cache ? await readRouteCache<AgentRouterDecision>(projectRoot, cacheKey) : null;
   if (cachedDecision) {
     return {
@@ -65,14 +68,22 @@ export async function routeSddTask(projectRoot: string, options: { taskId: strin
   const profileSelection = task && !blockingGap ? deriveAllowedProfiles(task, registry, matchedRules) : { profiles: [], resolvedAliases: [] };
   const delegatedProfile = task && !blockingGap && options.agent ? toAgentProfileId(options.agent, registry) : null;
   const allowedProfiles = delegatedProfile && !profileSelection.profiles.includes(delegatedProfile) ? [...profileSelection.profiles, delegatedProfile] : profileSelection.profiles;
-  const taskRecommendedProfile = task && !blockingGap ? chooseRecommendedProfile(task, allowedProfiles, registry, matchedRules) : null;
-  const recommendedProfile = delegatedProfile ?? taskRecommendedProfile;
+  const riskDecision = task ? await ensureLifecycleRiskDecision(projectRoot, model, { branch, task }) : null;
+  const workflowGate = evaluateTaskWorkflowGate({ task, taskId: options.taskId, riskDecision, approved: options.approved });
+  const lifecycleBlockedReason = workflowGate.blocksRoute
+    ? workflowGate.primaryReason
+    : null;
+  const dependencyReadiness = task ? resolveTaskDependencyReadiness(model, options.taskId) : null;
+  const dependencyBlockedReason = dependencyReadiness?.blockingReasons[0] ?? null;
+  const dependencyTaskId = task ? nextDependencyTaskId(model, options.taskId) : null;
+  const taskRecommendedProfile = task && !blockingGap && !dependencyBlockedReason && !lifecycleBlockedReason ? chooseRecommendedProfile(task, allowedProfiles, registry, matchedRules) : null;
+  const recommendedProfile = dependencyBlockedReason || lifecycleBlockedReason ? null : delegatedProfile ?? taskRecommendedProfile;
   const category = task ? routeCategory(task, blockingGap, allowedProfiles, matchedRules) : 'blocked';
-  const autonomyCeiling = task ? taskAutonomyCeiling(task) : 'research_before_implementation';
+  const autonomyCeiling = riskDecision ? lifecycleAutonomyCeilingFromDecision(riskDecision) : task ? taskAutonomyCeiling(task) : 'research_before_implementation';
   const requiredCapabilities = task && recommendedProfile ? selectRequiredSkillCapabilities(task, recommendedProfile, registry, matchedRules) : [];
   const sourceCapability = requiredCapabilities[0] ?? null;
   const sourceCapabilityContract = sourceCapability ? registry.skillCapabilities.find((capability) => capability.id === sourceCapability) ?? null : null;
-  const blockedReason = !task ? `Task ${options.taskId} was not found.` : blockingGap?.message ?? null;
+  const blockedReason = !task ? `Task ${options.taskId} was not found.` : blockingGap?.message ?? dependencyBlockedReason ?? lifecycleBlockedReason;
   const routedCategory = blockedReason ? 'blocked' : category;
   const registrySources = routeRegistrySources(registry, recommendedProfile, requiredCapabilities);
   const adapterMapping = recommendedProfile ? adapterMappingForProfile(registry, recommendedProfile) : null;
@@ -98,9 +109,14 @@ export async function routeSddTask(projectRoot: string, options: { taskId: strin
       blockedReason
     }),
     autonomyCeiling,
+    lifecycleGate: workflowGate.lifecycleGate,
+    lifecycleProfile: workflowGate.lifecycleProfile,
+    approvalPolicy: workflowGate.approvalPolicy,
+    requiredStages: workflowGate.requiredStages,
+    primaryReason: workflowGate.primaryReason,
     requiredArtifacts: task?.requiredArtifacts ?? [],
     blockedReason,
-    nextAction: blockedReason ? `Fix task gaps before routing ${options.taskId}.` : recommendedProfile ? `Use ${recommendedProfile} with ${requiredCapabilities.join(',') || 'no extra capability'} and preserve required artifacts before verify.` : `Declare a routable profile before routing ${options.taskId}.`,
+    nextAction: routeNextAction({ taskId: options.taskId, taskExists: Boolean(task), hasBlockingGap: Boolean(blockingGap), dependencyTaskId, workflowGateNextAction: workflowGate.nextAction, recommendedProfile, requiredCapabilities }),
     registrySources,
     resolvedAliases: profileSelection.resolvedAliases,
     routingRuleHits: matchedRules.map((rule) => rule.id),
@@ -117,4 +133,31 @@ export async function routeSddTask(projectRoot: string, options: { taskId: strin
     decision.profile = [...profileSpans, runtimeProfileSpan('route_total', routeStart, routeStartedAt)];
   }
   return decision;
+}
+
+function routeNextAction(input: {
+  taskId: string;
+  taskExists: boolean;
+  hasBlockingGap: boolean;
+  dependencyTaskId: string | null;
+  workflowGateNextAction: string;
+  recommendedProfile: string | null;
+  requiredCapabilities: string[];
+}): string {
+  if (!input.taskExists) {
+    return `Create or restore task ${input.taskId} before routing.`;
+  }
+  if (input.hasBlockingGap) {
+    return `Fix task gaps before routing ${input.taskId}.`;
+  }
+  if (input.dependencyTaskId) {
+    return `Complete and sync-back ${input.dependencyTaskId} before routing ${input.taskId}.`;
+  }
+  if (input.workflowGateNextAction) {
+    return input.workflowGateNextAction;
+  }
+  if (input.recommendedProfile) {
+    return `Use ${input.recommendedProfile} with ${input.requiredCapabilities.join(',') || 'no extra capability'} and preserve required artifacts before verify.`;
+  }
+  return `Declare a routable profile before routing ${input.taskId}.`;
 }

@@ -2,7 +2,7 @@ import { inspectRun } from '@sdd-agent-platform/core/run-state';
 import { inspectLocalRunIndex, queryLocalRunIndex, rebuildLocalRunIndex } from '@sdd-agent-platform/core/run-state';
 import { archiveRun, createRun, listRuns, readRunState } from '@sdd-agent-platform/core/run-state';
 import { readRunStatus } from '../args.js';
-import { readOption } from '../options.js';
+import { hasHelpFlag, hasPreflightFlag, readOption } from '../options.js';
 import { jsonOutput, wantsJson } from '../renderers/json.js';
 import {
   renderLocalRunIndex,
@@ -22,11 +22,44 @@ export async function handleRunCommand(projectRoot: string, command: string | un
     return null;
   }
 
-  if (subcommand === 'create') {
-    const state = await createRun(projectRoot);
+  if (hasHelpFlag([subcommand, ...rest].filter((item): item is string => Boolean(item)))) {
     return {
       exitCode: 0,
-      output: JSON.stringify({ runId: state.runId, statePath: `.sdd/runs/${state.runId}/state.json`, eventLogPath: `.sdd/runs/${state.runId}/events.jsonl` }, null, 2)
+      output: runUsage(subcommand)
+    };
+  }
+
+
+  if (subcommand === 'create') {
+    if (hasPreflightFlag(rest)) {
+      return {
+        exitCode: 0,
+        output: runPreflightOutput('run create', null, rest)
+      };
+    }
+
+    const branch = readOption(rest, '--branch');
+    const taskId = readOption(rest, '--task');
+    if (Boolean(branch) !== Boolean(taskId)) {
+      return {
+        exitCode: 2,
+        error: 'Usage: sdd run create [--branch <branch> --task <task_id>] [--preflight]'
+      };
+    }
+    const state = await createRun(projectRoot, {
+      branch: branch ?? undefined,
+      taskId: taskId ?? undefined
+    });
+    return {
+      exitCode: 0,
+      output: JSON.stringify({
+        runId: state.runId,
+        partition: state.partition,
+        gitBranch: state.gitBranch,
+        taskId: state.taskId,
+        stateRef: '.sdd/runtime.sqlite:runs',
+        artifactRoot: state.artifactRoot
+      }, null, 2)
     };
   }
 
@@ -58,6 +91,13 @@ export async function handleRunCommand(projectRoot: string, command: string | un
     const action = rest[0];
     const json = wantsJson(rest);
     if (action === 'rebuild') {
+      if (hasPreflightFlag(rest)) {
+        return {
+          exitCode: 0,
+          output: runPreflightOutput('run index rebuild', null, rest)
+        };
+      }
+
       const index = await rebuildLocalRunIndex(projectRoot);
       return {
         exitCode: 0,
@@ -120,6 +160,13 @@ export async function handleRunCommand(projectRoot: string, command: string | un
         error: 'Usage: sdd run archive <run_id> [--reason <text>]'
       };
     }
+    if (hasPreflightFlag(rest)) {
+      return {
+        exitCode: 0,
+        output: runPreflightOutput('run archive', runId, rest)
+      };
+    }
+
     const state = await archiveRun(projectRoot, runId, { reason: readOption(rest, '--reason') ?? undefined });
     return {
       exitCode: 0,
@@ -128,4 +175,23 @@ export async function handleRunCommand(projectRoot: string, command: string | un
   }
 
   return null;
+}
+function runUsage(subcommand: string | undefined): string {
+  if (subcommand === 'create') {
+    return 'Usage: sdd run create [--branch <branch> --task <task_id>] [--preflight]';
+  }
+  if (subcommand === 'archive') {
+    return 'Usage: sdd run archive <run_id> [--reason <text>] [--preflight]';
+  }
+  if (subcommand === 'index') {
+    return 'Usage: sdd run index rebuild|inspect|query [options]';
+  }
+  return 'Usage: sdd run create|status|list|index|inspect|archive [options]';
+}
+
+function runPreflightOutput(commandName: string, runId: string | null, args: string[]): string {
+  if (wantsJson(args)) {
+    return jsonOutput({ contract: 'sdd-command-preflight-v1', command: commandName, runId, sideEffects: 'none', status: 'PASS' }, args);
+  }
+  return `SDD command preflight PASS\ncommand=${commandName}\nrun=${runId ?? 'none'}\nside_effects=none`;
 }

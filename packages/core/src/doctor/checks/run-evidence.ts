@@ -1,4 +1,4 @@
-import { readdir } from 'node:fs/promises';
+
 import { inspectArtifactResultIngestions } from '../../artifacts/ingestion.js';
 import { messageFromError } from '../../contracts/issues.js';
 import type { DelegationStatus } from '../../delegation/model.js';
@@ -10,8 +10,9 @@ import { branchToSafePartition } from '../../path-safety.js';
 import { listInvocationLedgerEntries } from '../../run-state/invocation-ledger.js';
 import type { RunState, RuntimeEvent } from '../../run-state/model.js';
 import { readRunEvents } from '../../run-state/events.js';
-import { readRunState } from '../../run-state/run-state.js';
-import { getRunsDir } from '../../runtime-paths.js';
+import { readAllRunStates, readRunState } from '../../run-state/run-state.js';
+import { resolveWorkflowState } from '../../workflow-state/resolve.js';
+
 import type { AgentProfileId } from '../../router/agent-runtime.js';
 import { inspectWorktreeLifecycle } from '../../worktree/lifecycle.js';
 import type { DoctorCheck } from '../model.js';
@@ -19,21 +20,12 @@ import { validateAgentExecutionRecordShape, validateTeamSessionRecordShape } fro
 import { inspectRunTrustEvidence } from './run-trust.js';
 
 export async function inspectRunEvidence(projectRoot: string, options: { allRuns?: boolean; latestOnly?: boolean; branch?: string | null } = {}): Promise<DoctorCheck[]> {
-  const runsDir = getRunsDir(projectRoot);
-  const entries = await readdir(runsDir, { withFileTypes: true });
-  const runDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-  const checks: DoctorCheck[] = [];
-  const states: Array<{ runId: string; state: RunState }> = [];
-  const unreadableRunIds: string[] = [];
-  let issueCount = 0;
-
-  for (const runId of runDirs) {
-    try {
-      states.push({ runId, state: await readRunState(projectRoot, runId) });
-    } catch {
-      unreadableRunIds.push(runId);
-    }
+  if (options.latestOnly && !options.allRuns) {
+    return inspectLatestRunEvidenceFastPath(projectRoot, options.branch ?? null);
   }
+  const checks: DoctorCheck[] = [];
+  const states = (await readAllRunStates(projectRoot)).map((state) => ({ runId: state.runId, state }));
+  let issueCount = 0;
 
   const branchPartition = options.branch ? branchToSafePartition(options.branch) : null;
   const scopedStates = branchPartition
@@ -81,6 +73,9 @@ export async function inspectRunEvidence(projectRoot: string, options: { allRuns
       const workerRuntimeList = await listResidentWorkerRuntimes(projectRoot, { runId });
       const routePreflightEvents = events.filter((event) => event.event === 'agent_router_preflight');
       const invocationLedger = await listInvocationLedgerEntries(projectRoot, runId);
+      const artifactScopeChecks = inspectArtifactScopeConsistency(state, invocationLedger);
+      issueCount += artifactScopeChecks.length;
+      checks.push(...artifactScopeChecks);
       for (const record of agentExecutionRecords) {
         for (const issue of validateAgentExecutionRecordShape(runId, record)) {
           issueCount += 1;
@@ -165,25 +160,46 @@ export async function inspectRunEvidence(projectRoot: string, options: { allRuns
       }
     } catch (error) {
       issueCount += 1;
-      checks.push({ level: 'FAIL', check: 'run_state', message: `Cannot inspect run ${runId}: ${messageFromError(error)}`, action: 'Inspect state.json/events.jsonl manually; doctor does not auto-fix.' });
+      checks.push({ level: 'FAIL', check: 'run_state', message: `Cannot inspect run ${runId}: ${messageFromError(error)}`, action: 'Inspect runtime.sqlite and branch-scoped evidence attachments manually; doctor does not auto-fix.' });
     }
   }
 
-  for (const runId of unreadableRunIds) {
-    if (options.allRuns || inspectedRunIds.has(runId)) {
-      issueCount += 1;
-      checks.push({ level: 'FAIL', check: 'run_state', message: `Cannot inspect run ${runId}.`, action: 'Inspect state.json/events.jsonl manually; doctor does not auto-fix.' });
-    }
-  }
 
-  if (runDirs.length === 0) {
-    checks.push({ level: 'WARN', check: 'run_evidence', message: 'No runs found under .sdd/runs.', action: 'Create a run before /sdd-do or /sdd-verify.' });
+
+  if (states.length === 0) {
+    checks.push({ level: 'WARN', check: 'run_evidence', message: 'No runs found in runtime.sqlite.', action: 'Create a run before /sdd:do or /sdd:test.' });
   } else if (inspected.length === 0 && issueCount === 0) {
     checks.push({ level: 'WARN', check: 'run_evidence', message: branchPartition ? `No non-archived runs were inspected for branch ${branchPartition}.` : 'No non-archived runs were inspected.', action: 'Use sdd doctor --all-runs to audit archived history or create a new run.' });
   } else if (issueCount === 0) {
     checks.push({ level: 'PASS', check: 'run_evidence', message: `Inspected ${inspected.length} run(s); no stale delegation, invalid artifact, terminal event gap, trust evidence, or resident worker runtime issue found.` });
   }
   return checks;
+}
+
+async function inspectLatestRunEvidenceFastPath(projectRoot: string, branch: string | null): Promise<DoctorCheck[]> {
+  try {
+    const workflow = await resolveWorkflowState(projectRoot, branch ? { branch, branchSource: 'cli_option' } : {});
+    const latestRun = workflow.latestRun ?? await latestNonArchivedRun(projectRoot);
+    if (!latestRun) {
+      return [{ level: 'WARN', check: 'run_evidence', message: `No non-archived runs were inspected for branch ${workflow.branch}.`, action: 'Create a run before /sdd-do or use sdd doctor --all-runs for historical audit.' }];
+    }
+    const checks: DoctorCheck[] = [{
+      level: 'PASS',
+      check: 'run_evidence_fast_path',
+      message: `Workflow State Resolver inspected latest run ${latestRun.runId} for ${workflow.branch} without deep evidence scan.`
+    }];
+    for (const conflict of workflow.affectedFileConflicts) {
+      checks.push({ level: 'WARN', check: 'run_evidence_fast_path_conflict', message: `Affected file ${conflict.file} is active in run ${conflict.runId} for ${conflict.partition}/${conflict.taskId}.`, action: 'Use sdd sync-back inspect or sdd doctor --all-runs for deep runtime evidence diagnostics.' });
+    }
+    return checks;
+  } catch (error) {
+    return [{ level: 'FAIL', check: 'run_evidence_fast_path', message: `Cannot resolve workflow state for latest run evidence: ${messageFromError(error)}`, action: 'Run sdd status for branch resolution details or use sdd doctor --all-runs for deep diagnostics.' }];
+  }
+}
+
+async function latestNonArchivedRun(projectRoot: string): Promise<RunState | null> {
+  const states = (await readAllRunStates(projectRoot)).filter((state) => state.status !== 'archived');
+  return states.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt) || right.runId.localeCompare(left.runId))[0] ?? null;
 }
 
 function routePreflightNeedsTeamSession(event: RuntimeEvent): boolean {
@@ -193,6 +209,41 @@ function routePreflightNeedsTeamSession(event: RuntimeEvent): boolean {
   }
   const teamMode = decision.teamMode;
   return isRecord(teamMode) && (teamMode.decision === 'enabled' || teamMode.decision === 'blocked');
+}
+
+function inspectArtifactScopeConsistency(state: RunState, invocationLedger: Awaited<ReturnType<typeof listInvocationLedgerEntries>>): DoctorCheck[] {
+  const artifactWrites = invocationLedger.filter((entry) => entry.kind === 'artifact_hash' && entry.status === 'written');
+  if (artifactWrites.length === 0) {
+    return [];
+  }
+  const checks: DoctorCheck[] = [];
+  if (!state.partition && !state.gitBranch) {
+    checks.push({
+      level: 'FAIL',
+      check: 'artifact_scope',
+      message: `${state.runId}: ${artifactWrites.length} artifact write(s) are attached to an unscoped run.`,
+      action: 'Create runs with sdd run create --branch <branch> --task <task_id> before writing artifacts.'
+    });
+  }
+  for (const entry of artifactWrites) {
+    if (entry.taskId && state.taskId && entry.taskId !== state.taskId) {
+      checks.push({
+        level: 'FAIL',
+        check: 'artifact_scope',
+        message: `${state.runId}: artifact ${entry.ref} is scoped to task ${entry.taskId}, but run task is ${state.taskId}.`,
+        action: 'Write artifacts only through the scoped run/task pair that owns the evidence.'
+      });
+    }
+    if (entry.branch && state.partition && entry.branch !== state.partition && entry.branch !== state.gitBranch) {
+      checks.push({
+        level: 'FAIL',
+        check: 'artifact_scope',
+        message: `${state.runId}: artifact ${entry.ref} is scoped to branch ${entry.branch}, but run branch is ${state.gitBranch ?? state.partition}.`,
+        action: 'Reject branch/run mismatches before artifact writes.'
+      });
+    }
+  }
+  return checks;
 }
 
 function runStateMatchesPartition(state: RunState, partition: string): boolean {

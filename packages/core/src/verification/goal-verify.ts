@@ -66,6 +66,8 @@ export interface GoalVerifyResult {
   acceptanceCoverage: AcceptanceCoverageItem[];
   gaps: SddTaskGap[];
   commands: string[];
+  plannedCommands: string[];
+  executedCommands: string[];
   standardStatus: HarnessVerifyStatus;
   message: string;
 }
@@ -86,6 +88,7 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
   const reviewArtifact = options.reviewArtifact ?? artifactPathForAgent(state, options.taskId, 'reviewer');
   const validationArtifact = options.validationArtifact ?? artifactPathForAgent(state, options.taskId, 'validator');
   const gaps: SddTaskGap[] = [...inspected.gaps];
+  const plannedCommands = inspected.task?.validation ?? [];
   for (const reason of resolved.staleReasons) {
     gaps.push(taskGap(options.taskId, 'run_snapshot', reason, 'Rerun sdd do task for the current partition before verify.'));
   }
@@ -97,6 +100,7 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
   let reviewStatus: SddResultStatus | null = null;
   let validationStatus: SddResultStatus | null = null;
   let validationTrust: ArtifactTrustValidationReport | null = null;
+  let executedCommands: string[] = [];
 
   await appendEvent(projectRoot, runId, {
     event: 'phase_started',
@@ -151,6 +155,7 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
     }
     await appendDeclaredCommandLedgerEntries(projectRoot, { runId, taskId: options.taskId, branch, commands: inspected.task.validation });
     const invocationLedger = await listInvocationLedgerEntries(projectRoot, runId);
+    executedCommands = executedCommandsFromLedger(invocationLedger);
     const admittedClaims = await readRuntimeEvidenceClaims(projectRoot, runId, options.taskId);
     const scopeViolation = await hasRuntimeEvidenceScopeViolation(projectRoot, runId, options.taskId);
     if (scopeViolation) {
@@ -192,7 +197,7 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
 
   const status = deriveGoalVerifyStatus(reviewStatus, validationStatus, gaps);
   const standardStatus = toHarnessVerifyStatus(status, reviewStatus, validationStatus, gaps);
-  const coverageArtifact = await writeArtifact(projectRoot, runId, `acceptance-coverage-${options.taskId}.md`, renderAcceptanceCoverageArtifact(options.taskId, status, inspected.task, reviewArtifact, validationArtifact, acceptanceCoverage, gaps));
+  const coverageArtifact = await writeArtifact(projectRoot, runId, `acceptance-coverage-${options.taskId}.md`, renderAcceptanceCoverageArtifact(options.taskId, status, inspected.task, reviewArtifact, validationArtifact, acceptanceCoverage, gaps, executedCommands));
   const allArtifacts = [...acceptedArtifacts, coverageArtifact.runRelativePath];
   const proposal = await writeSyncBackProposal(projectRoot, runId, options.taskId, status === 'PASS' ? 'verified' : 'blocked', allArtifacts, gaps, status === 'PASS' ? 'Goal-level verify mapped validator evidence to all acceptance items.' : 'Goal-level verify found gaps; sync-back is a verification gap proposal, not task completion.');
 
@@ -200,7 +205,7 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
     status,
     taskId: options.taskId,
     taskState: { status: status === 'PASS' ? 'verified' : 'blocked', verifyStatus: status, gaps, artifacts: allArtifacts, acceptanceCoverage },
-    commands: inspected.task?.validation ?? [],
+    commands: plannedCommands,
     evidence: allArtifacts,
     syncBackProposalPath: proposal.runRelativePath,
     syncBackProposalDigest: proposal.digest,
@@ -210,7 +215,7 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
     event: status === 'PASS' ? 'validation_passed' : 'validation_failed',
     runId,
     summary: `Phase 1.9 goal-level verify ${status} for ${options.taskId}`,
-    data: { task: options.taskId, status, coverageArtifact: coverageArtifact.runRelativePath, gaps }
+    data: { task: options.taskId, status, coverageArtifact: coverageArtifact.runRelativePath, gaps, plannedCommands, executedCommands }
   });
   await appendEvent(projectRoot, runId, {
     event: 'sync_back_proposed',
@@ -230,7 +235,9 @@ export async function runGoalVerify(projectRoot: string, options: GoalVerifyOpti
     syncBackProposalPath: proposal.runRelativePath,
     acceptanceCoverage,
     gaps,
-    commands: inspected.task?.validation ?? [],
+    commands: plannedCommands,
+    plannedCommands,
+    executedCommands,
     standardStatus,
     message: status === 'PASS' ? 'Goal-level verify passed with explicit acceptance coverage.' : 'Goal-level verify found gaps; inspect coverage artifact and sync-back proposal.'
   };
@@ -283,8 +290,8 @@ async function writeSyncBackProposal(projectRoot: string, runId: string, taskId:
   return { ...written, digest: hashDocumentContent(content) };
 }
 
-function renderAcceptanceCoverageArtifact(taskId: string, status: GoalVerifyStatus, task: SddTask | null, reviewArtifact: string | null, validationArtifact: string | null, coverage: AcceptanceCoverageItem[], gaps: SddTaskGap[]): string {
-  return `# Acceptance Coverage ${taskId}\n\n\`\`\`sdd-result\ncontract: ${SDD_RESULT_CONTRACT}\nversion: ${SDD_RESULT_VERSION}\nagent: validator\ntask: ${taskId}\nstatus: ${status}\nartifacts:\n  - artifacts/acceptance-coverage-${taskId}.md\n\`\`\`\n\n## Source Evidence\n\n- review_artifact: ${reviewArtifact ?? 'missing'}\n- validation_artifact: ${validationArtifact ?? 'missing'}\n- task_source: ${task ? sourceLocationEvidence(task.source) : 'missing'}\n\n## Commands Declared\n\n${task && task.validation.length > 0 ? task.validation.map((command) => `- ${command}`).join('\n') : '- none'}\n\n## Acceptance Mapping\n\n${coverage.length > 0 ? coverage.map((item) => `- [${item.status}] ${item.acceptance} Evidence: ${item.evidence}`).join('\n') : '- No acceptance items available.'}\n\n## Policy Decisions\n\n${coverage.length > 0 ? coverage.map((item) => `- ${item.acceptance}: status=${item.policyDecision?.status ?? item.status}; ruleset=${item.policyDecision?.ruleSet.id ?? ACCEPTANCE_POLICY_RULESET_VERSION}; passed=${item.policyDecision?.passedRules.join(',') || 'none'}; failed=${item.policyDecision?.failedRules.join(',') || 'none'}; issues=${item.issueCodes?.join(',') || 'none'}`).join('\n') : '- none'}\n\n## Gaps\n\n${gaps.length > 0 ? gaps.map((gap) => `- [${gap.severity}] ${gap.type} ${gap.field}: ${gap.message} Recommendation: ${gap.recommendation}`).join('\n') : '- none'}\n`;
+function renderAcceptanceCoverageArtifact(taskId: string, status: GoalVerifyStatus, task: SddTask | null, reviewArtifact: string | null, validationArtifact: string | null, coverage: AcceptanceCoverageItem[], gaps: SddTaskGap[], executedCommands: string[]): string {
+  return `# Acceptance Coverage ${taskId}\n\n\`\`\`sdd-result\ncontract: ${SDD_RESULT_CONTRACT}\nversion: ${SDD_RESULT_VERSION}\nagent: validator\ntask: ${taskId}\nstatus: ${status}\nartifacts:\n  - artifacts/acceptance-coverage-${taskId}.md\n\`\`\`\n\n## Source Evidence\n\n- review_artifact: ${reviewArtifact ?? 'missing'}\n- validation_artifact: ${validationArtifact ?? 'missing'}\n- task_source: ${task ? sourceLocationEvidence(task.source) : 'missing'}\n\n## Planned Validation Commands\n\n${task && task.validation.length > 0 ? task.validation.map((command) => `- ${command}`).join('\n') : '- none'}\n\n## Executed Runtime Commands\n\n${executedCommands.length > 0 ? executedCommands.map((command) => `- ${command}`).join('\n') : '- none'}\n\n## Acceptance Mapping\n\n${coverage.length > 0 ? coverage.map((item) => `- [${item.status}] ${item.acceptance} Evidence: ${item.evidence}`).join('\n') : '- No acceptance items available.'}\n\n## Policy Decisions\n\n${coverage.length > 0 ? coverage.map((item) => `- ${item.acceptance}: status=${item.policyDecision?.status ?? item.status}; ruleset=${item.policyDecision?.ruleSet.id ?? ACCEPTANCE_POLICY_RULESET_VERSION}; passed=${item.policyDecision?.passedRules.join(',') || 'none'}; failed=${item.policyDecision?.failedRules.join(',') || 'none'}; issues=${item.issueCodes?.join(',') || 'none'}`).join('\n') : '- none'}\n\n## Gaps\n\n${gaps.length > 0 ? gaps.map((gap) => `- [${gap.severity}] ${gap.type} ${gap.field}: ${gap.message} Recommendation: ${gap.recommendation}`).join('\n') : '- none'}\n`;
 }
 
 function evaluateAcceptanceCoverageTarget(target: AcceptanceCoverageTarget, input: { taskId: string; validationArtifact: string | null; validationRaw: string; claims: EvidenceClaim[]; validationStatus: SddResultStatus | null; invocationLedger: InvocationLedgerEntry[] }): AcceptanceCoverageItem {
@@ -303,36 +310,21 @@ function evaluateAcceptanceCoverageTarget(target: AcceptanceCoverageTarget, inpu
   }
 
   let best = matchingClaims[0];
+  let bestRank = evidenceClaimSelectionRank(best, input);
   for (const claim of matchingClaims.slice(1)) {
-    if (coverageRank(claim.status) > coverageRank(best.status)) {
+    const rank = evidenceClaimSelectionRank(claim, input);
+    if (rank > bestRank) {
       best = claim;
+      bestRank = rank;
     }
   }
 
   if (best.status === 'PASS') {
-    if (best.evidence.length === 0) {
-      issueCodes.push('UNSOURCED_PASS');
-      failedRules.push('require-source-evidence');
+    const ledgerDecision = evaluatePassClaimPolicy(best, input);
+    if (ledgerDecision.issueCodes.length === 0) {
+      return acceptanceCoverageDecision(target.label, 'PASS', `Policy-proven by ${SDD_EVIDENCE_CONTRACT} claim for ${best.acceptance} in ${best.sourceArtifact}; evidence=${best.evidence.map((item) => `${item.kind}:${item.ref}`).join(', ')}; provenance=${best.provenance.join(', ')}; policy=${best.policy.join(', ')}.`, [], ledgerDecision.passedRules, []);
     }
-    if (best.provenance.length === 0) {
-      issueCodes.push('PROVENANCE_GAP');
-      failedRules.push('require-provenance');
-    }
-    if (best.policy.length === 0) {
-      issueCodes.push('POLICY_RULE_FAILED');
-      failedRules.push('require-policy-rule');
-    }
-    if (input.validationStatus !== 'PASS') {
-      issueCodes.push('POLICY_RULE_FAILED');
-      failedRules.push('require-validator-pass');
-    }
-    const ledgerDecision = evaluateClaimLedgerCorroboration(best, input.invocationLedger);
-    issueCodes.push(...ledgerDecision.issueCodes);
-    failedRules.push(...ledgerDecision.failedRules);
-    if (issueCodes.length === 0) {
-      return acceptanceCoverageDecision(target.label, 'PASS', `Policy-proven by ${SDD_EVIDENCE_CONTRACT} claim for ${best.acceptance} in ${best.sourceArtifact}; evidence=${best.evidence.map((item) => `${item.kind}:${item.ref}`).join(', ')}; provenance=${best.provenance.join(', ')}; policy=${best.policy.join(', ')}.`, [], ['require-source-evidence', 'require-provenance', 'require-policy-rule', 'require-validator-pass', 'require-ledger-corroboration'], []);
-    }
-    return acceptanceCoverageDecision(target.label, 'BLOCKED', `PASS claim for ${best.acceptance} is missing required policy/provenance corroboration.`, issueCodes, [], failedRules);
+    return acceptanceCoverageDecision(target.label, 'BLOCKED', `PASS claim for ${best.acceptance} is missing required policy/provenance corroboration.`, ledgerDecision.issueCodes, [], ledgerDecision.failedRules);
   }
 
   if (best.status === 'FAIL') {
@@ -345,6 +337,77 @@ function evaluateAcceptanceCoverageTarget(target: AcceptanceCoverageTarget, inpu
     return acceptanceCoverageDecision(target.label, 'REFERENCED_ONLY', `Structured evidence references ${best.acceptance} but does not prove PASS.`, ['MENTION_ONLY'], [], ['require-pass-claim']);
   }
   return acceptanceCoverageDecision(target.label, 'MISSING', `Structured evidence marks ${best.acceptance} missing.`, ['MISSING_ARTIFACT_REFERENCE'], [], ['require-pass-claim']);
+}
+
+function evidenceClaimSelectionRank(claim: EvidenceClaim, input: { validationStatus: SddResultStatus | null; invocationLedger: InvocationLedgerEntry[] }): number {
+  if (claim.status === 'FAIL') {
+    return 500;
+  }
+  if (claim.status === 'BLOCKED') {
+    return 400;
+  }
+  if (claim.status === 'PASS') {
+    const decision = evaluatePassClaimPolicy(claim, input);
+    return decision.issueCodes.length === 0 ? 300 : 200 - decision.issueCodes.length;
+  }
+  if (claim.status === 'REFERENCED_ONLY') {
+    return 100;
+  }
+  return 0;
+}
+
+function evaluatePassClaimPolicy(claim: EvidenceClaim, input: { validationStatus: SddResultStatus | null; invocationLedger: InvocationLedgerEntry[] }): { issueCodes: EvidenceQualityIssue[]; failedRules: string[]; passedRules: string[] } {
+  const issueCodes: EvidenceQualityIssue[] = [];
+  const failedRules: string[] = [];
+  const passedRules: string[] = [];
+  const addFailure = (code: EvidenceQualityIssue, rule: string): void => {
+    if (!issueCodes.includes(code)) {
+      issueCodes.push(code);
+    }
+    if (!failedRules.includes(rule)) {
+      failedRules.push(rule);
+    }
+  };
+  const addPassed = (rule: string): void => {
+    if (!passedRules.includes(rule)) {
+      passedRules.push(rule);
+    }
+  };
+  if (claim.evidence.length === 0) {
+    addFailure('UNSOURCED_PASS', 'require-source-evidence');
+  } else {
+    addPassed('require-source-evidence');
+  }
+  if (claim.provenance.length === 0) {
+    addFailure('PROVENANCE_GAP', 'require-provenance');
+  } else {
+    addPassed('require-provenance');
+  }
+  if (claim.policy.length === 0) {
+    addFailure('POLICY_RULE_FAILED', 'require-policy-rule');
+  } else {
+    addPassed('require-policy-rule');
+  }
+  if (input.validationStatus !== 'PASS') {
+    addFailure('POLICY_RULE_FAILED', 'require-validator-pass');
+  } else {
+    addPassed('require-validator-pass');
+  }
+  const ledgerDecision = evaluateClaimLedgerCorroboration(claim, input.invocationLedger);
+  for (const issue of ledgerDecision.issueCodes) {
+    if (!issueCodes.includes(issue)) {
+      issueCodes.push(issue);
+    }
+  }
+  for (const rule of ledgerDecision.failedRules) {
+    if (!failedRules.includes(rule)) {
+      failedRules.push(rule);
+    }
+  }
+  if (ledgerDecision.failedRules.length === 0) {
+    addPassed('require-ledger-corroboration');
+  }
+  return { issueCodes, failedRules, passedRules };
 }
 
 function evaluateClaimLedgerCorroboration(claim: EvidenceClaim, entries: InvocationLedgerEntry[]): { issueCodes: EvidenceQualityIssue[]; failedRules: string[] } {
@@ -425,21 +488,6 @@ function acceptanceMatchesTarget(target: AcceptanceCoverageTarget, acceptance: s
   return target.matchTexts.some((text) => text.toLowerCase() === normalizedAcceptance) || target.label.toLowerCase() === normalizedAcceptance;
 }
 
-function coverageRank(status: EvidenceCoverageStatus): number {
-  if (status === 'FAIL') {
-    return 5;
-  }
-  if (status === 'BLOCKED') {
-    return 4;
-  }
-  if (status === 'PASS') {
-    return 3;
-  }
-  if (status === 'REFERENCED_ONLY') {
-    return 2;
-  }
-  return 1;
-}
 
 function acceptanceCoverageDecision(acceptance: string, status: EvidenceCoverageStatus, evidence: string, issueCodes: EvidenceQualityIssue[], passedRules: string[], failedRules: string[]): AcceptanceCoverageItem {
   return {
@@ -537,6 +585,12 @@ function agentFromArtifactPath(artifactPath: string): string {
     return 'runtime';
   }
   return 'unknown';
+}
+
+function executedCommandsFromLedger(entries: InvocationLedgerEntry[]): string[] {
+  return [...new Set(entries
+    .filter((entry) => entry.kind === 'command' && entry.status !== 'declared')
+    .map((entry) => entry.ref))];
 }
 
 function sourceLocationEvidence(source: SddTask['source']): string {

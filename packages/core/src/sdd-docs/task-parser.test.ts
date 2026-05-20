@@ -22,7 +22,7 @@ depends_on: []
 affected_files:
   - packages/core/src/index.ts
 validation:
-  - npm test
+  - npm test => AC-1, AC-2
 risk:
   - parser boundary
 \`\`\`
@@ -50,6 +50,7 @@ None yet.
   assert.deepEqual(model.tasks[0].dependsOn, []);
   assert.deepEqual(model.tasks[0].affectedFiles, ['packages/core/src/index.ts']);
   assert.deepEqual(model.tasks[0].validation, ['npm test']);
+  assert.deepEqual(model.tasks[0].validationCommands, [{ command: 'npm test', acceptanceRefs: ['AC-1', 'AC-2'], raw: 'npm test => AC-1, AC-2' }]);
   assert.deepEqual(model.tasks[0].risk, ['parser boundary']);
   assert.match(model.tasks[0].boundary ?? '', /Only parse Markdown metadata/);
   assert.deepEqual(model.tasks[0].acceptance, ['Task metadata is structured.', 'Boundary is retained.']);
@@ -146,7 +147,8 @@ risk: []
     specPath: 'spec.md',
     planPath: 'plan.md',
     tasksPath: 'tasks.md',
-    documents: { specExists: true, planExists: true, tasksExists: true },
+    verifyPath: 'verify.md',
+    documents: { specExists: true, planExists: true, tasksExists: true, verifyExists: true },
     tasks: model.tasks,
     gaps: model.gaps
   }), /BLOCKED/);

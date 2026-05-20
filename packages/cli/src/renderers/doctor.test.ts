@@ -13,7 +13,7 @@ test('doctor renderer summarizes checks with next action', () => {
   });
 
   assert.match(rendered, /^SDD doctor/);
-  assert.match(rendered, /checks pass=1 warn=0 fail=1/);
-  assert.match(rendered, /\[FAIL\] ai_entry/);
-  assert.match(rendered, /next\n- run sdd init --force-ai/);
+  assert.match(rendered, /Project diagnostics failed\./);
+  assert.match(rendered, /Why:\n- drift/);
+  assert.match(rendered, /Next:\n- run sdd init --force-ai/);
 });

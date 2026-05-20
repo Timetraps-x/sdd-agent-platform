@@ -2,6 +2,7 @@ import { TASK_GRAPH_CONTRACT_VERSION, TASK_GRAPH_PLANNER_CONTRACT_VERSION } from
 import { resolveSddContext } from '../sdd-docs/context.js';
 import { parseSddBranch } from '../sdd-docs/task-parser.js';
 import type { SddGapSeverity, SddTask, SddTaskSourceLocation, SddTaskStatus } from '../sdd-docs/task-parser.js';
+import { buildTaskRiskProfile, type TaskRiskProfile } from '../task-risk-profile.js';
 
 export type TaskGraphEdgeType = 'depends_on' | 'file_overlap';
 
@@ -56,6 +57,7 @@ export interface TaskGraphPlan {
     fileOverlaps: number;
     highRiskTasks: string[];
     validationCommands: string[];
+    riskNotes: string[];
   };
 }
 
@@ -109,9 +111,14 @@ export async function inspectTaskGraph(projectRoot: string, options: { branch?: 
     }
   }
   const validationCommands = [...new Set(model.tasks.flatMap((task) => task.validation))].sort();
-  const highRiskTasks = model.tasks
-    .filter((task) => task.risk.length > 0)
-    .map((task) => task.id)
+  const taskRiskProfiles = model.tasks.map((task) => ({ task, profile: buildTaskRiskProfile(task) }));
+  const highRiskTasks = taskRiskProfiles
+    .filter(({ profile }) => profile.riskLevel === 'high')
+    .map(({ task }) => task.id)
+    .sort();
+  const riskNotes = taskRiskProfiles
+    .map(({ task, profile }) => buildTaskRiskNote(task, profile))
+    .filter((note): note is string => Boolean(note))
     .sort();
 
   return {
@@ -128,9 +135,26 @@ export async function inspectTaskGraph(projectRoot: string, options: { branch?: 
       dependencies: dependencyEdges.length,
       fileOverlaps: fileOverlapEdges.length,
       highRiskTasks,
-      validationCommands
+      validationCommands,
+      riskNotes,
     }
   };
+}
+
+function buildTaskRiskNote(task: SddTask, profile: TaskRiskProfile): string | null {
+  const signals = [
+    profile.sourceBoundary ? 'source-boundary' : null,
+    profile.runtimeStateBoundary ? 'runtime-state' : null,
+    profile.contextRisk ? 'context' : null,
+    profile.tokenRisk ? 'token' : null,
+    profile.performanceRisk ? 'performance' : null,
+    profile.externalUnknown ? 'external-unknown' : null,
+    profile.securitySensitive ? 'security' : null
+  ].filter((signal): signal is string => Boolean(signal));
+  if (profile.riskLevel === 'low' && signals.length === 0) {
+    return null;
+  }
+  return `${task.id}:${profile.riskLevel}:${signals.length > 0 ? signals.join(',') : profile.normalizedTags.join(',') || 'risk-profile'}`;
 }
 
 function overlappingFiles(left: string[], right: string[]): string[] {

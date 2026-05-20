@@ -15,20 +15,22 @@ export async function handleDoctorCommand(projectRoot: string, command: string |
   }
 
   const doctorArgs = [subcommand, ...rest].filter((item): item is string => Boolean(item));
-  if (doctorArgs.includes('--latest-only') && doctorArgs.includes('--all-runs')) {
+  const fast = doctorArgs.includes('fast') || doctorArgs.includes('--latest-only');
+  const deep = doctorArgs.includes('deep') || doctorArgs.includes('--all-runs');
+  if (fast && deep) {
     return {
       exitCode: 2,
-      error: 'Usage: sdd doctor [--latest-only] [--all-runs] [--branch <branch>] (choose only one scope flag)'
+      error: 'Usage: sdd doctor [fast|deep] [--latest-only] [--all-runs] [--branch <branch>] (choose only one scope)'
     };
   }
   const report = await doctor(projectRoot, {
-    latestOnly: doctorArgs.includes('--latest-only'),
-    allRuns: doctorArgs.includes('--all-runs'),
+    latestOnly: fast || !deep,
+    allRuns: deep,
     branch: readBranchOption(doctorArgs)
   });
   const json = wantsJson(doctorArgs);
   return {
     exitCode: report.status === 'FAIL' ? 1 : 0,
-    output: json ? jsonOutput(report, doctorArgs) : renderDoctorReport(report)
+    output: json ? jsonOutput(report, doctorArgs) : renderDoctorReport(report, { mode: deep ? 'deep' : 'fast', recover: doctorArgs.includes('recover') })
   };
 }

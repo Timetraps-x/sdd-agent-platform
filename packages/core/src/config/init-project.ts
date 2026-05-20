@@ -5,7 +5,7 @@ import { getProjectConfigPath, getRunsDir, getSddDir } from '../runtime-paths.js
 import { detectProjectConfig, readProjectConfig, renderProjectConfig } from './project-config.js';
 import { assertSafePathSegment } from '../path-safety.js';
 import { exists } from '../storage/json-io.js';
-import { renderInitPlanDocument, renderInitSpecDocument, renderInitTasksDocument } from './starter-documents.js';
+import { renderInitPlanDocument, renderInitSpecDocument, renderInitTasksDocument, renderInitVerifyDocument } from './starter-documents.js';
 
 export type InitDocumentStatus = 'created' | 'unchanged' | 'overwritten' | 'skipped';
 
@@ -36,7 +36,8 @@ export async function applyInitDocuments(projectRoot: string, options: { branch:
   const documents = [
     { name: 'spec.md', content: renderInitSpecDocument(options.branch, now, options.docsLanguage) },
     { name: 'plan.md', content: renderInitPlanDocument(options.branch, now, options.docsLanguage) },
-    { name: 'tasks.md', content: renderInitTasksDocument(options.branch, now, options.docsLanguage) }
+    { name: 'tasks.md', content: renderInitTasksDocument(options.branch, now, options.docsLanguage) },
+    { name: 'verify.md', content: renderInitVerifyDocument(options.branch, now, options.docsLanguage) }
   ];
 
   if (!options.scaffoldDocuments) {

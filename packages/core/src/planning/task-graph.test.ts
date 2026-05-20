@@ -24,6 +24,7 @@ test('task graph planner builds dependency and file overlap graph', async () => 
     assert.deepEqual(graph.fileOverlapEdges, [{ from: 'G1', to: 'G2', type: 'file_overlap', files: ['src/a.ts'] }]);
     assert.deepEqual(graph.summary.highRiskTasks, ['G2']);
     assert.deepEqual(graph.summary.validationCommands, ['npm test']);
+    assert.deepEqual(graph.summary.riskNotes, ['G2:high:security']);
     assert.equal(graph.contract, 'phase-5.3-task-graph-v1');
     assert.deepEqual(graph.nodes[1].agentFit, []);
   } finally {

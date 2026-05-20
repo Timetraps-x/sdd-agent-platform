@@ -10,13 +10,18 @@ export function helpText(topic?: string): string {
 Common workflow:
   sdd init [--force] [--ai <mode>] [--scaffold-docs] [--json]
   sdd status [--branch <branch>] [--json|--compact-json]
+  sdd statusline [--branch <branch>] [--json|--compact-json]
   sdd tasks inspect <task_id> [--branch <branch>] [--json|--compact-json]
-  sdd tasks route <task_id> [--branch <branch>] [--json|--compact-json]
-  sdd do task <task_id> [options]
-  sdd verify task <task_id> [--branch <branch>] [--run <run_id>] [--json|--compact-json]
+  sdd tasks route <task_id> [--branch <branch>] [--approved] [--json|--compact-json]
+  sdd do task <task_id> [--approved] [options]
+  sdd verifies inspect|write [--branch <branch>] [--force] [--json|--compact-json]
+  sdd test task <task_id> [--branch <branch>] [--run <run_id>] [--command <command>] [--timeout-ms <ms>] [--json|--compact-json]
   sdd sync-back inspect [<run_id>] [--task <task_id>] [--branch <branch>] [--json|--compact-json]
   sdd sync-back apply [<run_id>] [--task <task_id>] [--branch <branch>] [--approved] [--json|--compact-json]
-  sdd doctor [--latest-only] [--all-runs] [--json|--compact-json]
+  sdd subagents run <task_id> [--agent <agent>]... [--branch <branch>] [--run <run_id>] [--timeout-seconds <n>] [--approved] [--json|--compact-json]
+  sdd ship [--branch <branch>] [--dry-run] [--json|--compact-json]
+  sdd doctor [fast|deep] [--latest-only] [--all-runs] [--json|--compact-json]
+  sdd doctor recover [--branch <branch>] [--json|--compact-json]
 
 Evidence helpers:
   sdd run create
@@ -48,12 +53,14 @@ export function workflowHelpText(): string {
 Core path:
   1. sdd status [--branch <branch>]
   2. sdd tasks inspect <task_id> [--branch <branch>]
-  3. sdd tasks route <task_id> [--branch <branch>]
+  3. sdd tasks route <task_id> [--branch <branch>] [--approved]
   4. sdd artifact template artifacts/<agent>-<task_id>.md --task <task_id> --agent <agent> --run <run_id> --write
-  5. sdd do task <task_id> --run <run_id> --implement-artifact <path> --review-artifact <path> --validation-artifact <path>
-  6. sdd verify task <task_id> [--branch <branch>]
-  7. sdd sync-back inspect --task <task_id> [--branch <branch>]
-  8. sdd sync-back apply --task <task_id> [--branch <branch>]
+  5. sdd verifies inspect --branch <branch>
+  6. sdd do task <task_id> --run <run_id> --approved --implement-artifact <path> --review-artifact <path> --validation-artifact <path>
+  7. sdd test task <task_id> [--branch <branch>]
+  8. sdd sync-back inspect --task <task_id> [--branch <branch>]
+  9. sdd sync-back apply --task <task_id> [--branch <branch>]
+  10. sdd ship --branch <branch> [--dry-run]
 
 JSON:
   --json prints readable JSON; --compact-json prints one-line JSON for logs and scripts.
@@ -65,10 +72,13 @@ export function advancedHelpText(): string {
 
 Runtime/catalog:
   sdd agent-runtime inspect|validate [--json]
+  sdd agent-capabilities list|validate [--json]
+  sdd command-team inspect|validate|decide [--json]
   sdd skill-capabilities list|inspect [--json]
   sdd capability-sources list|inspect [--json]
   sdd external-packs inspect <source_id> [--json]
   sdd team-mode inspect [--task <id>] [--team-mode [auto|force|off]] [--no-team-mode] [--json]
+  sdd progress [--branch <branch>] [--json|--compact-json]
 
 Harness/platform:
   sdd workflow list|inspect|validate [--json]
@@ -86,11 +96,15 @@ Harness/platform:
 
 Execution/isolation:
   sdd background run|inspect [options]
+  sdd subagents run <task_id> [--agent <agent>]... [--branch <branch>] [--json|--compact-json]
   sdd worker-runtime claim|heartbeat|status|inspect [options]
   sdd isolation inspect <task_id> [options]
   sdd graph inspect [--branch <branch>] [--json]
   sdd wave inspect|run|executor [options]
   sdd worktree create|inspect|keep|remove [options]
+
+Foreground subagents:
+  Runs synchronously and collects non-authoritative evidence artifacts only; it does not approve, sync-back, or ship.
 
 Legacy init partition option:
   sdd init --branch <branch> creates starter docs for that branch, but normal workflow partitioning belongs to /sdd:spec and sdd status --branch.

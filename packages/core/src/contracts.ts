@@ -52,3 +52,63 @@ export const EVIDENCE_SUMMARY_CONTRACT_VERSION = 'sdd-evidence-summary-v1';
 export const CONTEXT_PACKAGE_CONTRACT_VERSION = 'sdd-context-package-v1';
 export const LOG_WORKER_SUMMARY_CONTRACT_VERSION = 'sdd-log-worker-summary-v1';
 export const RUNTIME_ANALYSIS_CONTRACT_VERSION = 'phase-7-runtime-analysis-v1';
+export const WORKFLOW_STATE_RESOLVER_CONTRACT_VERSION = 'phase-7.3-workflow-state-resolver-v1';
+export const VERIFY_DOCUMENT_CONTRACT_VERSION = 'sdd-verify-doc-v1';
+export const AGENT_CAPABILITY_CATALOG_CONTRACT_VERSION = 'phase-7.6-agent-capability-catalog-v1';
+export const COMMAND_TEAM_RUNTIME_CONTRACT_VERSION = 'phase-7.7-command-team-runtime-v1';
+export const RUNTIME_PROJECTION_ENVELOPE_CONTRACT_VERSION = 'sdd-runtime-projection-envelope-v1';
+export const CODING_FACT_SET_CONTRACT_VERSION = 'sdd-coding-fact-set-v1';
+export const CODING_RISK_PROFILE_CONTRACT_VERSION = 'sdd-coding-risk-profile-v1';
+export const LIFECYCLE_RISK_DECISION_CONTRACT_VERSION = 'sdd-lifecycle-risk-decision-v1';
+export const STAGE_RUN_CONTRACT_VERSION = 'sdd-stage-run-v1';
+export const WORKFLOW_HANDOFF_CONTRACT_VERSION = 'sdd-workflow-handoff-v1';
+export const WORK_UNIT_CONTRACT_VERSION = 'sdd-work-unit-v1';
+export const SUBAGENT_DEFINITION_CONTRACT_VERSION = 'sdd-subagent-definition-v1';
+export const SUBAGENT_DISPATCH_CONTRACT_VERSION = 'sdd-subagent-dispatch-v1';
+export const SUBAGENT_RESULT_CONTRACT_VERSION = 'sdd-subagent-result-v1';
+export const CONTEXT_LOAD_SIGNAL_CONTRACT_VERSION = 'sdd-context-load-signal-v1';
+export const CONTEXT_OFFLOAD_DECISION_CONTRACT_VERSION = 'sdd-context-offload-decision-v1';
+export const SCOPED_CONTEXT_HANDOFF_CONTRACT_VERSION = 'sdd-scoped-context-handoff-v1';
+export const TEST_EVIDENCE_RUN_CONTRACT_VERSION = 'sdd-test-evidence-run-v1';
+export const MODEL_PRODUCED_ARTIFACT_CONTRACT_VERSION = 'sdd-model-produced-artifact-v1';
+
+export type RuntimeConfidence = 'high' | 'medium' | 'low';
+export type RuntimeProjectionStaleness = 'fresh' | 'stale' | 'incompatible' | 'unknown';
+export type SddStage = 'spec' | 'plan' | 'tasks' | 'verifies' | 'do' | 'test' | 'goal-verify' | 'sync-back' | 'ship';
+export type RuntimeRefKind = 'document' | 'task' | 'run' | 'artifact' | 'projection' | 'evidence' | 'command' | 'external';
+
+export interface RuntimeScope {
+  branch: string;
+  taskId?: string;
+  runId?: string;
+  changeRef?: string;
+}
+
+export interface RuntimeRef {
+  kind: RuntimeRefKind;
+  ref: string;
+  hash?: string;
+}
+
+export interface RuntimeProjectionEnvelope<TPayload> {
+  contract: typeof RUNTIME_PROJECTION_ENVELOPE_CONTRACT_VERSION;
+  projectionType: string;
+  scopeKey: string;
+  id: string;
+  inputHash: string;
+  producer: string;
+  producerVersion: string;
+  generatedAt: string;
+  staleReason?: string;
+  payload: TPayload;
+}
+
+export interface ModelProducedArtifact {
+  contract: typeof MODEL_PRODUCED_ARTIFACT_CONTRACT_VERSION;
+  producer: 'main-agent' | 'co-main-agent' | 'subagent';
+  authority: 'stage-owned' | 'candidate' | 'non-authoritative';
+  allowedUse: Array<'summary' | 'diagnostic' | 'test-suggestion' | 'evidence-candidate'>;
+  forbiddenUse: Array<'final-risk-decision' | 'stage-completion' | 'ship-gate-pass'>;
+  artifactRefs: string[];
+  reviewedByRuntime: boolean;
+}

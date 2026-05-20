@@ -11,6 +11,7 @@ import {
   phase63FrontendTaskMarkdown,
   phase63InvalidProjectRuntimeConfig,
   phase63ProjectRuntimeConfig,
+  validTaskMarkdown,
   writeBranchDocs
 } from '../test-support/fixtures.js';
 import {
@@ -78,21 +79,24 @@ test('Phase 6 adaptive team-mode routes choose cost-bounded agent teams automati
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-phase60-adaptive-team-'));
   try {
     await initProject(root);
-    await writeBranchDocs(root, 'master', `# Tasks\n\n${adaptiveTeamTaskMarkdown('LOW', { allowedAgents: ['implementer'] })}\n${adaptiveTeamTaskMarkdown('REVIEW', { allowedAgents: ['reviewer'], requiredArtifacts: ['artifacts/review-REVIEW.md'] })}\n${adaptiveTeamTaskMarkdown('HIGH', { allowedAgents: ['implementer'], risk: ['database'] })}\n${adaptiveTeamTaskMarkdown('SECURITY', { allowedAgents: ['security'], risk: ['security'] })}`);
+    await writeBranchDocs(root, 'master', `# Tasks\n\n${adaptiveTeamTaskMarkdown('LOW', { allowedAgents: ['implementer'], affectedFiles: ['docs/low.md'] })}\n${adaptiveTeamTaskMarkdown('REVIEW', { allowedAgents: ['reviewer'], requiredArtifacts: ['artifacts/review-REVIEW.md'], affectedFiles: ['docs/review.md'] })}\n${adaptiveTeamTaskMarkdown('SOURCE', { allowedAgents: ['implementer'] })}\n${adaptiveTeamTaskMarkdown('HIGH', { allowedAgents: ['implementer'], risk: ['database'] })}\n${adaptiveTeamTaskMarkdown('SECURITY', { allowedAgents: ['security'], risk: ['security'] })}`);
 
     const low = await routeSddTask(root, { taskId: 'LOW', branch: 'master' });
     const review = await routeSddTask(root, { taskId: 'REVIEW', branch: 'master' });
-    const high = await routeSddTask(root, { taskId: 'HIGH', branch: 'master' });
-    const security = await routeSddTask(root, { taskId: 'SECURITY', branch: 'master' });
+    const sourceBoundary = await routeSddTask(root, { taskId: 'SOURCE', branch: 'master' });
+    const high = await routeSddTask(root, { taskId: 'HIGH', branch: 'master', approved: true });
+    const unapprovedHigh = await routeSddTask(root, { taskId: 'HIGH', branch: 'master' });
+    const security = await routeSddTask(root, { taskId: 'SECURITY', branch: 'master', approved: true });
     const forced = await routeSddTask(root, { taskId: 'LOW', branch: 'master', teamModeActivation: 'force' });
     const disabled = await routeSddTask(root, { taskId: 'SECURITY', branch: 'master', teamModeActivation: 'off' });
+    const unapprovedSecurity = await routeSddTask(root, { taskId: 'SECURITY', branch: 'master' });
 
     assert.equal(low.teamMode.activation, 'auto');
     assert.equal(low.teamMode.mode, 'off');
     assert.equal(low.teamMode.enabled, false);
     assert.equal(low.teamMode.costClass, 'none');
     assert.equal(low.teamMode.costRoute, 'downgraded');
-    assert.match(low.teamMode.downgradeReason ?? '', /Low-risk task uses no team automation/);
+    assert.match(low.teamMode.downgradeReason ?? '', /Shared risk profile is low/);
     assert.equal(low.teamMode.trustPolicyEnforced, true);
     assert.equal(review.teamMode.activation, 'auto');
     assert.equal(review.teamMode.mode, 'review-lite');
@@ -103,6 +107,9 @@ test('Phase 6 adaptive team-mode routes choose cost-bounded agent teams automati
     assert.equal(review.teamMode.trustPolicyEnforced, true);
     assert.equal(review.teamMode.maxMembers <= 2, true);
     assert.equal(review.teamMode.waveRecommendation.includes('implementation_review'), true);
+    assert.equal(unapprovedHigh.category, 'blocked');
+    assert.equal(unapprovedHigh.lifecycleGate, 'approval-before-test');
+    assert.match(unapprovedHigh.nextAction, /rerun sdd test task HIGH --approved/);
     assert.equal(high.teamMode.mode, 'hyperplan');
     assert.equal(high.teamMode.enabled, true);
     assert.equal(high.teamMode.costClass, 'high');
@@ -111,6 +118,11 @@ test('Phase 6 adaptive team-mode routes choose cost-bounded agent teams automati
     assert.equal(high.teamMode.trustPolicyEnforced, true);
     assert.equal(high.teamMode.maxMembers <= 4, true);
     assert.equal(high.teamMode.waveRecommendation.includes('hyperplan'), true);
+    assert.equal(sourceBoundary.lifecycleGate, 'review-before-test');
+    assert.match(sourceBoundary.nextAction, /reviewer inspect affected files and validation commands/);
+    assert.equal(sourceBoundary.teamMode.mode, 'hyperplan');
+    assert.equal(sourceBoundary.teamMode.costClass, 'high');
+    assert.match(sourceBoundary.teamMode.reason, /Source-boundary/);
     assert.equal(security.teamMode.mode, 'security-research');
     assert.equal(security.teamMode.costClass, 'high');
     assert.equal(security.teamMode.costRoute, 'no_downgrade');
@@ -118,6 +130,11 @@ test('Phase 6 adaptive team-mode routes choose cost-bounded agent teams automati
     assert.equal(security.teamMode.trustPolicyEnforced, true);
     assert.equal(security.teamMode.maxMembers <= 3, true);
     assert.equal(security.teamMode.waveRecommendation.includes('security_research'), true);
+    assert.equal(unapprovedSecurity.category, 'blocked');
+    assert.match(unapprovedSecurity.blockedReason ?? '', /human approval before validation/);
+    assert.equal(unapprovedSecurity.lifecycleGate, 'approval-before-test');
+    assert.match(unapprovedSecurity.nextAction, /rerun sdd test task SECURITY --approved/);
+    assert.doesNotMatch(unapprovedSecurity.nextAction, /Fix task gaps/);
     assert.equal(forced.teamMode.activation, 'force');
     assert.equal(forced.teamMode.mode, 'review-lite');
     assert.equal(forced.teamMode.costClass, 'low');
@@ -127,7 +144,7 @@ test('Phase 6 adaptive team-mode routes choose cost-bounded agent teams automati
     assert.equal(disabled.teamMode.activation, 'off');
     assert.equal(disabled.teamMode.mode, 'off');
     assert.equal(disabled.teamMode.enabled, false);
-    assert.equal(disabled.teamMode.costRoute, 'not_applicable');
+    assert.equal(disabled.teamMode.costRoute, 'blocked');
     assert.equal(disabled.teamMode.trustPolicyEnforced, true);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -138,7 +155,7 @@ test('routeSddTask uses derived route cache and opt-in profiling only', async ()
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-route-cache-profile-'));
   try {
     await initProject(root);
-    await writeBranchDocs(root, 'master', `# Tasks\n\n${adaptiveTeamTaskMarkdown('CACHE', { allowedAgents: ['reviewer'], requiredArtifacts: ['artifacts/review-CACHE.md'] })}`);
+    await writeBranchDocs(root, 'master', `# Tasks\n\n${adaptiveTeamTaskMarkdown('CACHE', { allowedAgents: ['reviewer'], requiredArtifacts: ['artifacts/review-CACHE.md'], affectedFiles: ['docs/cache.md'] })}`);
 
     const uncached = await routeSddTask(root, { taskId: 'CACHE', branch: 'master' });
     const first = await routeSddTask(root, { taskId: 'CACHE', branch: 'master', cache: true, profile: true });
@@ -163,7 +180,7 @@ test('routeSddTask uses derived route cache and opt-in profiling only', async ()
     assert.equal(third.profile.some((span) => span.name === 'route_total'), true);
     assert.equal(third.profile.some((span) => span.name === 'route_compute'), false);
 
-    await writeBranchDocs(root, 'master', `# Tasks\n\n${adaptiveTeamTaskMarkdown('CACHE', { allowedAgents: ['reviewer'], requiredArtifacts: ['artifacts/review-CACHE.md'] })}\n\nCache key invalidation fixture.`);
+    await writeBranchDocs(root, 'master', `# Tasks\n\n${adaptiveTeamTaskMarkdown('CACHE', { allowedAgents: ['reviewer'], requiredArtifacts: ['artifacts/review-CACHE.md'], affectedFiles: ['docs/cache.md'] })}\n\nCache key invalidation fixture.`);
     const invalidated = await routeSddTask(root, { taskId: 'CACHE', branch: 'master', cache: true });
 
     assert.equal(invalidated.cache?.status, 'stored');
@@ -234,6 +251,30 @@ test('Phase 6.3 invalid agent runtime declarations fail closed', async () => {
     assert.match(issueText, /unsafe_source\.attribution/);
     assert.match(issueText, /Quarantined source cannot be reused directly/);
     assert.match(issueText, /Quarantined source requests prompt import, direct execution, or lifecycle authority/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('routeSddTask blocks downstream tasks until dependencies are completed', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-route-dependencies-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'feature', `# Tasks\n\n${validTaskMarkdown('DEP1', [])}\n${validTaskMarkdown('DEP2', ['DEP1']).replace('packages/core/src/index.ts', 'docs/dep2.md')}`);
+
+    const blocked = await routeSddTask(root, { taskId: 'DEP2', branch: 'feature', approved: true });
+
+    assert.equal(blocked.category, 'blocked');
+    assert.equal(blocked.recommendedProfile, null);
+    assert.match(blocked.blockedReason ?? '', /DEP2 depends on DEP1, but DEP1 status is pending/);
+    assert.match(blocked.nextAction, /Complete and sync-back DEP1 before routing DEP2/);
+
+    await writeBranchDocs(root, 'feature', `# Tasks\n\n${validTaskMarkdown('DEP1', []).replace('status: pending', 'status: completed')}\n${validTaskMarkdown('DEP2', ['DEP1']).replace('packages/core/src/index.ts', 'docs/dep2.md')}`);
+    const ready = await routeSddTask(root, { taskId: 'DEP2', branch: 'feature' });
+
+    assert.notEqual(ready.category, 'blocked');
+    assert.equal(ready.blockedReason, null);
+    assert.ok(ready.recommendedProfile);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -15,6 +15,12 @@ import { rebuildLocalRunIndex } from '../run-state/run-index.js';
 import { archiveRun, createRun, readRunState, writeRunState } from '../run-state/run-state.js';
 import { validResultArtifact, validTaskMarkdown, writeBranchDocs } from '../test-support/fixtures.js';
 import { bindTestRunState } from '../test-support/run-state.js';
+import { STAGE_RUN_CONTRACT_VERSION, SUBAGENT_DISPATCH_CONTRACT_VERSION, WORKFLOW_HANDOFF_CONTRACT_VERSION, type RuntimeScope } from '../contracts.js';
+import { recordStageRunProjection, recordWorkflowHandoffProjection, type StageRun, type WorkflowHandoff } from '../stage-runtime.js';
+import { decideContextOffload, evaluateContextLoadSignal, recordContextLoadSignalProjection, recordContextOffloadDecisionProjection } from '../context-offload.js';
+import { recordSubagentDispatchProjection, type SubagentDispatch } from '../subagents.js';
+import { runShip } from '../lifecycle/ship.js';
+import { withRuntimeStore } from '../storage/runtime-store.js';
 import { doctor } from './doctor.js';
 
 const execFileAsync = promisify(execFile);
@@ -24,13 +30,13 @@ test('doctor reports AI entry drift after init', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'sdd-doctor-drift-'));
   try {
     await initProject(root);
-    const commandPath = path.join(root, '.claude', 'commands', 'sdd.md');
-    await writeFile(commandPath, `${await readFile(commandPath, 'utf8')}\nmanual drift\n`, 'utf8');
+    const skillPath = path.join(root, '.claude', 'skills', 'sdd', 'SKILL.md');
+    await writeFile(skillPath, `${await readFile(skillPath, 'utf8')}\nmanual drift\n`, 'utf8');
 
     const report = await doctor(root);
 
     assert.equal(report.status, 'FAIL');
-    assert.equal(report.checks.some((check) => check.check === 'ai_entry_sdd-root' && check.level === 'FAIL' && /will not overwrite user-modified/.test(check.action ?? '')), true);
+    assert.equal(report.checks.some((check) => check.check === 'ai_entry_sdd' && check.level === 'FAIL' && /will not overwrite user-modified/.test(check.action ?? '')), true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -103,6 +109,21 @@ test('doctor reports local run index drift with rebuild action', async () => {
 
     assert.equal(report.checks.some((check) => check.check === 'local_run_index' && check.level === 'WARN' && /rebuild/.test(check.action ?? '')), true);
     assert.equal(report.checks.some((check) => check.check === 'local_run_index_contract' && check.level === 'PASS'), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('doctor reports artifact writes attached to unscoped runs', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-doctor-artifact-scope-'));
+  try {
+    await initProject(root);
+    const state = await createRun(root, { runId: 'run-1' });
+    await writeArtifact(root, state.runId, 'review-T1.md', validResultArtifact('reviewer', 'T1', 'PASS', 'artifacts/review-T1.md'));
+
+    const report = await doctor(root, { allRuns: true });
+
+    assert.equal(report.checks.some((check) => check.check === 'artifact_scope' && check.level === 'FAIL' && /unscoped run/.test(check.message)), true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -197,7 +218,7 @@ test('doctor latestOnly ignores older failed run evidence', async () => {
     const allRuns = await doctor(root, { allRuns: true });
 
     assert.equal(latestOnly.checks.some((check) => check.check === 'stale_delegation'), false);
-    assert.equal(latestOnly.checks.some((check) => check.check === 'run_evidence_scope'), true);
+    assert.equal(latestOnly.checks.some((check) => check.check === 'run_evidence_fast_path'), true);
     assert.equal(allRuns.checks.some((check) => check.check === 'stale_delegation'), true);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -301,3 +322,224 @@ test('doctor honors explicit branch for document-chain scope', async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('doctor reports workflow handoff state diagnostics', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-doctor-handoff-'));
+  try {
+    await initProject(root);
+    await recordStageRunProjection(root, doctorStageRun());
+    await recordWorkflowHandoffProjection(root, doctorHandoff());
+
+    const report = await doctor(root, { latestOnly: true, branch: 'master' });
+
+    assert.equal(report.checks.some((check) => check.check === 'workflow_handoff_state' && check.level === 'PASS' && /status=fresh/.test(check.message)), true);
+    assert.equal(report.checks.some((check) => check.check === 'workflow_handoff_state' && /do->test:accepted/.test(check.message)), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('doctor reports context offload and subagent dispatch state diagnostics', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-doctor-context-subagent-'));
+  try {
+    await initProject(root);
+    const signal = evaluateContextLoadSignal({
+      scope: doctorScope,
+      refs: [{ kind: 'document', ref: 'specs/master/tasks.md' }],
+      fileCount: 20,
+      artifactBytes: 200_000,
+      dependencyFanout: 12,
+      unknownImpact: true,
+      generatedAt: '2026-05-18T00:00:00.000Z'
+    });
+    await recordContextLoadSignalProjection(root, signal);
+    await recordContextOffloadDecisionProjection(root, decideContextOffload(signal, { dispatchRefs: [{ kind: 'projection', ref: 'phase8_subagent_dispatch:master:T1:run-1:none:dispatch-1' }] }));
+    await recordSubagentDispatchProjection(root, doctorSubagentDispatch());
+
+    const report = await doctor(root, { latestOnly: true, branch: 'master' });
+
+    assert.equal(report.checks.some((check) => check.check === 'context_offload_state' && check.level === 'PASS' && /level=high action=dispatch-subagent/.test(check.message)), true);
+    assert.equal(report.checks.some((check) => check.check === 'subagent_dispatch_state' && check.level === 'FAIL' && /status=blocked/.test(check.message)), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('archived failed subagent dispatch no longer blocks doctor or ship subagent gates', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-doctor-archived-subagent-'));
+  try {
+    await initProject(root);
+    await createRun(root, { runId: 'run-1' });
+    await recordSubagentDispatchProjection(root, {
+      ...doctorSubagentDispatch(),
+      status: 'failed',
+      updatedAt: '2026-05-18T00:02:00.000Z'
+    });
+    const failed = await doctor(root, { latestOnly: true, branch: 'master' });
+    assert.equal(failed.checks.some((check) => check.check === 'subagent_dispatch_state' && check.level === 'FAIL' && /status=failed/.test(check.message)), true);
+
+    await archiveRun(root, 'run-1', { reason: 'failed subagent superseded by rerun' });
+    const recovered = await doctor(root, { latestOnly: true, branch: 'master' });
+    const ship = await runShip(root, { branch: 'master', dryRun: true });
+
+    assert.equal(recovered.checks.some((check) => check.check === 'subagent_dispatch_state' && check.level === 'PASS' && /status=missing/.test(check.message)), true);
+    assert.equal(ship.checks.some((check) => check.name === 'subagent_dispatches' && check.status === 'PASS' && /status=missing/.test(check.message)), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('doctor reports unavailable Phase 8 runtime checks as warnings', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-doctor-runtime-unavailable-'));
+  try {
+    await initProject(root);
+    await withRuntimeStore(root, ({ db }) => {
+      db.prepare('INSERT INTO projections (projection_id, projection_type, scope_key, generated_at, payload_json) VALUES (?, ?, ?, ?, ?)')
+        .run('bad-context-build', 'context_build', 'master:T1:run-1:none', new Date().toISOString(), '{');
+    });
+
+    const report = await doctor(root, { latestOnly: true, branch: 'master' });
+
+    assert.equal(report.checks.some((check) => check.check === 'lifecycle_risk_decision' && check.level === 'WARN' && /unavailable/.test(check.message)), true);
+    assert.equal(report.checks.some((check) => check.check === 'workflow_handoff_state' && check.level === 'WARN' && /unavailable/.test(check.message)), true);
+    assert.equal(report.checks.some((check) => check.check === 'context_offload_state' && check.level === 'WARN' && /unavailable/.test(check.message)), true);
+    assert.equal(report.checks.some((check) => check.check === 'subagent_dispatch_state' && check.level === 'WARN' && /unavailable/.test(check.message)), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('ship reports token pressure as diagnostic pass', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-ship-token-diagnostic-'));
+  try {
+    await initProject(root);
+    await withRuntimeStore(root, ({ db }) => {
+      db.prepare('INSERT INTO projections (projection_id, projection_type, scope_key, generated_at, payload_json) VALUES (?, ?, ?, ?, ?)')
+        .run('context-build-pressure', 'context_build', 'master:T1:run-1:none', '2026-05-18T00:00:00.000Z', JSON.stringify({
+          taskId: 'T1',
+          profile: 'normal',
+          budget: { estimatedBytes: 900, maxBytes: 1000, estimatedTokens: 225 }
+        }));
+    });
+
+    const ship = await runShip(root, { branch: 'master', dryRun: true });
+    const tokenCheck = ship.checks.find((check) => check.name === 'token_health');
+
+    assert.equal(tokenCheck?.status, 'PASS');
+    assert.match(tokenCheck?.message ?? '', /token_health=pressure/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('ship blocks validated runs until sync-back is applied', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-ship-syncback-required-'));
+  try {
+    await initProject(root);
+    await writeBranchDocs(root, 'master', validTaskMarkdown('T1', []));
+    const state = await createRun(root, { runId: 'run-1' });
+    await bindTestRunState(root, state.runId, 'master', 'T1');
+    const bound = await readRunState(root, state.runId);
+    await writeRunState(root, {
+      ...bound,
+      status: 'completed',
+      validation: {
+        status: 'pass',
+        commands: ['npm test'],
+        evidence: []
+      }
+    });
+
+    const ship = await runShip(root, { branch: 'master', dryRun: true });
+    const latestRunCheck = ship.checks.find((check) => check.name === 'latest_run');
+
+    assert.equal(latestRunCheck?.status, 'BLOCKED');
+    assert.match(latestRunCheck?.message ?? '', /sync_back=not_created/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('ship still blocks context offload curation', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'sdd-ship-context-curation-'));
+  try {
+    await initProject(root);
+    const signal = evaluateContextLoadSignal({
+      scope: doctorScope,
+      fileCount: 50,
+      artifactBytes: 600_000,
+      dependencyFanout: 30,
+      unknownImpact: true,
+      generatedAt: '2026-05-18T00:00:00.000Z'
+    });
+    await recordContextLoadSignalProjection(root, signal);
+    await recordContextOffloadDecisionProjection(root, decideContextOffload(signal));
+
+    const ship = await runShip(root, { branch: 'master', dryRun: true });
+    const contextCheck = ship.checks.find((check) => check.name === 'context_offload');
+
+    assert.equal(contextCheck?.status, 'BLOCKED');
+    assert.match(contextCheck?.message ?? '', /action=block-for-curation/);
+    assert.equal(ship.nextActions.some((action) => /Curate context before ship/.test(action)), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+const doctorScope: RuntimeScope = { branch: 'master', taskId: 'T1', runId: 'run-1' };
+
+function doctorStageRun(): StageRun {
+  return {
+    contract: STAGE_RUN_CONTRACT_VERSION,
+    id: 'doctor-stage-do',
+    scope: doctorScope,
+    stage: 'do',
+    ownerAgent: 'implementer',
+    coMainAgents: ['reviewer'],
+    status: 'completed',
+    inputRefs: [{ kind: 'projection', ref: 'phase8_lifecycle_risk_decision:master:T1:run-1:none' }],
+    outputRefs: [{ kind: 'artifact', ref: 'artifacts/doctor-handoff.md' }],
+    decisionRefs: [{ kind: 'projection', ref: 'phase8_lifecycle_risk_decision:master:T1:run-1:none' }],
+    blockingReasons: [],
+    createdAt: '2026-05-18T00:00:00.000Z',
+    updatedAt: '2026-05-18T00:01:00.000Z'
+  };
+}
+
+function doctorHandoff(): WorkflowHandoff {
+  return {
+    contract: WORKFLOW_HANDOFF_CONTRACT_VERSION,
+    id: 'doctor-handoff-do-test',
+    scope: doctorScope,
+    fromStage: 'do',
+    toStage: 'test',
+    fromAgent: 'implementer',
+    toAgent: 'validator',
+    status: 'accepted',
+    outputRefs: [{ kind: 'artifact', ref: 'artifacts/doctor-handoff.md' }],
+    requiredInputRefs: [{ kind: 'projection', ref: 'phase8_lifecycle_risk_decision:master:T1:run-1:none' }],
+    riskDecisionRef: { kind: 'projection', ref: 'phase8_lifecycle_risk_decision:master:T1:run-1:none' },
+    evidenceRefs: [{ kind: 'evidence', ref: 'artifacts/doctor-handoff-validation.md#AC-1' }],
+    openQuestions: [],
+    blockingGaps: [],
+    createdAt: '2026-05-18T00:02:00.000Z',
+    decidedAt: '2026-05-18T00:03:00.000Z'
+  };
+}
+
+function doctorSubagentDispatch(): SubagentDispatch {
+  return {
+    contract: SUBAGENT_DISPATCH_CONTRACT_VERSION,
+    id: 'dispatch-1',
+    scope: doctorScope,
+    workUnitId: 'wu-subagent-1',
+    definitionName: 'test-writer',
+    mode: 'background',
+    status: 'queued',
+    blocking: true,
+    requiredBefore: 'handoff',
+    contextRef: { kind: 'projection', ref: 'sdd-scoped-context-handoff:T1' },
+    createdAt: '2026-05-18T00:00:00.000Z',
+    updatedAt: '2026-05-18T00:01:00.000Z'
+  };
+}

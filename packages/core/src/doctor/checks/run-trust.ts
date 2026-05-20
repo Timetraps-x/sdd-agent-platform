@@ -69,7 +69,7 @@ export async function inspectRunTrustEvidence(projectRoot: string, state: RunSta
       for (const claim of trust.claims) {
         for (const ref of claimMaterialRefs(claim)) {
           if (!materials.has(ref)) {
-            checks.push({ level: 'FAIL', check: 'material_provenance', message: `${runId}/${artifact.path}: material evidence ${ref} has no matching invocation ledger entry.`, action: 'Record material/tool/command provenance in invocations.jsonl before using the material as source evidence.' });
+            checks.push({ level: 'FAIL', check: 'material_provenance', message: `${runId}/${artifact.path}: material evidence ${ref} has no matching runtime activity entry.`, action: 'Record material/tool/command provenance in runtime.sqlite activities before using the material as source evidence.' });
           }
         }
       }
