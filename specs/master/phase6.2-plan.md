@@ -9,7 +9,7 @@ Phase 6.2 按“先锁边界，再做小步稳定化，再跑完整 RC 验证”
 - 新增 Phase 6.2 source artifact、spec、plan、tasks、validation。
 - 更新 `PHASE_STATUS.md`，让 6.1 的 next gate 指向 6.2，新增 6.2 in-progress 行，再让 6.2 指向 7.0。
 - 更新 `phases/README.md`，在 Phase 6 列表中加入 6.2。
-- 更新 Phase 7.0 的依赖描述，让它消费 Phase 6.2 RC evidence。
+- 更新 Phase 8.0 的依赖描述，让它消费 Phase 6.2 RC evidence，并记录 Phase 7.0 core modularization 的前置门禁。
 
 ## Track B: Core boundary stabilization
 
@@ -88,4 +88,4 @@ UX checklist：
 - Public exports 由 `packages/core/src/index.ts` 继续承载。
 - 每次提取保持行为等价，避免顺手改业务语义。
 - 若某个模块出现循环依赖或测试不稳定，回退为小范围 helper 分组，不强行拆大模块。
-- 不启动 Phase 7.0 graph 相关实现。
+- 不启动 Phase 8.0 graph 相关实现。

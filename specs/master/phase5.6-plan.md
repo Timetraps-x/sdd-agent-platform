@@ -11,13 +11,13 @@
 
 ### P1: Graph-ready metadata schema
 
-- Define harness metadata consumed by Phase 7.
+- Define harness metadata consumed by Phase 8.
 - Map metadata to source facts: specs, task graph, runs, eval, context pack.
 
-### P2: Phase 7 artifact alignment
+### P2: Phase 8 artifact alignment
 
-- Update Phase 7 dependency wording.
-- Ensure Phase 7 does not depend on graph implementation work in Phase 5, and can also consume Phase 6 runtime metadata when available.
+- Update Phase 8 dependency wording.
+- Ensure Phase 8 does not depend on graph implementation work in Phase 5, and can also consume Phase 6 runtime metadata and Phase 7 core boundary metadata when available.
 
 ### P3: Guardrail validation
 
@@ -31,4 +31,4 @@
 
 ## Risks
 
-- Handoff schema must be specific enough for Phase 7, but not become graph implementation.
+- Handoff schema must be specific enough for Phase 8, but not become graph implementation.

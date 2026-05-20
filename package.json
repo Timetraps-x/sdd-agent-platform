@@ -1,6 +1,6 @@
 {
   "name": "sdd-agent-platform",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Local SDD + subagent workflow platform for Claude Code.",
   "license": "MIT",
@@ -20,10 +20,13 @@
     "cli"
   ],
   "bin": {
-    "sdd": "dist/packages/cli/src/main.js"
+    "sdd": "packages/cli/dist/main.js"
   },
   "files": [
-    "dist",
+    "packages/cli/dist",
+    "packages/cli/package.json",
+    "packages/core/dist",
+    "packages/core/package.json",
     "README.md",
     "package.json",
     "tsconfig.build.json"
@@ -35,18 +38,30 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -b tsconfig.build.json",
     "prepare": "npm run build",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test --import tsx \"packages/**/*.test.ts\"",
-    "sdd": "tsx packages/cli/src/main.ts"
+    "typecheck": "npm run build && tsc --noEmit",
+    "test": "npm run build && node --test --import tsx \"packages/**/*.test.ts\"",
+    "sdd": "npm run build --silent && node packages/cli/dist/main.js"
   },
   "workspaces": [
     "packages/*"
   ],
+  "dependencies": {
+    "@sdd-agent-platform/core": "file:packages/core"
+  },
   "devDependencies": {
     "@types/node": "^24.10.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.0"
-  }
+  },
+  "bundleDependencies": [
+    "@sdd-agent-platform/core"
+  ],
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "author": ""
 }

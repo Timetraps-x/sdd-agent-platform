@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 
@@ -9,7 +9,7 @@ export const CLAUDE_CODE_TOOL_ID = 'claude-code';
 export type AiToolId = typeof CLAUDE_CODE_TOOL_ID;
 export type AiToolSelection = 'auto' | AiToolId | 'none';
 export type AiEntryKind = 'skill' | 'command';
-export type AiEntryStatus = 'created' | 'unchanged' | 'updated' | 'missing' | 'drifted' | 'user-modified' | 'foreign' | 'conflict' | 'skipped';
+export type AiEntryStatus = 'created' | 'unchanged' | 'updated' | 'missing' | 'drifted' | 'user-modified' | 'foreign' | 'conflict' | 'skipped' | 'obsolete' | 'removed';
 
 export interface AiToolEntryTemplate {
   id: string;
@@ -30,7 +30,7 @@ export interface ProjectedAiEntry {
   ownership: 'sdd-managed';
   sourceContract: typeof AI_ENTRY_CONTRACT;
 }
-export type ManagedAssetDriftStatus = 'current' | 'drifted' | 'user-modified' | 'foreign' | 'missing' | 'conflict' | 'skipped';
+export type ManagedAssetDriftStatus = 'current' | 'drifted' | 'user-modified' | 'foreign' | 'missing' | 'conflict' | 'skipped' | 'obsolete';
 
 export interface ManagedAssetManifestEntry {
   path: string;
@@ -69,6 +69,7 @@ export interface AiToolAdapter {
 export interface AiProjectionOptions {
   tool?: AiToolSelection;
   check?: boolean;
+  force?: boolean;
 }
 
 export const claudeCodeAdapter: AiToolAdapter = {
@@ -81,29 +82,27 @@ export const claudeCodeAdapter: AiToolAdapter = {
         kind: 'skill',
         relativePath: '.claude/skills/sdd/SKILL.md',
         title: 'SDD Platform',
-        body: `# SDD Platform\n\nUse the local or globally installed \`sdd\` CLI as the source of truth for this repository's SDD workflow.\n\nStart by running \`sdd status\`. Run \`sdd instructions overview --json\` only when the next action is unclear or you need the full dynamic command contract.\n\nUse \`sdd status\` for branch/source context and the recommended next command, but summarize only blockers, current task, and next action instead of replaying the full status output. For risky changes, run \`sdd lifecycle decide --from-text <text>\` before spec/plan work. Respect the returned boundaries. Do not treat this generated file as the workflow brain; refresh it with \`sdd update\` when drift is reported.\n`
-      },
-      {
-        id: 'sdd-root',
-        kind: 'command',
-        relativePath: '.claude/commands/sdd.md',
-        title: 'SDD',
-        body: `Use SDD as the natural-language intent router for this repository while keeping CLI/core output as the source of truth.
+        body: `# SDD Platform
+
+Use the local or globally installed \`sdd\` CLI as the source of truth for this repository's SDD workflow. This skill is the manual \`/sdd\` root intent router; do not treat this generated file as the workflow brain.
 
 1. Accept the user's natural-language intent, then run \`sdd status\` first and report only workflow state, blocker/current task, and the recommended next command; do not paste or restate full status unless asked.
-2. Dynamic routing comes from CLI/core output, not this generated markdown; follow the recommended next command before choosing a dedicated \`/sdd:*\` entry.
-3. If the intent is still ambiguous after status, ask one clarifying question before spec/plan/do/verify/sync-back work.
-4. For risky requests that mention state-machine, concurrency, database, SQL, security, API/schema, CI/build, or external unknowns, run \`sdd lifecycle decide --from-text <text>\` before spec/plan work.
-5. If status reports workflow_status=not_started, use \`/sdd:spec\` to create the current Git branch partition; do not use \`sdd init\` as the workflow branch entry.
-6. If status points to gaps, drift, or doctor/update work, handle that maintenance action before do/verify.
-7. If status recommends a task, run \`sdd tasks inspect <task_id>\` and use the task Boundary and Acceptance before offering \`/sdd:do\`.
-8. If status recommends do, verify, or sync-back, follow the dedicated \`/sdd:do\`, \`/sdd:verify\`, or sync-back CLI path instead of inferring completion from chat.
-9. If status recommends sync-back, run \`sdd sync-back inspect --task <task_id>\` by default and follow apply_policy; pass an explicit run id only for replay/CI/old-run inspection. Direct-safe tasks may apply directly, confirm-required tasks need human confirmation and \`--approved\`.
+2. Run \`sdd instructions overview --json\` only when the next action is unclear or you need the full dynamic command contract.
+3. Dynamic routing comes from CLI/core output, not this skill text; follow the recommended next command before choosing a dedicated \`/sdd:*\` entry.
+4. If the intent is still ambiguous after status, ask one clarifying question before spec/plan/do/test/sync-back/ship work.
+5. For risky requests that mention state-machine, concurrency, database, SQL, security, API/schema, CI/build, or external unknowns, run \`sdd lifecycle decide --from-text <text>\` before spec/plan work.
+6. If status reports workflow_status=not_started, use \`/sdd:spec\` to create the current Git branch partition; do not use \`sdd init\` as the workflow branch entry.
+7. If status points to gaps, drift, or doctor/update work, handle that maintenance action before do/test/ship.
+8. If status recommends a task, run \`sdd tasks inspect <task_id>\` and use the task Boundary and Acceptance before offering \`/sdd:do\`.
+9. If status recommends do, test, or sync-back, follow the dedicated \`/sdd:do\`, \`/sdd:test\`, or \`/sdd:sync-back\` entry instead of inferring completion from chat.
+10. If status recommends sync-back, use \`/sdd:sync-back\` to run \`sdd sync-back inspect --branch <branch> --task <task_id>\` first and follow apply_policy; pass an explicit run id only for replay/CI/old-run inspection. Direct-safe tasks may apply directly, confirm-required tasks need human confirmation and \`--approved\`.
+11. If the user asks to release or go online, use \`/sdd:ship\` / \`sdd ship --branch <branch> --dry-run\` for local readiness first; do not publish, push, tag, or create external release state without explicit confirmation.
+
+Refresh this managed skill with \`sdd update\` when drift is reported.
 `
       },
 
-      commandEntry('sdd-doctor', '.claude/commands/sdd/doctor.md', 'doctor', 'Check project config, scoped run evidence, generated AI entry drift, and use sdd run archive <run_id> for failed exploratory runs.'),
-      commandEntry('sdd-update', '.claude/commands/sdd/update.md', 'update', 'Refresh managed generated AI entries when drift is reported.'),
+      commandEntry('sdd-doctor', '.claude/commands/sdd/doctor.md', 'doctor', 'Check project config, scoped run evidence, generated AI entry drift, and use sdd doctor fast|deep|recover for explicit diagnostic scope.'),
       {
         id: 'sdd-spec',
         kind: 'command',
@@ -165,6 +164,32 @@ Keep metadata inside the \`\`\`sdd-task fenced block and companion sections outs
 `
       },
       {
+        id: 'sdd-test',
+        kind: 'command',
+        relativePath: '.claude/commands/sdd/test.md',
+        title: 'SDD test',
+        body: `Execute task validation commands, capture command output, evaluate acceptance evidence coverage, and return one unified test judgment for the task.
+
+Run:
+
+\`\`\`bash
+sdd status
+sdd instructions test --json
+sdd verifies inspect --branch <branch>
+sdd test task <task_id> --branch <branch>
+\`\`\`
+
+Workflow:
+
+1. Confirm \`verify.md\` exists and is current for the selected branch.
+2. Run \`sdd test task <task_id> --branch <branch>\` to execute task validation commands and evaluate mapped acceptance coverage; use \`--command\` only for a deliberate narrowed override.
+3. Treat generated command logs, test index, validator artifact, and unified evidence projection as runtime evidence references, not as workflow documents.
+4. If \`/sdd:test\` returns PASS, proceed to \`/sdd:sync-back\` / \`sdd sync-back inspect\`; if it returns FAIL or BLOCKED, fix the reported command or evidence gaps and rerun \`/sdd:test\`.
+
+Do not auto-fix failures, create sync-back proposals, commit, publish, or treat command success alone as semantic PASS.
+`
+      },
+      {
         id: 'sdd-do',
         kind: 'command',
         relativePath: '.claude/commands/sdd/do.md',
@@ -181,33 +206,72 @@ sdd tasks inspect <task_id>
 
 Workflow:
 
-Agent evidence flow: scout gathers bounded context only; implementer edits only inside the selected task boundary; reviewer records review evidence; debugger is optional after review failure; validator records validation and acceptance mapping. Artifact flags use run-relative paths such as \`artifacts/implement-<task_id>.md\`, \`artifacts/review-<task_id>.md\`, and \`artifacts/validation-<task_id>.md\`; physical files live under \`.sdd/runs/<run_id>/artifacts/\`. This command entry does not authorize autonomous background execution.
+Agent evidence flow: scout gathers bounded context only; implementer edits only inside the selected task boundary; reviewer records review evidence; debugger is optional after review failure; validator records validation and acceptance mapping. Artifact flags use run-relative paths such as \`artifacts/implement-<task_id>.md\`, \`artifacts/review-<task_id>.md\`, and \`artifacts/validation-<task_id>.md\`; physical files live under branch evidence \`.sdd/runs/<branchSlug>/evidence/artifacts/\`. This command entry does not authorize autonomous background execution.
 
 
 1. Resolve exactly one task id from the user request or from the \`sdd status\` recommended next command. Stop and ask if it is ambiguous.
 2. Read \`sdd tasks inspect <task_id>\` and restate the task Boundary, Acceptance, gaps, and validation commands.
 3. Work only inside the selected task boundary; do not expand scope without a checkpoint.
-4. Before creating explicit result artifacts, use templates such as \`sdd artifact template artifacts/implement-<task_id>.md --task <task_id> --agent implementer\`, \`sdd artifact template artifacts/review-<task_id>.md --task <task_id> --agent reviewer\`, and \`sdd artifact template artifacts/validation-<task_id>.md --task <task_id> --agent validator\`; save the physical file under \`.sdd/runs/<run_id>/artifacts/\`, pass the run-relative \`artifacts/<file>\` path to CLI flags, and keep source/test files in \`## Evidence\`, not in \`sdd-result.artifacts\`.
+4. Before creating explicit result artifacts, use templates such as \`sdd artifact template artifacts/implement-<task_id>.md --task <task_id> --agent implementer\`, \`sdd artifact template artifacts/review-<task_id>.md --task <task_id> --agent reviewer\`, and \`sdd artifact template artifacts/validation-<task_id>.md --task <task_id> --agent validator\`; save the physical file under branch evidence \`.sdd/runs/<branchSlug>/evidence/artifacts/\`, pass the run-relative \`artifacts/<file>\` path to CLI flags, and keep source/test files in \`## Evidence\`, not in \`sdd-result.artifacts\`.
 5. Run \`sdd artifact validate <run_id> <artifact> --task <task_id> --agent <agent>\` before passing artifacts into \`sdd do task <task_id>\`.
 6. Run \`sdd do task <task_id>\` with explicit artifact paths when evidence is available; this path records Phase 3 artifact ingestion evidence for doctor.
-7. Report the run id, status, agent evidence artifacts, gaps, and next gate. If completed, recommend \`sdd verify task <task_id> --branch <branch>\`; pass \`--run <run_id>\` only for explicit replay/CI/old-run inspection.
+7. Report the run id, status, agent evidence artifacts, gaps, and next gate. If completed, recommend \`/sdd:test\` / \`sdd test task <task_id> --branch <branch>\` so command execution and acceptance coverage are judged together.
 
 Do not create worktrees, auto commit, or mark missing evidence as PASS.
 `
       },
       {
-        id: 'sdd-verify',
+        id: 'sdd-sync-back',
         kind: 'command',
-        relativePath: '.claude/commands/sdd/verify.md',
-        title: 'SDD verify',
-        body: `Verify task acceptance coverage from review and validation evidence. By default, verify resolves the latest eligible run from the current/requested partition plus task id; pass \`--run <run_id>\` only for replay, CI, or old-run inspection.\n\nRun:\n\n\`\`\`bash\nsdd status\nsdd instructions verify --json\n\`\`\`\n\nWorkflow:\n\n1. Resolve exactly one task id and workflow partition from \`sdd status\`, the recommended command, or the user request. Stop and ask if either is ambiguous.\n2. Omit \`--run\` by default so CLI/core resolves the latest eligible partition/task run; inspect an explicit run only when the user or CI names one.\n3. Ensure the validator artifact includes exact task Acceptance text, preferably generated with \`sdd artifact template artifacts/validation-<task_id>.md --task <task_id> --agent validator\`; pass the run-relative artifact path while storing the physical file under \`.sdd/runs/<run_id>/artifacts/\`.\n4. Run \`sdd artifact validate <run_id> <artifact> --task <task_id> --agent validator\` before goal-level verify.\n5. Run \`sdd verify task <task_id> --branch <branch>\` for goal-level acceptance coverage, adding \`--run <run_id>\` only for explicit old-run replay.\n6. If verify PASS, run \`sdd sync-back inspect --branch <branch> --task <task_id>\` and follow apply_policy.\n7. Direct-safe tasks may run \`sdd sync-back apply --branch <branch> --task <task_id>\` directly; confirm-required tasks require human confirmation and \`--approved\` before writing \`tasks.md\`.\n\nDo not auto-fix failures, force push, or mark completed when blocking gaps remain.\n`
+        relativePath: '.claude/commands/sdd/sync-back.md',
+        title: 'SDD sync-back',
+        body: `Inspect and optionally apply the verified task completion proposal back into tasks.md. Sync-back is a document write-back gate, not another implementation step.
+
+Run:
+
+\`\`\`bash
+sdd status
+sdd instructions sync-back --json
+sdd sync-back inspect --branch <branch> --task <task_id>
+\`\`\`
+
+Workflow:
+
+1. Resolve exactly one task id and workflow partition from \`sdd status\`, the recommended command, or the user request. Stop and ask if either is ambiguous.
+2. Run \`sdd sync-back inspect --branch <branch> --task <task_id>\` before any apply; pass \`<run_id>\` only for replay, CI, or old-run inspection.
+3. Report what apply would write: target tasks file, task id, markdown status transition, proposal path, evidence artifacts, apply_policy, and policy reasons.
+4. If inspect reports \`status=ready\` and \`apply_policy=direct\`, run \`sdd sync-back apply --branch <branch> --task <task_id>\`.
+5. If inspect reports approval_required=true, ask for explicit human confirmation and only then run \`sdd sync-back apply --branch <branch> --task <task_id> --approved\`.
+6. Explain that apply writes only tasks.md for the target task, appends the sync-back implementation note, marks run sync_back applied, and rebuilds the local run index.
+
+Do not apply without inspect, do not use \`--approved\` without human confirmation, and do not change source files during sync-back.
+`
       },
       {
-        id: 'sdd-instructions',
+        id: 'sdd-ship',
         kind: 'command',
-        relativePath: '.claude/commands/sdd/instructions.md',
-        title: 'SDD instructions',
-        body: `Fetch dynamic SDD instructions and follow the status-first decision tree to the next actionable step.\n\nRun:\n\n\`\`\`bash\nsdd status\nsdd instructions overview --json\n\`\`\`\n\nThen apply this decision tree:\n\n- **If status reports gaps or drift**: run the recommended command. For generated entry drift, run \`sdd update\`, then \`sdd doctor\` again.\n- **If status recommends a task**: run \`sdd tasks inspect <task_id>\`, then offer \`/sdd:do\` inside the approved task boundary.\n- **If status recommends verify or sync-back**: use the task id and partition from status/recommended command; omit \`--run\` unless an explicit run is named for replay, CI, or old-run inspection.\n- **If the next change has state-machine, concurrency, database, SQL, security, API/schema, CI/build, or external unknown risk**: run \`sdd lifecycle decide --from-text <text>\` and respect hard gates before spec/plan work.\n- **After a task completes**: run \`sdd verify task <task_id> --branch <branch>\` for acceptance coverage; CLI/core resolves the latest eligible run.\n- **After verify PASS**: run \`sdd sync-back inspect --branch <branch> --task <task_id>\` and follow apply_policy: direct-safe tasks may apply directly, confirm-required tasks need human confirmation and \`--approved\`.\n\nReport only the selected next action, blockers, and commands you will run; do not paste full JSON/status output unless the user asks. Do not loop in maintenance checks when status already gives a next workflow action.\n`
+        relativePath: '.claude/commands/sdd/ship.md',
+        title: 'SDD ship',
+        body: `Run local release-readiness checks and optionally write \`specs/<branch>/release.md\`. This command is a preflight/release-summary gate; it does not authorize npm publish, git push, git tag, deploy, or external release creation.
+
+Run:
+
+\`\`\`bash
+sdd ship --branch <branch> --dry-run
+sdd instructions ship --json
+\`\`\`
+
+Workflow:
+
+1. Resolve the target branch/partition from \`sdd status\` or the user's explicit branch.
+2. Run \`sdd ship --branch <branch> --dry-run\` first; inspect PASS/BLOCKED readiness and next actions without writing \`release.md\`.
+3. If the readiness output is acceptable, run \`sdd ship --branch <branch>\` to write \`specs/<branch>/release.md\`.
+4. Use \`sdd statusline --branch <branch>\` for compact runtime/test/team/token/evidence health when reporting progress.
+5. Run generated-entry drift, current-run health, typecheck, test, build, and package dry-run gates when preparing a real package release.
+6. Stop before publish, push, tag, deploy, or external release creation unless the user explicitly approves that separate action.
+
+Do not skip failed gates, do not treat historical doctor debt as a release blocker unless it affects current evidence, and do not mutate external release state from this preflight command.
+`
       }
     ];
   }
@@ -233,10 +297,13 @@ export async function applyAiToolEntries(projectRoot: string, options: AiProject
   const results: AiProjectionResult[] = [];
   for (const adapter of getAiToolAdapters(options.tool)) {
     const entries: AiEntryStatusReport[] = [];
-    for (const template of adapter.entries()) {
-      const projected = renderProjectedEntry(adapter, template);
-      entries.push(await applyEntry(projectRoot, projected, options.check === true));
+    const templates = adapter.entries();
+    const projectedEntries = templates.map((template) => renderProjectedEntry(adapter, template));
+    const expectedPaths = new Set(projectedEntries.map((projected) => normalizeRelativePath(projected.relativePath)));
+    for (const projected of projectedEntries) {
+      entries.push(await applyEntry(projectRoot, projected, options.check === true, options.force === true));
     }
+    entries.push(...await inspectObsoleteManagedEntries(projectRoot, adapter, templates, expectedPaths, options.check === true, options.force === true));
     results.push({ tool: adapter.id, entries });
   }
   return results;
@@ -248,7 +315,7 @@ export async function checkAiToolEntryDrift(projectRoot: string, options: AiProj
 
 export function summarizeAiProjectionStatus(results: AiProjectionResult[]): 'PASS' | 'WARN' | 'FAIL' {
   const statuses = results.flatMap((result) => result.entries.map((entry) => entry.status));
-  if (statuses.some((status) => status === 'foreign' || status === 'conflict' || status === 'drifted' || status === 'user-modified' || status === 'missing')) {
+  if (statuses.some((status) => status === 'foreign' || status === 'conflict' || status === 'drifted' || status === 'user-modified' || status === 'missing' || status === 'obsolete')) {
     return 'FAIL';
   }
   if (statuses.some((status) => status === 'skipped')) {
@@ -305,7 +372,7 @@ function renderProjectedEntry(adapter: AiToolAdapter, entry: AiToolEntryTemplate
   };
 }
 
-async function applyEntry(projectRoot: string, projected: ProjectedAiEntry, checkOnly: boolean): Promise<AiEntryStatusReport> {
+async function applyEntry(projectRoot: string, projected: ProjectedAiEntry, checkOnly: boolean, force: boolean): Promise<AiEntryStatusReport> {
   const absolutePath = path.join(projectRoot, projected.relativePath);
   const existing = await readFile(absolutePath, 'utf8').catch((error: unknown) => {
     if (isNodeError(error) && error.code === 'ENOENT') {
@@ -336,7 +403,7 @@ async function applyEntry(projectRoot: string, projected: ProjectedAiEntry, chec
     return statusReport(projected, 'unchanged', 'Managed AI entry is current.');
   }
 
-  if (current.bodyHash !== current.hash) {
+  if (current.bodyHash !== current.hash && (checkOnly || !force)) {
     return statusReport(projected, 'user-modified', 'Managed AI entry has user modifications outside the recorded hash.', 'Review manually; sdd update will not overwrite user-modified entries by default.');
   }
 
@@ -348,14 +415,113 @@ async function applyEntry(projectRoot: string, projected: ProjectedAiEntry, chec
   return statusReport(projected, 'drifted', 'Managed AI entry template drifted from the platform projection.', 'Run sdd update.');
 }
 
-function inspectManagedEntry(content: string): { managed: boolean; contract: string | null; version: string | null; hash: string | null; bodyHash: string } {
+async function inspectObsoleteManagedEntries(
+  projectRoot: string,
+  adapter: AiToolAdapter,
+  templates: AiToolEntryTemplate[],
+  expectedPaths: Set<string>,
+  checkOnly: boolean,
+  force: boolean
+): Promise<AiEntryStatusReport[]> {
+  const reports: AiEntryStatusReport[] = [];
+  for (const absolutePath of await listManagedEntryCandidatePaths(projectRoot, templates)) {
+    const relativePath = normalizeRelativePath(path.relative(projectRoot, absolutePath));
+    if (expectedPaths.has(relativePath)) {
+      continue;
+    }
+
+    const existing = await readFile(absolutePath, 'utf8');
+    const current = inspectManagedEntry(existing);
+    if (!current.managed || current.contract !== AI_ENTRY_CONTRACT || current.tool !== adapter.id) {
+      continue;
+    }
+
+    const obsolete = obsoleteProjectedEntry(adapter, relativePath, current);
+    if (current.bodyHash !== current.hash && !force) {
+      reports.push(statusReport(obsolete, 'user-modified', 'Obsolete managed AI entry has user modifications.', 'Review manually; sdd update will not remove user-modified obsolete entries by default.'));
+      continue;
+    }
+
+    if (checkOnly) {
+      reports.push(statusReport(obsolete, 'obsolete', 'Managed AI entry is no longer projected.', 'Run sdd update to remove the obsolete entry.'));
+      continue;
+    }
+
+    await unlink(absolutePath);
+    reports.push(statusReport(obsolete, 'removed', 'Obsolete managed AI entry removed.'));
+  }
+  return reports;
+}
+
+async function listManagedEntryCandidatePaths(projectRoot: string, templates: AiToolEntryTemplate[]): Promise<string[]> {
+  const directories = new Set<string>();
+  for (const template of templates) {
+    const directory = normalizeRelativePath(path.dirname(template.relativePath));
+    directories.add(directory);
+    if (directory.startsWith('.claude/commands/')) {
+      directories.add('.claude/commands');
+    }
+    if (directory.startsWith('.claude/skills/')) {
+      directories.add('.claude/skills');
+    }
+  }
+  const files = new Set<string>();
+  for (const directory of directories) {
+    await collectFiles(path.join(projectRoot, directory), files);
+  }
+  return [...files];
+}
+
+async function collectFiles(directory: string, files: Set<string>): Promise<void> {
+  const entries = await readdir(directory, { withFileTypes: true }).catch((error: unknown) => {
+    if (isNodeError(error) && error.code === 'ENOENT') {
+      return [];
+    }
+    throw error;
+  });
+  for (const entry of entries) {
+    const absolutePath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      await collectFiles(absolutePath, files);
+    } else if (entry.isFile()) {
+      files.add(absolutePath);
+    }
+  }
+}
+
+function obsoleteProjectedEntry(
+  adapter: AiToolAdapter,
+  relativePath: string,
+  current: { hash: string | null; bodyHash: string; kind: string | null; artifactId: string | null }
+): ProjectedAiEntry {
+  return {
+    tool: adapter.id,
+    id: current.artifactId ?? path.basename(relativePath, path.extname(relativePath)),
+    kind: current.kind === 'skill' ? 'skill' : 'command',
+    relativePath,
+    content: '',
+    hash: current.hash ?? current.bodyHash,
+    version: SDD_VERSION,
+    ownership: 'sdd-managed',
+    sourceContract: AI_ENTRY_CONTRACT
+  };
+}
+
+function normalizeRelativePath(relativePath: string): string {
+  return relativePath.replace(/\\/g, '/');
+}
+
+function inspectManagedEntry(content: string): { managed: boolean; contract: string | null; version: string | null; hash: string | null; bodyHash: string; tool: string | null; kind: string | null; artifactId: string | null } {
   const body = content.replace(/^---\n[\s\S]*?\n---\n\n?/, '');
   return {
     managed: /^sdd_managed:\s*true\s*$/m.test(content),
     contract: readFrontmatterScalar(content, 'sdd_contract'),
     version: readFrontmatterScalar(content, 'sdd_version')?.replace(/^"|"$/g, '') ?? null,
     hash: readFrontmatterScalar(content, 'sdd_hash')?.replace(/^sha256:/, '') ?? null,
-    bodyHash: hashManagedBody(body)
+    bodyHash: hashManagedBody(body),
+    tool: readFrontmatterScalar(content, 'sdd_tool'),
+    kind: readFrontmatterScalar(content, 'sdd_artifact_kind'),
+    artifactId: readFrontmatterScalar(content, 'sdd_artifact_id')
   };
 }
 
@@ -397,7 +563,7 @@ function manifestEntry(projected: ProjectedAiEntry, status: AiEntryStatus): Mana
 }
 
 function driftStatusFor(status: AiEntryStatus): ManagedAssetDriftStatus {
-  if (status === 'unchanged' || status === 'created' || status === 'updated') {
+  if (status === 'unchanged' || status === 'created' || status === 'updated' || status === 'removed') {
     return 'current';
   }
   return status;

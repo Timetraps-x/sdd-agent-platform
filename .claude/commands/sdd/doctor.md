@@ -6,10 +6,10 @@ sdd_tool: claude-code
 sdd_artifact_kind: command
 sdd_artifact_id: sdd-doctor
 sdd_source: sdd-agent-platform
-sdd_hash: sha256:f644b260a6134587e13f8af625951e0ee784c8213e11ca8c42abf4592de1647e
+sdd_hash: sha256:86c13b6f2165c694324729100631e37aff1c5244494a726cafea29837964f9e1
 ---
 
-Check project config, scoped run evidence, generated AI entry drift, and use sdd run archive <run_id> for failed exploratory runs.
+Check project config, scoped run evidence, generated AI entry drift, and use sdd doctor fast|deep|recover for explicit diagnostic scope.
 
 Run:
 

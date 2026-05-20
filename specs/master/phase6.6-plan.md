@@ -9,8 +9,8 @@ Treat documentation restructuring as a workflow validation target, not just a ha
 ### 1. Phase docs and chain
 
 - Add Phase 6.6 phase artifact and execution docs.
-- Insert Phase 6.6 between Phase 6.5 and Phase 7.0.
-- Update Phase 7.0 handoff to consume documentation IA evidence.
+- Insert Phase 6.6 before Phase 7.0 core modularization and Phase 8.0 code graph.
+- Update Phase 8.0 handoff to consume documentation IA evidence after Phase 7.0 core modularization.
 
 ### 2. Documentation IA proposal
 

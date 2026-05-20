@@ -16,7 +16,7 @@ contract: sdd-spec-doc-v1
 
 ## 1. Objective / Customer Value
 
-Phase 6.9 upgrades the SDD runtime from artifact self-declaration to a policy-proven Runtime Trust Layer before Phase 7 consumes run history as graph input. Acceptance PASS must be derived from CER claims over provenance-backed attestations and deterministic policy rules.
+Phase 6.9 upgrades the SDD runtime from artifact self-declaration to a policy-proven Runtime Trust Layer before Phase 8 consumes run history as graph input. Acceptance PASS must be derived from CER claims over provenance-backed attestations and deterministic policy rules.
 
 User value:
 
@@ -58,7 +58,7 @@ This phase must be stable rather than minimal: the fix is not to patch each symp
 
 ### Out of Scope
 
-- No Phase 7 graph database, graph query API, embedding store, or code knowledge graph implementation.
+- No Phase 8 graph database, graph query API, embedding store, or code knowledge graph implementation.
 - No daemon or remote worker fleet as a hard dependency.
 - No command hiding or forced command merging; the workflow remains explicit.
 - No weakening validation gates, sync-back approvals, artifact provenance, or branch partition boundaries.
@@ -112,7 +112,7 @@ This phase must be stable rather than minimal: the fix is not to patch each symp
 | Phase 6.8 complete | Runtime output stays English and document prose language is already project-level | Phase 6.9 could accidentally mix trust work with localization work |
 | Run artifacts remain source of truth | Ledgers, provenance facts, attestations, policy decisions, and caches are file-backed runtime evidence, not external services | External dependency would make the phase too broad |
 | Commands stay explicit | User wants faster command calls, not fewer/hidden commands | UX work should focus on latency, profiling, and cache correctness |
-| Phase 7 consumes runtime history | Graph inputs require policy-proven evidence, invocation provenance, and attestation materials | Phase 7 would amplify false PASS and self-declared usage |
+| Phase 8 consumes runtime history | Graph inputs require policy-proven evidence, invocation provenance, attestation materials, and Phase 7 core module boundaries | Phase 8 would amplify false PASS and self-declared usage |
 
 ## 7. Risks / Hard Gates
 
@@ -133,7 +133,7 @@ This phase must be stable rather than minimal: the fix is not to patch each symp
 
 - decision_artifact: `specs/master/phases/phase-6.9-runtime-trust-fast-path-hardening.md`
 - predecessor_artifact: `specs/master/phases/phase-6.8-project-document-language-runtime.md`
-- downstream_artifact: `specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md`
+- downstream_artifact: `specs/master/phases/phase-7.0-core-runtime-modularization.md`
 - canonical_model: `docs/architecture/lifecycle-decision-model.md`
 - recommended_profile: `standard`
 - risk_signals: [`evidence_contract_drift`, `route_execution_drift`, `invocation_provenance_gap`, `cache_stale_decision`, `syncback_state_drift`, `doctor_partition_drift`]

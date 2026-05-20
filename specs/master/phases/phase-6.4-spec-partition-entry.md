@@ -33,7 +33,7 @@ Phase 6.4 插入在 Phase 6.3 Declarative Agent/Skill Capability Runtime 和 Pha
 - 不实现 Phase 6.5 的 partition+task run lookup 或 affected file 冲突检测。
 - 不把 `sdd status` 变成创建/切换 workflow 的入口。
 - 不要求在本阶段完成 full worktree isolation 或跨 Git 分支代码执行并行。
-- 不实现 Phase 7.0 code graph。
+- 不实现 Phase 8.0 code graph。
 
 ## 5. 交付物
 
@@ -44,7 +44,7 @@ Phase 6.4 插入在 Phase 6.3 Declarative Agent/Skill Capability Runtime 和 Pha
 - `specs/master/phase6.4-validation.md`
 - 更新后的 `specs/master/phases/README.md`
 - 更新后的 `specs/master/phases/PHASE_STATUS.md`
-- 更新后的 `specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md`
+- 更新后的 `specs/master/phases/phase-8.0-code-knowledge-graph-baseline.md`
 - `packages/core/src/index.ts` 中的 partition resolver、status branch view、spec revision/stale 检测相关改动
 - `packages/core/src/path-safety.ts` 中的 branch-to-partition 安全映射改动
 - `packages/core/src/ai-tools.ts` / generated instructions 中的 `/sdd:spec` 入口说明改动
@@ -65,5 +65,5 @@ Phase 6.4 插入在 Phase 6.3 Declarative Agent/Skill Capability Runtime 和 Pha
 ## 7. 可被下游引用的产物
 
 - Phase 6.5 依赖本阶段的 workflow partition resolver 和 spec revision/stale 状态来绑定 run。
-- Phase 7.0 可消费 partition metadata、spec revision/hash、document stale 状态作为 graph input。
+- Phase 8.0 可消费 partition metadata、spec revision/hash、document stale 状态作为 graph input。
 - 后续 UX 文档可复用 `/sdd:spec` 作为 workflow entry 的规则，不再扩展新的 slash command。

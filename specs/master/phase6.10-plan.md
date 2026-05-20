@@ -50,9 +50,13 @@ Non-goals:
 
 Primary touchpoints:
 
-- `packages/core/src/index.ts`
-- `packages/core/src/index.test.ts`
-- `packages/cli/src/main.ts`
+- `packages/core/src/context/budget.ts`
+- `packages/core/src/context/command-summary.ts`
+- `packages/core/src/context/evidence-summary.ts`
+- `packages/core/src/context/build-package.ts`
+- `packages/core/src/context/log-worker.ts`
+- `packages/core/src/context/context-build.test.ts`
+- `packages/cli/src/commands/context.ts`
 
 Contracts:
 

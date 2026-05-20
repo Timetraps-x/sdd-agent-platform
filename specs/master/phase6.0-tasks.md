@@ -179,7 +179,7 @@ verification_availability: inspect:sdd doctor --latest-only
 - Convert host output into `sdd-result-v1` artifacts where appropriate.
 - Convert team-mode outputs into review/security/validation artifacts and source-attributed evidence summaries.
 - Make verify/doctor/status show agent execution provenance, team session provenance, missing capability gaps, failed quarantine gaps, missing evidence gaps, and blocked tool permission reasons.
-- Ensure records become Phase 7 graph inputs.
+- Ensure records become Phase 8 graph inputs after Phase 7 core modularization.
 - Evidence: `run inspect`, `status` latest_run_evidence, `TaskRunEvidenceContract`, and `doctor --latest-only` now include or validate agent execution records, team sessions, router preflight, artifact ingestion, and record shape consistency.
 
 ### P6.0-T10: Validate runtime harness smoke scenarios

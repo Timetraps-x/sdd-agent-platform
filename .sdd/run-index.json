@@ -1,7 +1,398 @@
 {
   "contract": "phase-3.13-local-run-index-v1",
-  "generatedAt": "2026-05-13T06:41:16.240Z",
+  "generatedAt": "2026-05-18T08:24:42.118Z",
   "runs": [
+    {
+      "runId": "20260518-005",
+      "status": "archived",
+      "phase": "test",
+      "currentTask": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.10-1",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "documentSnapshot": {
+        "specHash": "dff923bf870c3e9ab3d4b1c97b6e2a3adc4019400ead95190405b2808cc5ff0b",
+        "planHash": "5a1690ef14e317dc338ddd3b6cb61a7e8faa2d022e854f1a5b7aea06e34957cf",
+        "tasksHash": "bb4181d0b50eca1f873e47703bf5382b9eee2bee80bc38cd2101fe82e1f3c5a0",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-18T08:19:28.190Z",
+      "updatedAt": "2026-05-18T08:24:28.642Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "PHASE6.10-1"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260518-004",
+      "status": "completed",
+      "phase": "test",
+      "currentTask": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.10-1",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "documentSnapshot": {
+        "specHash": "dff923bf870c3e9ab3d4b1c97b6e2a3adc4019400ead95190405b2808cc5ff0b",
+        "planHash": "5a1690ef14e317dc338ddd3b6cb61a7e8faa2d022e854f1a5b7aea06e34957cf",
+        "tasksHash": "bb4181d0b50eca1f873e47703bf5382b9eee2bee80bc38cd2101fe82e1f3c5a0",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-18T07:33:25.868Z",
+      "updatedAt": "2026-05-18T07:37:26.777Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE6.10-1"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260515-002",
+      "status": "archived",
+      "phase": "test",
+      "currentTask": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.10-1",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "documentSnapshot": {
+        "specHash": "dff923bf870c3e9ab3d4b1c97b6e2a3adc4019400ead95190405b2808cc5ff0b",
+        "planHash": "5a1690ef14e317dc338ddd3b6cb61a7e8faa2d022e854f1a5b7aea06e34957cf",
+        "tasksHash": "5c6526c0ea416d602c08fcb4fa78490abdc20e1c4e587cc2b9127dd30b3d9653",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-15T12:35:38.600Z",
+      "updatedAt": "2026-05-18T07:37:02.149Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "not_created",
+      "taskIds": [
+        "PHASE6.10-1"
+      ],
+      "artifactCount": 3
+    },
+    {
+      "runId": "20260518-003",
+      "status": "archived",
+      "phase": "test",
+      "currentTask": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.10-1",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "documentSnapshot": {
+        "specHash": "dff923bf870c3e9ab3d4b1c97b6e2a3adc4019400ead95190405b2808cc5ff0b",
+        "planHash": "5a1690ef14e317dc338ddd3b6cb61a7e8faa2d022e854f1a5b7aea06e34957cf",
+        "tasksHash": "c1f63ce94a6bc73fa8e89b047d89a9d3fb9da34b66f7bb3172fc35ea52604dac",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-18T07:29:36.031Z",
+      "updatedAt": "2026-05-18T07:37:01.080Z",
+      "validationStatus": "blocked",
+      "syncBackStatus": "not_created",
+      "taskIds": [
+        "PHASE6.10-1"
+      ],
+      "artifactCount": 4
+    },
+    {
+      "runId": "20260518-002",
+      "status": "created",
+      "phase": null,
+      "currentTask": "HOST1",
+      "partition": "feature",
+      "gitBranch": "feature",
+      "taskId": "HOST1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-18T05:40:01.656Z",
+      "updatedAt": "2026-05-18T05:40:01.684Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260518-001",
+      "status": "blocked",
+      "phase": "test",
+      "currentTask": "T1",
+      "partition": "e2e",
+      "gitBranch": "e2e",
+      "taskId": "T1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-18T03:09:36.779Z",
+      "updatedAt": "2026-05-18T03:09:37.007Z",
+      "validationStatus": "blocked",
+      "syncBackStatus": "not_created",
+      "taskIds": [
+        "T1"
+      ],
+      "artifactCount": 1
+    },
+    {
+      "runId": "20260516-007",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE7E2EH-1",
+      "partition": "phase7-e2e-hardening",
+      "gitBranch": "phase7-e2e-hardening",
+      "taskId": "PHASE7E2EH-1",
+      "affectedFiles": [
+        "specs/phase7-e2e-hardening/spec.md",
+        "specs/phase7-e2e-hardening/plan.md",
+        "specs/phase7-e2e-hardening/tasks.md",
+        "specs/phase7-e2e-hardening/verify.md",
+        "specs/phase7-e2e-hardening/release.md",
+        "packages/cli/src/commands/dispatch.ts",
+        "packages/core/src/verification/test-runtime.ts",
+        "packages/core/src/router/route-sdd-task.ts"
+      ],
+      "documentSnapshot": {
+        "specHash": "d7123d276b58ee2ece22cbff46838687631ea6f3d336508f5b519920fa77ef08",
+        "planHash": "b384ca84a0032379db9ddd36943f9aa6de5862690414893bdf57e4a843bbc941",
+        "tasksHash": "f3c0b7dece3ff5faf16e699ce4df7978a74d66bb4a192dee4a43da8aa164e14b",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-16T01:52:44.914Z",
+      "updatedAt": "2026-05-16T01:55:14.926Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE7E2EH-1"
+      ],
+      "artifactCount": 7
+    },
+    {
+      "runId": "20260516-006",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE7E2ER-1",
+      "partition": "phase7-e2e-readiness",
+      "gitBranch": "phase7-e2e-readiness",
+      "taskId": "PHASE7E2ER-1",
+      "affectedFiles": [
+        "specs/phase7-e2e-readiness/spec.md",
+        "specs/phase7-e2e-readiness/plan.md",
+        "specs/phase7-e2e-readiness/tasks.md",
+        "specs/phase7-e2e-readiness/verify.md",
+        "specs/phase7-e2e-readiness/release.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "73a7c6c17da2a98e0ffa0532b934f229b2a3d69d2dc6d39aefc31175c56c5089",
+        "planHash": "466bde6727dde87c7bfed538a60d63408cbeb12d07cd984a96cda5f63672c369",
+        "tasksHash": "1fa831ae12f11f81b83ee78777b1212e9e7d20787f69b11fa41b8e5107db608d",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-16T01:29:13.635Z",
+      "updatedAt": "2026-05-16T01:31:28.770Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE7E2ER-1"
+      ],
+      "artifactCount": 7
+    },
+    {
+      "runId": "20260516-005",
+      "status": "completed",
+      "phase": "verify",
+      "currentTask": "PHASE7E2E-1",
+      "partition": "phase7-e2e",
+      "gitBranch": "phase7-e2e",
+      "taskId": "PHASE7E2E-1",
+      "affectedFiles": [
+        "specs/phase7-e2e/spec.md",
+        "specs/phase7-e2e/plan.md",
+        "specs/phase7-e2e/tasks.md",
+        "specs/phase7-e2e/verify.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "6c45984977f070bcb5ad8d1f6b258e8671bac76674bb1fd3d1802289fe1e75dc",
+        "planHash": "8b8425360bfc8971a5915c785c9e882819ebae9d8c2da3be8c69bb23cbca8e9d",
+        "tasksHash": "815b3e3b2f377634fc4abb48f002cacb0f5a60b602978956650cc315d0dd16e3",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-16T01:10:47.790Z",
+      "updatedAt": "2026-05-16T01:11:39.056Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "taskIds": [
+        "PHASE7E2E-1"
+      ],
+      "artifactCount": 7
+    },
+    {
+      "runId": "20260516-004",
+      "status": "archived",
+      "phase": "do",
+      "currentTask": "PHASE7E2E-1",
+      "partition": "phase7-e2e",
+      "gitBranch": "phase7-e2e",
+      "taskId": "PHASE7E2E-1",
+      "affectedFiles": [
+        "specs/phase7-e2e/spec.md",
+        "specs/phase7-e2e/plan.md",
+        "specs/phase7-e2e/tasks.md",
+        "specs/phase7-e2e/verify.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "6c45984977f070bcb5ad8d1f6b258e8671bac76674bb1fd3d1802289fe1e75dc",
+        "planHash": "8b8425360bfc8971a5915c785c9e882819ebae9d8c2da3be8c69bb23cbca8e9d",
+        "tasksHash": "ba777920b6fe1abfff723ee742f8e60e5dccfa0ea55b0b8abad20a1400dea528",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-16T01:08:57.013Z",
+      "updatedAt": "2026-05-16T01:10:46.224Z",
+      "validationStatus": "pass",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "PHASE7E2E-1"
+      ],
+      "artifactCount": 7
+    },
+    {
+      "runId": "20260516-003",
+      "status": "archived",
+      "phase": "verify",
+      "currentTask": "PHASE7E2E-1",
+      "partition": "phase7-e2e",
+      "gitBranch": "phase7-e2e",
+      "taskId": "PHASE7E2E-1",
+      "affectedFiles": [
+        "specs/phase7-e2e/spec.md",
+        "specs/phase7-e2e/plan.md",
+        "specs/phase7-e2e/tasks.md",
+        "specs/phase7-e2e/verify.md"
+      ],
+      "documentSnapshot": {
+        "specHash": "6c45984977f070bcb5ad8d1f6b258e8671bac76674bb1fd3d1802289fe1e75dc",
+        "planHash": "8b8425360bfc8971a5915c785c9e882819ebae9d8c2da3be8c69bb23cbca8e9d",
+        "tasksHash": "1e8a016f041aeacd56552a03a04dccdb58d4797cf529fad187a4110c01ebfaed",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-16T01:03:53.530Z",
+      "updatedAt": "2026-05-16T01:10:08.963Z",
+      "validationStatus": "blocked",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "PHASE7E2E-1"
+      ],
+      "artifactCount": 7
+    },
+    {
+      "runId": "20260516-002",
+      "status": "created",
+      "phase": null,
+      "currentTask": null,
+      "partition": null,
+      "gitBranch": null,
+      "taskId": null,
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-16T01:03:06.765Z",
+      "updatedAt": "2026-05-16T01:03:06.766Z",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "taskIds": [],
+      "artifactCount": 0
+    },
+    {
+      "runId": "20260516-001",
+      "status": "blocked",
+      "phase": "do",
+      "currentTask": "PHASE7E2E-1",
+      "partition": "feat_0.3.1_20260513",
+      "gitBranch": "feat_0.3.1_20260513",
+      "taskId": "PHASE7E2E-1",
+      "affectedFiles": [],
+      "documentSnapshot": {
+        "specHash": null,
+        "planHash": null,
+        "tasksHash": null,
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-16T01:02:30.785Z",
+      "updatedAt": "2026-05-16T01:02:31.155Z",
+      "validationStatus": "blocked",
+      "syncBackStatus": "proposed",
+      "taskIds": [
+        "PHASE7E2E-1"
+      ],
+      "artifactCount": 1
+    },
+    {
+      "runId": "20260515-001",
+      "status": "archived",
+      "phase": "test",
+      "currentTask": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "taskId": "PHASE6.10-1",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "documentSnapshot": {
+        "specHash": "dff923bf870c3e9ab3d4b1c97b6e2a3adc4019400ead95190405b2808cc5ff0b",
+        "planHash": "5a1690ef14e317dc338ddd3b6cb61a7e8faa2d022e854f1a5b7aea06e34957cf",
+        "tasksHash": "5c6526c0ea416d602c08fcb4fa78490abdc20e1c4e587cc2b9127dd30b3d9653",
+        "planBasedOnSpecHash": null,
+        "tasksBasedOnPlanHash": null
+      },
+      "createdAt": "2026-05-15T12:35:28.165Z",
+      "updatedAt": "2026-05-15T12:36:01.173Z",
+      "validationStatus": "fail",
+      "syncBackStatus": "not_created",
+      "taskIds": [
+        "PHASE6.10-1"
+      ],
+      "artifactCount": 3
+    },
     {
       "runId": "20260513-001",
       "status": "completed",
@@ -18,14 +409,14 @@
       "documentSnapshot": {
         "specHash": "4b2a2e15caad5c25705b9ee079fa8a2289fe9c5390553abadeb34650d2367394",
         "planHash": "5a1690ef14e317dc338ddd3b6cb61a7e8faa2d022e854f1a5b7aea06e34957cf",
-        "tasksHash": "24c8cbb0b7b203709e1e481c94b8e9bbd0b8d9fb9ddc3a78f81d738ad22cfd12",
+        "tasksHash": "033b080d7219abc1a48b39099e2f0bee6dbfbe3734e301c30724f8be0e88a055",
         "planBasedOnSpecHash": null,
         "tasksBasedOnPlanHash": null
       },
       "createdAt": "2026-05-13T05:58:06.117Z",
-      "updatedAt": "2026-05-13T05:59:58.505Z",
+      "updatedAt": "2026-05-13T10:06:36.942Z",
       "validationStatus": "pass",
-      "syncBackStatus": "proposed",
+      "syncBackStatus": "applied",
       "taskIds": [
         "PHASE6.10-8"
       ],
@@ -1620,6 +2011,26 @@
       "updatedAt": "2026-05-01T00:03:00.000Z"
     },
     {
+      "taskId": "T1",
+      "partition": "e2e",
+      "gitBranch": "e2e",
+      "affectedFiles": [],
+      "status": "blocked",
+      "runId": "20260518-001",
+      "runStatus": "blocked",
+      "updatedAt": "2026-05-18T03:09:37.007Z"
+    },
+    {
+      "taskId": "PHASE7E2E-1",
+      "partition": "feat_0.3.1_20260513",
+      "gitBranch": "feat_0.3.1_20260513",
+      "affectedFiles": [],
+      "status": "blocked",
+      "runId": "20260516-001",
+      "runStatus": "blocked",
+      "updatedAt": "2026-05-16T01:02:31.155Z"
+    },
+    {
       "taskId": "PHASE6.6-1",
       "partition": "fix_20260507_bug",
       "gitBranch": "fix_20260507_bug",
@@ -1641,6 +2052,71 @@
       "runId": "20260512-008",
       "runStatus": "completed",
       "updatedAt": "2026-05-12T13:00:29.752Z"
+    },
+    {
+      "taskId": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "status": "blocked",
+      "runId": "20260515-001",
+      "runStatus": "archived",
+      "updatedAt": "2026-05-15T12:36:01.173Z"
+    },
+    {
+      "taskId": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "status": "tested",
+      "runId": "20260515-002",
+      "runStatus": "archived",
+      "updatedAt": "2026-05-18T07:37:02.149Z"
+    },
+    {
+      "taskId": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "status": "blocked",
+      "runId": "20260518-003",
+      "runStatus": "archived",
+      "updatedAt": "2026-05-18T07:37:01.080Z"
+    },
+    {
+      "taskId": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "status": "tested",
+      "runId": "20260518-004",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-18T07:37:26.777Z"
+    },
+    {
+      "taskId": "PHASE6.10-1",
+      "partition": "master",
+      "gitBranch": "master",
+      "affectedFiles": [
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
+      ],
+      "status": "tested",
+      "runId": "20260518-005",
+      "runStatus": "archived",
+      "updatedAt": "2026-05-18T08:24:28.642Z"
     },
     {
       "taskId": "PHASE6.10-2",
@@ -1764,7 +2240,7 @@
       "status": "PASS",
       "runId": "20260513-001",
       "runStatus": "completed",
-      "updatedAt": "2026-05-13T05:59:58.505Z"
+      "updatedAt": "2026-05-13T10:06:36.942Z"
     },
     {
       "taskId": "PHASE6.6-1",
@@ -2038,6 +2514,86 @@
       "runId": "20260512-007",
       "runStatus": "completed",
       "updatedAt": "2026-05-12T10:52:03.203Z"
+    },
+    {
+      "taskId": "PHASE7E2E-1",
+      "partition": "phase7-e2e",
+      "gitBranch": "phase7-e2e",
+      "affectedFiles": [
+        "specs/phase7-e2e/spec.md",
+        "specs/phase7-e2e/plan.md",
+        "specs/phase7-e2e/tasks.md",
+        "specs/phase7-e2e/verify.md"
+      ],
+      "status": "BLOCKED",
+      "runId": "20260516-003",
+      "runStatus": "archived",
+      "updatedAt": "2026-05-16T01:10:08.963Z"
+    },
+    {
+      "taskId": "PHASE7E2E-1",
+      "partition": "phase7-e2e",
+      "gitBranch": "phase7-e2e",
+      "affectedFiles": [
+        "specs/phase7-e2e/spec.md",
+        "specs/phase7-e2e/plan.md",
+        "specs/phase7-e2e/tasks.md",
+        "specs/phase7-e2e/verify.md"
+      ],
+      "status": "blocked",
+      "runId": "20260516-004",
+      "runStatus": "archived",
+      "updatedAt": "2026-05-16T01:10:46.224Z"
+    },
+    {
+      "taskId": "PHASE7E2E-1",
+      "partition": "phase7-e2e",
+      "gitBranch": "phase7-e2e",
+      "affectedFiles": [
+        "specs/phase7-e2e/spec.md",
+        "specs/phase7-e2e/plan.md",
+        "specs/phase7-e2e/tasks.md",
+        "specs/phase7-e2e/verify.md"
+      ],
+      "status": "PASS",
+      "runId": "20260516-005",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-16T01:11:39.056Z"
+    },
+    {
+      "taskId": "PHASE7E2EH-1",
+      "partition": "phase7-e2e-hardening",
+      "gitBranch": "phase7-e2e-hardening",
+      "affectedFiles": [
+        "specs/phase7-e2e-hardening/spec.md",
+        "specs/phase7-e2e-hardening/plan.md",
+        "specs/phase7-e2e-hardening/tasks.md",
+        "specs/phase7-e2e-hardening/verify.md",
+        "specs/phase7-e2e-hardening/release.md",
+        "packages/cli/src/commands/dispatch.ts",
+        "packages/core/src/verification/test-runtime.ts",
+        "packages/core/src/router/route-sdd-task.ts"
+      ],
+      "status": "PASS",
+      "runId": "20260516-007",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-16T01:55:14.926Z"
+    },
+    {
+      "taskId": "PHASE7E2ER-1",
+      "partition": "phase7-e2e-readiness",
+      "gitBranch": "phase7-e2e-readiness",
+      "affectedFiles": [
+        "specs/phase7-e2e-readiness/spec.md",
+        "specs/phase7-e2e-readiness/plan.md",
+        "specs/phase7-e2e-readiness/tasks.md",
+        "specs/phase7-e2e-readiness/verify.md",
+        "specs/phase7-e2e-readiness/release.md"
+      ],
+      "status": "PASS",
+      "runId": "20260516-006",
+      "runStatus": "completed",
+      "updatedAt": "2026-05-16T01:31:28.770Z"
     }
   ],
   "delegations": [
@@ -4111,6 +4667,291 @@
       ],
       "createdAt": "2026-05-13T05:59:46.804Z",
       "updatedAt": "2026-05-13T05:59:46.933Z"
+    },
+    {
+      "id": "20260516-003:B-PHASE7E2E-1-implementer-001",
+      "runId": "20260516-003",
+      "delegationId": "B-PHASE7E2E-1-implementer-001",
+      "taskId": "PHASE7E2E-1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-003:PHASE7E2E-1:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE7E2E-1.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE7E2E-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:06:34.019Z",
+      "updatedAt": "2026-05-16T01:06:34.070Z"
+    },
+    {
+      "id": "20260516-003:B-PHASE7E2E-1-reviewer-001",
+      "runId": "20260516-003",
+      "delegationId": "B-PHASE7E2E-1-reviewer-001",
+      "taskId": "PHASE7E2E-1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-003:PHASE7E2E-1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE7E2E-1.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE7E2E-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:06:34.203Z",
+      "updatedAt": "2026-05-16T01:06:34.251Z"
+    },
+    {
+      "id": "20260516-003:B-PHASE7E2E-1-validator-001",
+      "runId": "20260516-003",
+      "delegationId": "B-PHASE7E2E-1-validator-001",
+      "taskId": "PHASE7E2E-1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-003:PHASE7E2E-1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE7E2E-1.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE7E2E-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:06:34.399Z",
+      "updatedAt": "2026-05-16T01:06:34.457Z"
+    },
+    {
+      "id": "20260516-004:B-PHASE7E2E-1-implementer-001",
+      "runId": "20260516-004",
+      "delegationId": "B-PHASE7E2E-1-implementer-001",
+      "taskId": "PHASE7E2E-1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-004:PHASE7E2E-1:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE7E2E-1.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE7E2E-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:09:19.402Z",
+      "updatedAt": "2026-05-16T01:09:19.468Z"
+    },
+    {
+      "id": "20260516-004:B-PHASE7E2E-1-reviewer-001",
+      "runId": "20260516-004",
+      "delegationId": "B-PHASE7E2E-1-reviewer-001",
+      "taskId": "PHASE7E2E-1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-004:PHASE7E2E-1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE7E2E-1.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE7E2E-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:09:19.614Z",
+      "updatedAt": "2026-05-16T01:09:19.675Z"
+    },
+    {
+      "id": "20260516-004:B-PHASE7E2E-1-validator-001",
+      "runId": "20260516-004",
+      "delegationId": "B-PHASE7E2E-1-validator-001",
+      "taskId": "PHASE7E2E-1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-004:PHASE7E2E-1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE7E2E-1.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE7E2E-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:09:19.832Z",
+      "updatedAt": "2026-05-16T01:09:19.888Z"
+    },
+    {
+      "id": "20260516-005:B-PHASE7E2E-1-implementer-001",
+      "runId": "20260516-005",
+      "delegationId": "B-PHASE7E2E-1-implementer-001",
+      "taskId": "PHASE7E2E-1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-005:PHASE7E2E-1:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE7E2E-1.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE7E2E-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:11:03.196Z",
+      "updatedAt": "2026-05-16T01:11:03.255Z"
+    },
+    {
+      "id": "20260516-005:B-PHASE7E2E-1-reviewer-001",
+      "runId": "20260516-005",
+      "delegationId": "B-PHASE7E2E-1-reviewer-001",
+      "taskId": "PHASE7E2E-1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-005:PHASE7E2E-1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE7E2E-1.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE7E2E-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:11:03.421Z",
+      "updatedAt": "2026-05-16T01:11:03.479Z"
+    },
+    {
+      "id": "20260516-005:B-PHASE7E2E-1-validator-001",
+      "runId": "20260516-005",
+      "delegationId": "B-PHASE7E2E-1-validator-001",
+      "taskId": "PHASE7E2E-1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-005:PHASE7E2E-1:validator",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE7E2E-1.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE7E2E-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:11:03.634Z",
+      "updatedAt": "2026-05-16T01:11:03.692Z"
+    },
+    {
+      "id": "20260516-006:B-PHASE7E2ER-1-implementer-001",
+      "runId": "20260516-006",
+      "delegationId": "B-PHASE7E2ER-1-implementer-001",
+      "taskId": "PHASE7E2ER-1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-006:PHASE7E2ER-1:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE7E2ER-1.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE7E2ER-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:30:39.553Z",
+      "updatedAt": "2026-05-16T01:30:39.635Z"
+    },
+    {
+      "id": "20260516-006:B-PHASE7E2ER-1-reviewer-001",
+      "runId": "20260516-006",
+      "delegationId": "B-PHASE7E2ER-1-reviewer-001",
+      "taskId": "PHASE7E2ER-1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-006:PHASE7E2ER-1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE7E2ER-1.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE7E2ER-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:30:39.909Z",
+      "updatedAt": "2026-05-16T01:30:39.988Z"
+    },
+    {
+      "id": "20260516-006:B-PHASE7E2ER-1-validator-001",
+      "runId": "20260516-006",
+      "delegationId": "B-PHASE7E2ER-1-validator-001",
+      "taskId": "PHASE7E2ER-1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-006:PHASE7E2ER-1:validator",
+      "status": "RECOVERABLE",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE7E2ER-1.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE7E2ER-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:30:40.242Z",
+      "updatedAt": "2026-05-16T01:31:28.770Z"
+    },
+    {
+      "id": "20260516-007:B-PHASE7E2EH-1-implementer-001",
+      "runId": "20260516-007",
+      "delegationId": "B-PHASE7E2EH-1-implementer-001",
+      "taskId": "PHASE7E2EH-1",
+      "agent": "implementer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-007:PHASE7E2EH-1:implementer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/implement-PHASE7E2EH-1.md",
+      "requiredEvidence": [
+        "artifacts/implement-PHASE7E2EH-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:54:15.760Z",
+      "updatedAt": "2026-05-16T01:54:15.839Z"
+    },
+    {
+      "id": "20260516-007:B-PHASE7E2EH-1-reviewer-001",
+      "runId": "20260516-007",
+      "delegationId": "B-PHASE7E2EH-1-reviewer-001",
+      "taskId": "PHASE7E2EH-1",
+      "agent": "reviewer",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-007:PHASE7E2EH-1:reviewer",
+      "status": "COMPLETED",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/review-PHASE7E2EH-1.md",
+      "requiredEvidence": [
+        "artifacts/review-PHASE7E2EH-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:54:16.055Z",
+      "updatedAt": "2026-05-16T01:54:16.125Z"
+    },
+    {
+      "id": "20260516-007:B-PHASE7E2EH-1-validator-001",
+      "runId": "20260516-007",
+      "delegationId": "B-PHASE7E2EH-1-validator-001",
+      "taskId": "PHASE7E2EH-1",
+      "agent": "validator",
+      "requestedCapabilityId": "sdd-cli",
+      "dedupeKey": "20260516-007:PHASE7E2EH-1:validator",
+      "status": "RECOVERABLE",
+      "statusSource": "run_state_delegation",
+      "runMode": "background",
+      "expectedArtifact": "artifacts/validation-PHASE7E2EH-1.md",
+      "requiredEvidence": [
+        "artifacts/validation-PHASE7E2EH-1.md",
+        ".sdd/runtime.sqlite#events"
+      ],
+      "createdAt": "2026-05-16T01:54:16.344Z",
+      "updatedAt": "2026-05-16T01:55:14.926Z"
     }
   ],
   "artifacts": [
@@ -4355,6 +5196,46 @@
       "runId": "20260512-007"
     },
     {
+      "path": "artifacts/acceptance-coverage-PHASE7E2E-1.md",
+      "kind": "artifact",
+      "task": "PHASE7E2E-1",
+      "agent": "unknown",
+      "createdAt": "2026-05-16T01:06:48.192Z",
+      "runId": "20260516-003"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE7E2E-1.md",
+      "kind": "artifact",
+      "task": "PHASE7E2E-1",
+      "agent": "unknown",
+      "createdAt": "2026-05-16T01:09:32.061Z",
+      "runId": "20260516-004"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE7E2E-1.md",
+      "kind": "artifact",
+      "task": "PHASE7E2E-1",
+      "agent": "unknown",
+      "createdAt": "2026-05-16T01:11:07.266Z",
+      "runId": "20260516-005"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE7E2EH-1.md",
+      "kind": "artifact",
+      "task": "PHASE7E2EH-1",
+      "agent": "unknown",
+      "createdAt": "2026-05-16T01:54:50.842Z",
+      "runId": "20260516-007"
+    },
+    {
+      "path": "artifacts/acceptance-coverage-PHASE7E2ER-1.md",
+      "kind": "artifact",
+      "task": "PHASE7E2ER-1",
+      "agent": "unknown",
+      "createdAt": "2026-05-16T01:31:08.964Z",
+      "runId": "20260516-006"
+    },
+    {
       "path": "artifacts/gap-report-P1.10-T1.md",
       "kind": "gap-report",
       "task": "P1.10-T1",
@@ -4505,6 +5386,54 @@
       "agent": "runtime",
       "createdAt": "2026-05-12T06:29:45.426Z",
       "runId": "20260512-004"
+    },
+    {
+      "path": "artifacts/gap-report-PHASE7E2E-1.md",
+      "kind": "gap-report",
+      "task": "PHASE7E2E-1",
+      "agent": "runtime",
+      "createdAt": "2026-05-16T01:02:31.155Z",
+      "runId": "20260516-001"
+    },
+    {
+      "path": "artifacts/gap-report-PHASE7E2E-1.md",
+      "kind": "gap-report",
+      "task": "PHASE7E2E-1",
+      "agent": "runtime",
+      "createdAt": "2026-05-16T01:03:53.798Z",
+      "runId": "20260516-003"
+    },
+    {
+      "path": "artifacts/gap-report-PHASE7E2E-1.md",
+      "kind": "gap-report",
+      "task": "PHASE7E2E-1",
+      "agent": "runtime",
+      "createdAt": "2026-05-16T01:08:57.213Z",
+      "runId": "20260516-004"
+    },
+    {
+      "path": "artifacts/gap-report-PHASE7E2E-1.md",
+      "kind": "gap-report",
+      "task": "PHASE7E2E-1",
+      "agent": "runtime",
+      "createdAt": "2026-05-16T01:10:48.061Z",
+      "runId": "20260516-005"
+    },
+    {
+      "path": "artifacts/gap-report-PHASE7E2EH-1.md",
+      "kind": "gap-report",
+      "task": "PHASE7E2EH-1",
+      "agent": "runtime",
+      "createdAt": "2026-05-16T01:52:45.236Z",
+      "runId": "20260516-007"
+    },
+    {
+      "path": "artifacts/gap-report-PHASE7E2ER-1.md",
+      "kind": "gap-report",
+      "task": "PHASE7E2ER-1",
+      "agent": "runtime",
+      "createdAt": "2026-05-16T01:29:14.066Z",
+      "runId": "20260516-006"
     },
     {
       "path": "artifacts/implement-DEMO-T1.md",
@@ -4721,6 +5650,46 @@
       "agent": "implementer",
       "createdAt": "2026-05-12T10:51:47.355Z",
       "runId": "20260512-007"
+    },
+    {
+      "path": "artifacts/implement-PHASE7E2E-1.md",
+      "kind": "implement",
+      "task": "PHASE7E2E-1",
+      "agent": "implementer",
+      "createdAt": "2026-05-16T01:06:34.070Z",
+      "runId": "20260516-003"
+    },
+    {
+      "path": "artifacts/implement-PHASE7E2E-1.md",
+      "kind": "implement",
+      "task": "PHASE7E2E-1",
+      "agent": "implementer",
+      "createdAt": "2026-05-16T01:09:19.468Z",
+      "runId": "20260516-004"
+    },
+    {
+      "path": "artifacts/implement-PHASE7E2E-1.md",
+      "kind": "implement",
+      "task": "PHASE7E2E-1",
+      "agent": "implementer",
+      "createdAt": "2026-05-16T01:11:03.255Z",
+      "runId": "20260516-005"
+    },
+    {
+      "path": "artifacts/implement-PHASE7E2EH-1.md",
+      "kind": "implement",
+      "task": "PHASE7E2EH-1",
+      "agent": "implementer",
+      "createdAt": "2026-05-16T01:54:15.839Z",
+      "runId": "20260516-007"
+    },
+    {
+      "path": "artifacts/implement-PHASE7E2ER-1.md",
+      "kind": "implement",
+      "task": "PHASE7E2ER-1",
+      "agent": "implementer",
+      "createdAt": "2026-05-16T01:30:39.635Z",
+      "runId": "20260516-006"
     },
     {
       "path": "artifacts/review-DEMO-T1.md",
@@ -5011,6 +5980,238 @@
       "runId": "20260512-007"
     },
     {
+      "path": "artifacts/review-PHASE7E2E-1.md",
+      "kind": "review",
+      "task": "PHASE7E2E-1",
+      "agent": "reviewer",
+      "createdAt": "2026-05-16T01:06:34.251Z",
+      "runId": "20260516-003"
+    },
+    {
+      "path": "artifacts/review-PHASE7E2E-1.md",
+      "kind": "review",
+      "task": "PHASE7E2E-1",
+      "agent": "reviewer",
+      "createdAt": "2026-05-16T01:09:19.675Z",
+      "runId": "20260516-004"
+    },
+    {
+      "path": "artifacts/review-PHASE7E2E-1.md",
+      "kind": "review",
+      "task": "PHASE7E2E-1",
+      "agent": "reviewer",
+      "createdAt": "2026-05-16T01:11:03.479Z",
+      "runId": "20260516-005"
+    },
+    {
+      "path": "artifacts/review-PHASE7E2EH-1.md",
+      "kind": "review",
+      "task": "PHASE7E2EH-1",
+      "agent": "reviewer",
+      "createdAt": "2026-05-16T01:54:16.125Z",
+      "runId": "20260516-007"
+    },
+    {
+      "path": "artifacts/review-PHASE7E2ER-1.md",
+      "kind": "review",
+      "task": "PHASE7E2ER-1",
+      "agent": "reviewer",
+      "createdAt": "2026-05-16T01:30:39.988Z",
+      "runId": "20260516-006"
+    },
+    {
+      "path": "artifacts/test-index-PHASE6.10-1.json",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-15T12:35:28.572Z",
+      "runId": "20260515-001"
+    },
+    {
+      "path": "artifacts/test-index-PHASE6.10-1.json",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-15T12:35:39.200Z",
+      "runId": "20260515-002"
+    },
+    {
+      "path": "artifacts/test-index-PHASE6.10-1.json",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T07:31:33.989Z",
+      "runId": "20260518-003"
+    },
+    {
+      "path": "artifacts/test-index-PHASE6.10-1.json",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T07:35:29.850Z",
+      "runId": "20260518-004"
+    },
+    {
+      "path": "artifacts/test-index-PHASE6.10-1.json",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T08:21:28.636Z",
+      "runId": "20260518-005"
+    },
+    {
+      "path": "artifacts/test-index-PHASE7E2E-1.json",
+      "kind": "test",
+      "task": "PHASE7E2E-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:06:46.850Z",
+      "runId": "20260516-003"
+    },
+    {
+      "path": "artifacts/test-index-PHASE7E2E-1.json",
+      "kind": "test",
+      "task": "PHASE7E2E-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:09:30.791Z",
+      "runId": "20260516-004"
+    },
+    {
+      "path": "artifacts/test-index-PHASE7E2E-1.json",
+      "kind": "test",
+      "task": "PHASE7E2E-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:11:05.392Z",
+      "runId": "20260516-005"
+    },
+    {
+      "path": "artifacts/test-index-PHASE7E2EH-1.json",
+      "kind": "test",
+      "task": "PHASE7E2EH-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:54:26.001Z",
+      "runId": "20260516-007"
+    },
+    {
+      "path": "artifacts/test-index-PHASE7E2ER-1.json",
+      "kind": "test",
+      "task": "PHASE7E2ER-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:30:55.982Z",
+      "runId": "20260516-006"
+    },
+    {
+      "path": "artifacts/test-index-T1.json",
+      "kind": "test",
+      "task": "T1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T03:09:37.006Z",
+      "runId": "20260518-001"
+    },
+    {
+      "path": "artifacts/test-PHASE6.10-1-001.log",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-15T12:35:28.572Z",
+      "runId": "20260515-001"
+    },
+    {
+      "path": "artifacts/test-PHASE6.10-1-001.log",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-15T12:35:39.200Z",
+      "runId": "20260515-002"
+    },
+    {
+      "path": "artifacts/test-PHASE6.10-1-001.log",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T07:31:33.989Z",
+      "runId": "20260518-003"
+    },
+    {
+      "path": "artifacts/test-PHASE6.10-1-001.log",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T07:35:29.850Z",
+      "runId": "20260518-004"
+    },
+    {
+      "path": "artifacts/test-PHASE6.10-1-001.log",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T08:21:28.636Z",
+      "runId": "20260518-005"
+    },
+    {
+      "path": "artifacts/test-PHASE6.10-1-002.log",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T07:31:33.989Z",
+      "runId": "20260518-003"
+    },
+    {
+      "path": "artifacts/test-PHASE6.10-1-002.log",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T07:35:29.850Z",
+      "runId": "20260518-004"
+    },
+    {
+      "path": "artifacts/test-PHASE6.10-1-002.log",
+      "kind": "test",
+      "task": "PHASE6.10-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-18T08:21:28.636Z",
+      "runId": "20260518-005"
+    },
+    {
+      "path": "artifacts/test-PHASE7E2E-1-001.log",
+      "kind": "test",
+      "task": "PHASE7E2E-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:06:46.850Z",
+      "runId": "20260516-003"
+    },
+    {
+      "path": "artifacts/test-PHASE7E2E-1-001.log",
+      "kind": "test",
+      "task": "PHASE7E2E-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:09:30.791Z",
+      "runId": "20260516-004"
+    },
+    {
+      "path": "artifacts/test-PHASE7E2E-1-001.log",
+      "kind": "test",
+      "task": "PHASE7E2E-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:11:05.392Z",
+      "runId": "20260516-005"
+    },
+    {
+      "path": "artifacts/test-PHASE7E2EH-1-001.log",
+      "kind": "test",
+      "task": "PHASE7E2EH-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:54:26.001Z",
+      "runId": "20260516-007"
+    },
+    {
+      "path": "artifacts/test-PHASE7E2ER-1-001.log",
+      "kind": "test",
+      "task": "PHASE7E2ER-1",
+      "agent": "test-runtime",
+      "createdAt": "2026-05-16T01:30:55.982Z",
+      "runId": "20260516-006"
+    },
+    {
       "path": "artifacts/validation-DEMO-T1.md",
       "kind": "validation",
       "task": "DEMO-T1",
@@ -5105,6 +6306,46 @@
       "agent": "validator",
       "createdAt": "2026-05-12T12:52:00.346Z",
       "runId": "20260512-008"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.10-1.md",
+      "kind": "validation",
+      "task": "PHASE6.10-1",
+      "agent": "validator",
+      "createdAt": "2026-05-15T12:35:28.572Z",
+      "runId": "20260515-001"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.10-1.md",
+      "kind": "validation",
+      "task": "PHASE6.10-1",
+      "agent": "validator",
+      "createdAt": "2026-05-15T12:35:39.200Z",
+      "runId": "20260515-002"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.10-1.md",
+      "kind": "validation",
+      "task": "PHASE6.10-1",
+      "agent": "validator",
+      "createdAt": "2026-05-18T07:31:33.989Z",
+      "runId": "20260518-003"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.10-1.md",
+      "kind": "validation",
+      "task": "PHASE6.10-1",
+      "agent": "validator",
+      "createdAt": "2026-05-18T07:35:29.850Z",
+      "runId": "20260518-004"
+    },
+    {
+      "path": "artifacts/validation-PHASE6.10-1.md",
+      "kind": "validation",
+      "task": "PHASE6.10-1",
+      "agent": "validator",
+      "createdAt": "2026-05-18T08:21:28.636Z",
+      "runId": "20260518-005"
     },
     {
       "path": "artifacts/validation-PHASE6.10-2.md",
@@ -5305,23 +6546,96 @@
       "agent": "validator",
       "createdAt": "2026-05-12T10:51:48.156Z",
       "runId": "20260512-007"
+    },
+    {
+      "path": "artifacts/validation-PHASE7E2E-1.md",
+      "kind": "validation",
+      "task": "PHASE7E2E-1",
+      "agent": "validator",
+      "createdAt": "2026-05-16T01:06:34.457Z",
+      "runId": "20260516-003"
+    },
+    {
+      "path": "artifacts/validation-PHASE7E2E-1.md",
+      "kind": "validation",
+      "task": "PHASE7E2E-1",
+      "agent": "validator",
+      "createdAt": "2026-05-16T01:09:19.888Z",
+      "runId": "20260516-004"
+    },
+    {
+      "path": "artifacts/validation-PHASE7E2E-1.md",
+      "kind": "validation",
+      "task": "PHASE7E2E-1",
+      "agent": "validator",
+      "createdAt": "2026-05-16T01:11:03.692Z",
+      "runId": "20260516-005"
+    },
+    {
+      "path": "artifacts/validation-PHASE7E2EH-1.md",
+      "kind": "validation",
+      "task": "PHASE7E2EH-1",
+      "agent": "validator",
+      "createdAt": "2026-05-16T01:54:16.559Z",
+      "runId": "20260516-007"
+    },
+    {
+      "path": "artifacts/validation-PHASE7E2ER-1.md",
+      "kind": "validation",
+      "task": "PHASE7E2ER-1",
+      "agent": "validator",
+      "createdAt": "2026-05-16T01:30:40.469Z",
+      "runId": "20260516-006"
     }
   ],
   "waves": [],
   "latestByPartitionTask": [
     {
+      "partition": "e2e",
+      "gitBranch": "e2e",
+      "taskId": "T1",
+      "runId": "20260518-001",
+      "runStatus": "blocked",
+      "validationStatus": "blocked",
+      "syncBackStatus": "not_created",
+      "affectedFiles": [],
+      "updatedAt": "2026-05-18T03:09:37.007Z"
+    },
+    {
+      "partition": "feat_0.3.1_20260513",
+      "gitBranch": "feat_0.3.1_20260513",
+      "taskId": "PHASE7E2E-1",
+      "runId": "20260516-001",
+      "runStatus": "blocked",
+      "validationStatus": "blocked",
+      "syncBackStatus": "proposed",
+      "affectedFiles": [],
+      "updatedAt": "2026-05-16T01:02:31.155Z"
+    },
+    {
+      "partition": "feature",
+      "gitBranch": "feature",
+      "taskId": "HOST1",
+      "runId": "20260518-002",
+      "runStatus": "created",
+      "validationStatus": "not_run",
+      "syncBackStatus": "not_created",
+      "affectedFiles": [],
+      "updatedAt": "2026-05-18T05:40:01.684Z"
+    },
+    {
       "partition": "master",
       "gitBranch": "master",
       "taskId": "PHASE6.10-1",
-      "runId": "20260512-008",
+      "runId": "20260518-004",
       "runStatus": "completed",
       "validationStatus": "pass",
       "syncBackStatus": "applied",
       "affectedFiles": [
-        "packages/core/src/index.ts",
-        "packages/core/src/index.test.ts"
+        "packages/core/src/context/build-package.ts",
+        "packages/core/src/context/context-build.test.ts"
       ],
-      "updatedAt": "2026-05-12T13:00:29.752Z"
+      "updatedAt": "2026-05-18T07:37:26.777Z"
     },
     {
       "partition": "master",
@@ -5418,13 +6732,13 @@
       "runId": "20260513-001",
       "runStatus": "completed",
       "validationStatus": "pass",
-      "syncBackStatus": "proposed",
+      "syncBackStatus": "applied",
       "affectedFiles": [
         "specs/master/phase6.10-validation.md",
         "packages/core/src/index.test.ts",
         "packages/cli/src/main.ts"
       ],
-      "updatedAt": "2026-05-13T05:59:58.505Z"
+      "updatedAt": "2026-05-13T10:06:36.942Z"
     },
     {
       "partition": "master",
@@ -5580,39 +6894,62 @@
         "specs/master/tasks.md"
       ],
       "updatedAt": "2026-05-12T10:52:03.203Z"
+    },
+    {
+      "partition": "phase7-e2e",
+      "gitBranch": "phase7-e2e",
+      "taskId": "PHASE7E2E-1",
+      "runId": "20260516-005",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "specs/phase7-e2e/spec.md",
+        "specs/phase7-e2e/plan.md",
+        "specs/phase7-e2e/tasks.md",
+        "specs/phase7-e2e/verify.md"
+      ],
+      "updatedAt": "2026-05-16T01:11:39.056Z"
+    },
+    {
+      "partition": "phase7-e2e-hardening",
+      "gitBranch": "phase7-e2e-hardening",
+      "taskId": "PHASE7E2EH-1",
+      "runId": "20260516-007",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "specs/phase7-e2e-hardening/spec.md",
+        "specs/phase7-e2e-hardening/plan.md",
+        "specs/phase7-e2e-hardening/tasks.md",
+        "specs/phase7-e2e-hardening/verify.md",
+        "specs/phase7-e2e-hardening/release.md",
+        "packages/cli/src/commands/dispatch.ts",
+        "packages/core/src/verification/test-runtime.ts",
+        "packages/core/src/router/route-sdd-task.ts"
+      ],
+      "updatedAt": "2026-05-16T01:55:14.926Z"
+    },
+    {
+      "partition": "phase7-e2e-readiness",
+      "gitBranch": "phase7-e2e-readiness",
+      "taskId": "PHASE7E2ER-1",
+      "runId": "20260516-006",
+      "runStatus": "completed",
+      "validationStatus": "pass",
+      "syncBackStatus": "applied",
+      "affectedFiles": [
+        "specs/phase7-e2e-readiness/spec.md",
+        "specs/phase7-e2e-readiness/plan.md",
+        "specs/phase7-e2e-readiness/tasks.md",
+        "specs/phase7-e2e-readiness/verify.md",
+        "specs/phase7-e2e-readiness/release.md"
+      ],
+      "updatedAt": "2026-05-16T01:31:28.770Z"
     }
   ],
   "activeByAffectedFile": [
-    {
-      "file": "packages/cli/src/main.ts",
-      "partition": "master",
-      "gitBranch": "master",
-      "taskId": "PHASE6.10-8",
-      "runId": "20260513-001",
-      "runStatus": "completed",
-      "syncBackStatus": "proposed",
-      "updatedAt": "2026-05-13T05:59:58.505Z"
-    },
-    {
-      "file": "packages/core/src/index.test.ts",
-      "partition": "master",
-      "gitBranch": "master",
-      "taskId": "PHASE6.10-8",
-      "runId": "20260513-001",
-      "runStatus": "completed",
-      "syncBackStatus": "proposed",
-      "updatedAt": "2026-05-13T05:59:58.505Z"
-    },
-    {
-      "file": "specs/master/phase6.10-validation.md",
-      "partition": "master",
-      "gitBranch": "master",
-      "taskId": "PHASE6.10-8",
-      "runId": "20260513-001",
-      "runStatus": "completed",
-      "syncBackStatus": "proposed",
-      "updatedAt": "2026-05-13T05:59:58.505Z"
-    },
     {
       "file": "specs/master/phase6.9-validation.md",
       "partition": "master",

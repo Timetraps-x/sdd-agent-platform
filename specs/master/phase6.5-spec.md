@@ -23,7 +23,7 @@ Phase 6.4 makes partition creation deterministic, but execution can still drift 
 - No remote worker fleet or full worktree scheduler.
 - No automatic run rebase onto changed specs.
 - No authoritative database beyond `.sdd/runs/*/state.json`.
-- No Phase 7 code graph.
+- No Phase 8 code graph.
 
 ## Acceptance criteria
 

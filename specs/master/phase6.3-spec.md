@@ -23,7 +23,7 @@ Phase 6 currently exposes useful contracts for agents, skills, sources, team-mod
 
 - No arbitrary prompt import.
 - No direct execution of third-party agent packs.
-- No Phase 7 code graph implementation.
+- No Phase 8 code graph implementation.
 - No hardcoded domain-agent special cases.
 - No removal of Phase 6 built-in baseline behavior.
 

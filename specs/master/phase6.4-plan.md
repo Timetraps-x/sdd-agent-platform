@@ -9,8 +9,8 @@ Implement the smallest workflow UX correction before changing run isolation. Kee
 ### 1. Phase docs and chain
 
 - Add Phase 6.4 phase artifact and execution docs.
-- Insert 6.4 between 6.3 and 6.5/7.0 in indexes and status.
-- Update Phase 7.0 handoff wording to consume 6.4/6.5 evidence.
+- Insert 6.4 between 6.3 and later Phase 6.x/7.0/8.0 stages in indexes and status.
+- Update Phase 8.0 handoff wording to consume 6.4/6.5 evidence after Phase 7.0 core modularization.
 
 ### 2. Partition resolver
 

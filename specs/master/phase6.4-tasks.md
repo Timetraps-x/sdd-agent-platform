@@ -4,7 +4,7 @@
 
 Boundary:
 - Create Phase 6.4 phase artifact and execution docs.
-- Insert Phase 6.4 before Phase 6.5 and Phase 7.0.
+- Insert Phase 6.4 before later Phase 6.x stages, Phase 7.0 core modularization, and Phase 8.0 code graph.
 
 Acceptance:
 - Phase 6.4 appears in phase index/status.

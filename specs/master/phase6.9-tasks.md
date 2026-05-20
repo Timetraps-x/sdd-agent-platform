@@ -72,7 +72,7 @@ affected_files:
   - specs/master/phases/README.md
   - specs/master/phases/PHASE_STATUS.md
   - specs/master/phases/phase-6.8-project-document-language-runtime.md
-  - specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md
+  - specs/master/phases/phase-8.0-code-knowledge-graph-baseline.md
 validation:
   - node ./dist/packages/cli/src/main.js status --branch master --compact-json
   - node ./dist/packages/cli/src/main.js tasks inspect PHASE6.9-1 --branch master --json
@@ -105,7 +105,7 @@ Allowed scope:
 
 - Align retained Phase 6.9 docs with the active `spec.md`, `plan.md`, `tasks.md`, and validation chain.
 - Make the task chain explicit enough to implement the full Runtime Trust Layer instead of isolated symptom patches.
-- Keep Phase 6.8 and Phase 7.0 dependency handoff references intact.
+- Keep Phase 6.8, Phase 7.0 core modularization, and Phase 8.0 code graph dependency handoff references intact.
 
 Forbidden scope:
 

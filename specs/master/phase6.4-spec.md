@@ -33,7 +33,7 @@ middle stages -> read resolved partition or run state, not guess branch
 - No `sdd workflow start` command.
 - No Phase 6.5 run lookup/isolation implementation.
 - No automatic active-run rebase after spec changes.
-- No Phase 7 code graph.
+- No Phase 8 code graph.
 
 ## Acceptance criteria
 

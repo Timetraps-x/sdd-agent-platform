@@ -20,7 +20,7 @@ Phase 5.0 的核心目标不是建设 OS、scheduler、plugin runtime、OpenCode
   - Phase 5.5 Eval / Learning / Context Pack Harness
   - Phase 5.6 Phase 7 Graph Handoff Hardening
   - Phase 6.0 Agent / Skill Runtime Harness
-  - Phase 7.0 Code Knowledge Graph Baseline
+  - Phase 7.0 Core Runtime Modularization
 
 ## 2.1 输入文档
 
@@ -139,7 +139,7 @@ Phase 5.0 不把 Project Context Pack 做成执行 runtime，它只提供 Claude
 
 - 不建设 OS、scheduler、generic plugin runtime、model router、后台自主编码平台或 OpenCode clone。
 - 不替代 Claude Code 的权限模型、hooks、worktree 行为、slash command 机制或工具执行边界。
-- 不引入 graph database、embedding store、完整 AST/LSP 代码图谱；这些属于 Phase 7 或更后续。
+- 不引入 graph database、embedding store、完整 AST/LSP 代码图谱；这些属于 Phase 8 或更后续。
 - 不复制 Spec Kit、cc-sdd、GSD、BMAD、Oh My OpenAgent 的目录结构或命名体系。
 - 不让 generated command 承担核心 workflow brain；核心 contract 仍在 CLI/core/docs 中。
 - 不把所有任务都默认 agent 自动执行；必须通过 autonomy level、risk gate 和 verification availability 决策。
@@ -173,12 +173,12 @@ Phase 5.0 不把 Project Context Pack 做成执行 runtime，它只提供 Claude
 - 十个 harness contracts 出现在 phase artifact、spec、plan、tasks、validation 的核心结构中，并映射到 5.1~5.6。
 - Autonomy levels：`report_only`、`assisted`、`agent_safe`、`human_required` 被定义并进入后续任务/评估边界。
 - `agent_fit`、verification availability、gap closure、Project Context Pack 被纳入后续 phase 范围。
-- Phase 6 拥有 Agent / Skill Runtime Harness；Phase 7 拥有 Code Knowledge Graph，Phase 5 只提供 graph-ready harness metadata。
+- Phase 6 拥有 Agent / Skill Runtime Harness；Phase 7 拥有 Core Runtime Modularization；Phase 8 拥有 Code Knowledge Graph，Phase 5 只提供 graph-ready harness metadata。
 - Phase 5.0 只完成文档/路线 reframe；runtime implementation 从 Phase 5.1 开始。
 
-## 12. Phase 7 Handoff
+## 12. Phase 8 Handoff
 
-Phase 7.0 负责 Code Knowledge Graph Baseline；其输入从 source localization records 升级为 Phase 5 harness metadata，并会继续消费 Phase 6 agent / skill runtime metadata：
+Phase 8.0 负责 Code Knowledge Graph Baseline；其输入从 source localization records 升级为 Phase 5 harness metadata，并会继续消费 Phase 6 agent / skill runtime metadata 和 Phase 7 core module boundary metadata：
 
 - `HarnessContract`
 - `ContextResolverDecision`
@@ -200,4 +200,4 @@ Phase 7.0 负责 Code Knowledge Graph Baseline；其输入从 source localizatio
 - `SkillReuseDecision`
 - `EvidenceIngestionRecord`
 
-这些 metadata 为 Phase 7 图谱提供结构化节点和关系，但 Phase 5 不实现图谱存储或查询。
+这些 metadata 为 Phase 8 图谱提供结构化节点和关系，但 Phase 5 不实现图谱存储或查询。

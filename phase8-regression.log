@@ -1,0 +1,1528 @@
+
+> sdd-agent-platform@0.4.0 test
+> npm run build && node --test --import tsx "packages/**/*.test.ts"
+
+
+> sdd-agent-platform@0.4.0 build
+> tsc -b tsconfig.build.json
+
+TAP version 13
+# (node:30856) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: CLI status renders context source and keeps next final
+ok 1 - CLI status renders context source and keeps next final
+  ---
+  duration_ms: 10083.5363
+  type: 'test'
+  ...
+# Subtest: CLI tasks list uses configured default SDD branch when branch is omitted
+ok 2 - CLI tasks list uses configured default SDD branch when branch is omitted
+  ---
+  duration_ms: 4227.5658
+  type: 'test'
+  ...
+# Subtest: CLI exposes verifies inspect write and JSON output
+ok 3 - CLI exposes verifies inspect write and JSON output
+  ---
+  duration_ms: 14795.4309
+  type: 'test'
+  ...
+# Subtest: CLI exposes test task runtime and JSON output
+ok 4 - CLI exposes test task runtime and JSON output
+  ---
+  duration_ms: 11474.9403
+  type: 'test'
+  ...
+# Subtest: CLI status warns when latest run predates current tasks contract
+ok 5 - CLI status warns when latest run predates current tasks contract
+  ---
+  duration_ms: 4737.9599
+  type: 'test'
+  ...
+# Subtest: CLI init defaults to concise text and keeps json opt-in
+ok 6 - CLI init defaults to concise text and keeps json opt-in
+  ---
+  duration_ms: 2255.6476
+  type: 'test'
+  ...
+# Subtest: CLI tasks inspect defaults to text and keeps json opt-in
+ok 7 - CLI tasks inspect defaults to text and keeps json opt-in
+  ---
+  duration_ms: 1945.0548
+  type: 'test'
+  ...
+# Subtest: CLI exposes Phase 5.2 workflow and agent registry commands
+ok 8 - CLI exposes Phase 5.2 workflow and agent registry commands
+  ---
+  duration_ms: 3186.0946
+  type: 'test'
+  ...
+# Subtest: CLI exposes Phase 6 runtime, catalog, quarantine, team-mode, and route commands
+ok 9 - CLI exposes Phase 6 runtime, catalog, quarantine, team-mode, and route commands
+  ---
+  duration_ms: 13482.3739
+  type: 'test'
+  ...
+# Subtest: CLI exposes Phase 6.3 project agent runtime config routes
+ok 10 - CLI exposes Phase 6.3 project agent runtime config routes
+  ---
+  duration_ms: 4867.2537
+  type: 'test'
+  ...
+# Subtest: CLI do task exposes Phase 6 route and persisted evidence visibility
+ok 11 - CLI do task exposes Phase 6 route and persisted evidence visibility
+  ---
+  duration_ms: 3313.9741
+  type: 'test'
+  ...
+# Subtest: CLI exposes Phase 5.4 query status commands
+ok 12 - CLI exposes Phase 5.4 query status commands
+  ---
+  duration_ms: 1724.8134
+  type: 'test'
+  ...
+# Subtest: CLI exposes Phase 5.5 eval, learning, and context pack commands
+ok 13 - CLI exposes Phase 5.5 eval, learning, and context pack commands
+  ---
+  duration_ms: 5743.6149
+  type: 'test'
+  ...
+# Subtest: CLI help groups common workflow commands and links advanced help
+ok 14 - CLI help groups common workflow commands and links advanced help
+  ---
+  duration_ms: 2795.9866
+  type: 'test'
+  ...
+# Subtest: CLI help and preflight for side-effect commands do not write runtime artifacts
+ok 15 - CLI help and preflight for side-effect commands do not write runtime artifacts
+  ---
+  duration_ms: 6701.7914
+  type: 'test'
+  ...
+# Subtest: CLI capabilities list and inspect registry declarations
+ok 16 - CLI capabilities list and inspect registry declarations
+  ---
+  duration_ms: 3977.0335
+  type: 'test'
+  ...
+# Subtest: CLI plugins list and inspect loading contract declarations
+ok 17 - CLI plugins list and inspect loading contract declarations
+  ---
+  duration_ms: 3827.1937
+  type: 'test'
+  ...
+# Subtest: CLI queue list and inspect derived delegation items
+ok 18 - CLI queue list and inspect derived delegation items
+  ---
+  duration_ms: 4136.6891
+  type: 'test'
+  ...
+# Subtest: CLI state-machine inspect prints transition contract
+ok 19 - CLI state-machine inspect prints transition contract
+  ---
+  duration_ms: 2693.9911
+  type: 'test'
+  ...
+# Subtest: CLI workers list and inspect adapter manifests
+ok 20 - CLI workers list and inspect adapter manifests
+  ---
+  duration_ms: 4976.0811
+  type: 'test'
+  ...
+# Subtest: CLI isolation inspect renders dry-run decision
+ok 21 - CLI isolation inspect renders dry-run decision
+  ---
+  duration_ms: 2108.3003
+  type: 'test'
+  ...
+# Subtest: CLI worktree lifecycle create inspect and remove
+ok 22 - CLI worktree lifecycle create inspect and remove
+  ---
+  duration_ms: 5848.3688
+  type: 'test'
+  ...
+# Subtest: CLI graph inspect renders graph plan
+ok 23 - CLI graph inspect renders graph plan
+  ---
+  duration_ms: 2739.8859
+  type: 'test'
+  ...
+# Subtest: CLI wave inspect renders wave plan
+ok 24 - CLI wave inspect renders wave plan
+  ---
+  duration_ms: 1717.0278
+  type: 'test'
+  ...
+# Subtest: CLI background run and inspect render executor evidence
+ok 25 - CLI background run and inspect render executor evidence
+  ---
+  duration_ms: 3908.721
+  type: 'test'
+  ...
+# Subtest: CLI worker-runtime claim status heartbeat and inspect render resident evidence
+ok 26 - CLI worker-runtime claim status heartbeat and inspect render resident evidence
+  ---
+  duration_ms: 6203.7012
+  type: 'test'
+  ...
+# Subtest: CLI wave run and executor inspect render wave execution evidence
+ok 27 - CLI wave run and executor inspect render wave execution evidence
+  ---
+  duration_ms: 5487.1835
+  type: 'test'
+  ...
+# Subtest: CLI run index rebuild inspect and query render derived evidence
+ok 28 - CLI run index rebuild inspect and query render derived evidence
+  ---
+  duration_ms: 2533.3563
+  type: 'test'
+  ...
+# Subtest: CLI compact JSON supports instructions run-index sync-back and artifact validation
+ok 29 - CLI compact JSON supports instructions run-index sync-back and artifact validation
+  ---
+  duration_ms: 11411.8266
+  type: 'test'
+  ...
+# Subtest: CLI exposes context build and evidence summary compact JSON
+ok 30 - CLI exposes context build and evidence summary compact JSON
+  ---
+  duration_ms: 1918.2584
+  type: 'test'
+  ...
+# Subtest: CLI governance inspect and evaluate render policy evidence
+ok 31 - CLI governance inspect and evaluate render policy evidence
+  ---
+  duration_ms: 1852.8266
+  type: 'test'
+  ...
+# Subtest: CLI run create scopes branch task and artifact template rejects unscoped or mismatched writes
+ok 32 - CLI run create scopes branch task and artifact template rejects unscoped or mismatched writes
+  ---
+  duration_ms: 4087.8237
+  type: 'test'
+  ...
+# Subtest: CLI version compact JSON reports package identity
+ok 33 - CLI version compact JSON reports package identity
+  ---
+  duration_ms: 876.0159
+  type: 'test'
+  ...
+# Subtest: CLI artifact template uses run partition when branch is omitted
+ok 34 - CLI artifact template uses run partition when branch is omitted
+  ---
+  duration_ms: 1267.6538
+  type: 'test'
+  ...
+# Subtest: CLI lifecycle decide extracts from text and file
+ok 35 - CLI lifecycle decide extracts from text and file
+  ---
+  duration_ms: 2542.7228
+  type: 'test'
+  ...
+# Subtest: CLI doctor honors explicit branch for document-chain scope
+ok 36 - CLI doctor honors explicit branch for document-chain scope
+  ---
+  duration_ms: 2272.0847
+  type: 'test'
+  ...
+# Subtest: CLI imports core only through package subpath exports
+ok 37 - CLI imports core only through package subpath exports
+  ---
+  duration_ms: 1581.6151
+  type: 'test'
+  ...
+# Subtest: core package exports only stable source facades with built dist targets
+ok 38 - core package exports only stable source facades with built dist targets
+  ---
+  duration_ms: 200.3824
+  type: 'test'
+  ...
+# Subtest: root package publishes package-local CLI and core build outputs
+ok 39 - root package publishes package-local CLI and core build outputs
+  ---
+  duration_ms: 10.9969
+  type: 'test'
+  ...
+# Subtest: doctor renderer summarizes checks with next action
+ok 40 - doctor renderer summarizes checks with next action
+  ---
+  duration_ms: 3.1866
+  type: 'test'
+  ...
+# Subtest: AI entry drift check distinguishes managed drift from user modifications
+ok 41 - AI entry drift check distinguishes managed drift from user modifications
+  ---
+  duration_ms: 5900.5524
+  type: 'test'
+  ...
+# Subtest: AI entry drift check includes managed entry version
+ok 42 - AI entry drift check includes managed entry version
+  ---
+  duration_ms: 1887.5429
+  type: 'test'
+  ...
+# Subtest: AI entry projection refuses foreign files
+ok 43 - AI entry projection refuses foreign files
+  ---
+  duration_ms: 1406.038
+  type: 'test'
+  ...
+# (node:18080) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: ingestArtifactResult accepts valid artifact and is idempotent
+ok 44 - ingestArtifactResult accepts valid artifact and is idempotent
+  ---
+  duration_ms: 1905.9391
+  type: 'test'
+  ...
+# Subtest: ingestArtifactResult rejects invalid artifact without accepted evidence
+ok 45 - ingestArtifactResult rejects invalid artifact without accepted evidence
+  ---
+  duration_ms: 890.8065
+  type: 'test'
+  ...
+# Subtest: ingestArtifactResult admits validator evidence claims into runtime store
+ok 46 - ingestArtifactResult admits validator evidence claims into runtime store
+  ---
+  duration_ms: 990.396
+  type: 'test'
+  ...
+# Subtest: ingestArtifactResult records policy decisions for rejected derived evidence
+ok 47 - ingestArtifactResult records policy decisions for rejected derived evidence
+  ---
+  duration_ms: 790.8425
+  type: 'test'
+  ...
+# Subtest: parseSddEvidenceMarkdown validates policy-backed acceptance evidence
+ok 48 - parseSddEvidenceMarkdown validates policy-backed acceptance evidence
+  ---
+  duration_ms: 7.5352
+  type: 'test'
+  ...
+# Subtest: parseSddEvidenceMarkdown rejects task mismatch and derived source evidence
+ok 49 - parseSddEvidenceMarkdown rejects task mismatch and derived source evidence
+  ---
+  duration_ms: 1.3619
+  type: 'test'
+  ...
+# Subtest: artifact path cannot escape artifacts directory
+ok 50 - artifact path cannot escape artifacts directory
+  ---
+  duration_ms: 16.6945
+  type: 'test'
+  ...
+# Subtest: parseSddResultMarkdown validates a legal sdd-result block
+ok 51 - parseSddResultMarkdown validates a legal sdd-result block
+  ---
+  duration_ms: 5.396
+  type: 'test'
+  ...
+# Subtest: validateSddResultArtifact catches missing, empty, and task mismatch artifacts
+ok 52 - validateSddResultArtifact catches missing, empty, and task mismatch artifacts
+  ---
+  duration_ms: 1771.3026
+  type: 'test'
+  ...
+# Subtest: renderSddResultArtifactTemplate renders self-referencing reviewer artifact
+ok 53 - renderSddResultArtifactTemplate renders self-referencing reviewer artifact
+  ---
+  duration_ms: 705.9178
+  type: 'test'
+  ...
+# Subtest: renderSddResultArtifactTemplate scaffolds validator acceptance mapping without trusted PASS evidence
+ok 54 - renderSddResultArtifactTemplate scaffolds validator acceptance mapping without trusted PASS evidence
+  ---
+  duration_ms: 510.621
+  type: 'test'
+  ...
+# Subtest: artifact path helpers canonicalize root-relative and run-relative forms
+ok 55 - artifact path helpers canonicalize root-relative and run-relative forms
+  ---
+  duration_ms: 0.9302
+  type: 'test'
+  ...
+# Subtest: initProject creates readable project config
+ok 56 - initProject creates readable project config
+  ---
+  duration_ms: 791.4004
+  type: 'test'
+  ...
+# Subtest: initProject creates starter semantic documents by default
+ok 57 - initProject creates starter semantic documents by default
+  ---
+  duration_ms: 2361.8182
+  type: 'test'
+  ...
+# Subtest: initProject falls back to English starter document prose for non-Chinese docs_language
+ok 58 - initProject falls back to English starter document prose for non-Chinese docs_language
+  ---
+  duration_ms: 813.6277
+  type: 'test'
+  ...
+# Subtest: initProject preserves existing semantic documents by default
+ok 59 - initProject preserves existing semantic documents by default
+  ---
+  duration_ms: 2550.1647
+  type: 'test'
+  ...
+# Subtest: initProject force overwrites semantic documents
+ok 60 - initProject force overwrites semantic documents
+  ---
+  duration_ms: 1409.9654
+  type: 'test'
+  ...
+# Subtest: initProject scaffolds custom branch documents
+ok 61 - initProject scaffolds custom branch documents
+  ---
+  duration_ms: 1487.1644
+  type: 'test'
+  ...
+# Subtest: initProject can skip semantic document scaffold
+ok 62 - initProject can skip semantic document scaffold
+  ---
+  duration_ms: 64.4123
+  type: 'test'
+  ...
+# Subtest: initProject projects managed Claude Code entries by default
+ok 63 - initProject projects managed Claude Code entries by default
+  ---
+  duration_ms: 109.5987
+  type: 'test'
+  ...
+# Subtest: initProject detects Maven multi-module Java projects
+ok 64 - initProject detects Maven multi-module Java projects
+  ---
+  duration_ms: 351.0429
+  type: 'test'
+  ...
+# Subtest: initProject classifies mixed Java and Node repos by source evidence
+ok 65 - initProject classifies mixed Java and Node repos by source evidence
+  ---
+  duration_ms: 1206.5255
+  type: 'test'
+  ...
+# Subtest: context load signal scoring maps load dimensions to levels
+ok 66 - context load signal scoring maps load dimensions to levels
+  ---
+  duration_ms: 9.0572
+  type: 'test'
+  ...
+# Subtest: context offload decision maps load levels to inline summarize dispatch and curation actions
+ok 67 - context offload decision maps load levels to inline summarize dispatch and curation actions
+  ---
+  duration_ms: 5.7658
+  type: 'test'
+  ...
+# Subtest: context load and offload projections can be written read and inspected
+ok 68 - context load and offload projections can be written read and inspected
+  ---
+  duration_ms: 1497.8223
+  type: 'test'
+  ...
+# (node:12712) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: context budget contracts are JSON-renderable and non-authoritative
+ok 69 - context budget contracts are JSON-renderable and non-authoritative
+  ---
+  duration_ms: 5.8771
+  type: 'test'
+  ...
+# Subtest: evidence summary projection is hash-backed and not usable for PASS
+ok 70 - evidence summary projection is hash-backed and not usable for PASS
+  ---
+  duration_ms: 1584.1095
+  type: 'test'
+  ...
+# Subtest: context build packages differ by mode and agent while remaining derived guidance
+ok 71 - context build packages differ by mode and agent while remaining derived guidance
+  ---
+  duration_ms: 334.9213
+  type: 'test'
+  ...
+# Subtest: context build packages scope materials by runtime role without PASS authority
+ok 72 - context build packages scope materials by runtime role without PASS authority
+  ---
+  duration_ms: 371.4989
+  type: 'test'
+  ...
+# Subtest: derived context projections and log workers cannot claim authority
+ok 73 - derived context projections and log workers cannot claim authority
+  ---
+  duration_ms: 542.8714
+  type: 'test'
+  ...
+# Subtest: Phase 8 contract constants are versioned
+ok 74 - Phase 8 contract constants are versioned
+  ---
+  duration_ms: 26.5572
+  type: 'test'
+  ...
+# Subtest: delegation queue contract derives stable items from run-state delegations
+ok 75 - delegation queue contract derives stable items from run-state delegations
+  ---
+  duration_ms: 1014.5381
+  type: 'test'
+  ...
+# Subtest: doctor reports delegation queue contract visibility
+ok 76 - doctor reports delegation queue contract visibility
+  ---
+  duration_ms: 3597.0529
+  type: 'test'
+  ...
+# Subtest: delegation state machine exposes allowed transitions and blocks terminal reopen
+ok 77 - delegation state machine exposes allowed transitions and blocks terminal reopen
+  ---
+  duration_ms: 1.5848
+  type: 'test'
+  ...
+# Subtest: doctor reports delegation state machine visibility
+ok 78 - doctor reports delegation state machine visibility
+  ---
+  duration_ms: 3064.4291
+  type: 'test'
+  ...
+# Subtest: doctor reports illegal delegation event transitions
+ok 79 - doctor reports illegal delegation event transitions
+  ---
+  duration_ms: 3409.3596
+  type: 'test'
+  ...
+# Subtest: delegation terminal and stale contract checks are explicit
+ok 80 - delegation terminal and stale contract checks are explicit
+  ---
+  duration_ms: 480.9232
+  type: 'test'
+  ...
+# Subtest: doctor reports AI entry drift after init
+ok 81 - doctor reports AI entry drift after init
+  ---
+  duration_ms: 3782.7238
+  type: 'test'
+  ...
+# Subtest: doctor reports missing git repo as fail in temp directory
+ok 82 - doctor reports missing git repo as fail in temp directory
+  ---
+  duration_ms: 2629.8494
+  type: 'test'
+  ...
+# Subtest: doctor reports broken document-chain refs and high-risk evidence gaps
+ok 83 - doctor reports broken document-chain refs and high-risk evidence gaps
+  ---
+  duration_ms: 2987.2989
+  type: 'test'
+  ...
+# Subtest: doctor reports local run index drift with rebuild action
+ok 84 - doctor reports local run index drift with rebuild action
+  ---
+  duration_ms: 3200.6082
+  type: 'test'
+  ...
+# Subtest: doctor reports artifact writes attached to unscoped runs
+ok 85 - doctor reports artifact writes attached to unscoped runs
+  ---
+  duration_ms: 3301.4707
+  type: 'test'
+  ...
+# Subtest: doctor reports stale delegation and terminal event gaps without auto-fix
+ok 86 - doctor reports stale delegation and terminal event gaps without auto-fix
+  ---
+  duration_ms: 4226.6061
+  type: 'test'
+  ...
+# Subtest: archiveRun cancels running delegations and normal doctor skips archived evidence
+ok 87 - archiveRun cancels running delegations and normal doctor skips archived evidence
+  ---
+  duration_ms: 5192.5193
+  type: 'test'
+  ...
+# Subtest: doctor latestOnly ignores older failed run evidence
+ok 88 - doctor latestOnly ignores older failed run evidence
+  ---
+  duration_ms: 4752.2453
+  type: 'test'
+  ...
+# Subtest: doctor trust suite flags mention-only acceptance and weak validator PASS artifacts
+ok 89 - doctor trust suite flags mention-only acceptance and weak validator PASS artifacts
+  ---
+  duration_ms: 3181.9359
+  type: 'test'
+  ...
+# Subtest: doctor reports artifact ingestion state mismatch
+ok 90 - doctor reports artifact ingestion state mismatch
+  ---
+  duration_ms: 2210.8135
+  type: 'test'
+  ...
+# Subtest: doctor honors explicit branch for document-chain scope
+ok 91 - doctor honors explicit branch for document-chain scope
+  ---
+  duration_ms: 1657.4691
+  type: 'test'
+  ...
+# Subtest: doctor reports workflow handoff state diagnostics
+ok 92 - doctor reports workflow handoff state diagnostics
+  ---
+  duration_ms: 1451.068
+  type: 'test'
+  ...
+# Subtest: doctor reports context offload and subagent dispatch state diagnostics
+ok 93 - doctor reports context offload and subagent dispatch state diagnostics
+  ---
+  duration_ms: 1382.2939
+  type: 'test'
+  ...
+# Subtest: archived failed subagent dispatch no longer blocks doctor or ship subagent gates
+ok 94 - archived failed subagent dispatch no longer blocks doctor or ship subagent gates
+  ---
+  duration_ms: 3513.2714
+  type: 'test'
+  ...
+# Subtest: doctor reports unavailable Phase 8 runtime checks as warnings
+ok 95 - doctor reports unavailable Phase 8 runtime checks as warnings
+  ---
+  duration_ms: 855.5544
+  type: 'test'
+  ...
+# Subtest: background executor claims one delegation and persists background run state
+ok 96 - background executor claims one delegation and persists background run state
+  ---
+  duration_ms: 1340.7639
+  type: 'test'
+  ...
+# Subtest: background executor ingests supplied artifact and reaches terminal state
+ok 97 - background executor ingests supplied artifact and reaches terminal state
+  ---
+  duration_ms: 2522.9759
+  type: 'test'
+  ...
+# Subtest: claude code subagent worker spawns host process and ingests stdout artifact
+ok 98 - claude code subagent worker spawns host process and ingests stdout artifact
+  ---
+  duration_ms: 4822.1007
+  type: 'test'
+  ...
+# Subtest: background executor blocks invalid artifact evidence instead of completing silently
+ok 99 - background executor blocks invalid artifact evidence instead of completing silently
+  ---
+  duration_ms: 2433.9588
+  type: 'test'
+  ...
+# Subtest: background executor requires approval for database manual gate and accepts approved artifact ingestion
+ok 100 - background executor requires approval for database manual gate and accepts approved artifact ingestion
+  ---
+  duration_ms: 2902.1737
+  type: 'test'
+  ...
+# Subtest: background executor blocks manual handoff worker adapters
+ok 101 - background executor blocks manual handoff worker adapters
+  ---
+  duration_ms: 786.6547
+  type: 'test'
+  ...
+# Subtest: doctor reports background executor contract visibility
+ok 102 - doctor reports background executor contract visibility
+  ---
+  duration_ms: 3595.6345
+  type: 'test'
+  ...
+# Subtest: resident worker runtime claim persists run-bound runtime evidence
+ok 103 - resident worker runtime claim persists run-bound runtime evidence
+  ---
+  duration_ms: 1979.4928
+  type: 'test'
+  ...
+# Subtest: resident worker runtime heartbeat renews lease without completing task
+ok 104 - resident worker runtime heartbeat renews lease without completing task
+  ---
+  duration_ms: 1436.9947
+  type: 'test'
+  ...
+# Subtest: resident worker runtime stale lease is visible to status and doctor
+ok 105 - resident worker runtime stale lease is visible to status and doctor
+  ---
+  duration_ms: 5277.8482
+  type: 'test'
+  ...
+# Subtest: resident worker runtime heartbeat does not reopen terminal delegations
+ok 106 - resident worker runtime heartbeat does not reopen terminal delegations
+  ---
+  duration_ms: 2908.2633
+  type: 'test'
+  ...
+# Subtest: wave executor completes planner-safe waves from supplied artifacts
+ok 107 - wave executor completes planner-safe waves from supplied artifacts
+  ---
+  duration_ms: 5564.723
+  type: 'test'
+  ...
+# Subtest: wave executor blocks manual and blocked planner gates before execution
+ok 108 - wave executor blocks manual and blocked planner gates before execution
+  ---
+  duration_ms: 683.8513
+  type: 'test'
+  ...
+# Subtest: wave executor safe-continue finishes current safe wave but does not cross dependency boundary
+ok 109 - wave executor safe-continue finishes current safe wave but does not cross dependency boundary
+  ---
+  duration_ms: 3077.5085
+  type: 'test'
+  ...
+# Subtest: doctor reports wave executor contract visibility
+ok 110 - doctor reports wave executor contract visibility
+  ---
+  duration_ms: 2841.3439
+  type: 'test'
+  ...
+# Subtest: governance policy explains confirmation and concurrency gates
+ok 111 - governance policy explains confirmation and concurrency gates
+  ---
+  duration_ms: 5931.0625
+  type: 'test'
+  ...
+# Subtest: doctor reports governance policy contract visibility
+ok 112 - doctor reports governance policy contract visibility
+  ---
+  duration_ms: 3174.7821
+  type: 'test'
+  ...
+# Subtest: Phase 8 public facades expose contract types
+ok 113 - Phase 8 public facades expose contract types
+  ---
+  duration_ms: 14.8232
+  type: 'test'
+  ...
+# Subtest: instructions API returns stable JSON contract payloads
+ok 114 - instructions API returns stable JSON contract payloads
+  ---
+  duration_ms: 7.8377
+  type: 'test'
+  ...
+# Subtest: lifecycle decision gate allows direct only through conservative whitelist
+ok 115 - lifecycle decision gate allows direct only through conservative whitelist
+  ---
+  duration_ms: 21.2009
+  type: 'test'
+  ...
+# Subtest: lifecycle hard gates force full profile for contract and state risks
+ok 116 - lifecycle hard gates force full profile for contract and state risks
+  ---
+  duration_ms: 1.5258
+  type: 'test'
+  ...
+# Subtest: lifecycle database risk forces full hard gate and human checkpoint
+ok 117 - lifecycle database risk forces full hard gate and human checkpoint
+  ---
+  duration_ms: 4.4441
+  type: 'test'
+  ...
+# Subtest: Phase 5.1 lifecycle risk extraction maps Chinese hard-gate text
+ok 118 - Phase 5.1 lifecycle risk extraction maps Chinese hard-gate text
+  ---
+  duration_ms: 5.2905
+  type: 'test'
+  ...
+# Subtest: lifecycle checkpoint triggers are recorded without executing workflow
+ok 119 - lifecycle checkpoint triggers are recorded without executing workflow
+  ---
+  duration_ms: 1.3377
+  type: 'test'
+  ...
+# Subtest: lifecycle research gate handles unscoutable unknown impact
+ok 120 - lifecycle research gate handles unscoutable unknown impact
+  ---
+  duration_ms: 0.694
+  type: 'test'
+  ...
+# Subtest: lifecycle decision gate emits canonical Phase 1.3 contract id for new records
+ok 121 - lifecycle decision gate emits canonical Phase 1.3 contract id for new records
+  ---
+  duration_ms: 1.0324
+  type: 'test'
+  ...
+# Subtest: recordLifecycleDecision persists command gate output to run state and events
+ok 122 - recordLifecycleDecision persists command gate output to run state and events
+  ---
+  duration_ms: 1992.1057
+  type: 'test'
+  ...
+# Subtest: safe path segments reject dot-dot branch and run id while allowing dotted names
+ok 123 - safe path segments reject dot-dot branch and run id while allowing dotted names
+  ---
+  duration_ms: 209.9817
+  type: 'test'
+  ...
+# Subtest: Phase 8 contract objects expose required runtime boundaries
+ok 124 - Phase 8 contract objects expose required runtime boundaries
+  ---
+  duration_ms: 6.4595
+  type: 'test'
+  ...
+# Subtest: lifecycle risk decision keeps agent and subagent selection out of policy output
+ok 125 - lifecycle risk decision keeps agent and subagent selection out of policy output
+  ---
+  duration_ms: 1.2238
+  type: 'test'
+  ...
+# Subtest: work units, subagents, context offload, evidence, and model artifacts stay non-authoritative by default
+ok 126 - work units, subagents, context offload, evidence, and model artifacts stay non-authoritative by default
+  ---
+  duration_ms: 1.221
+  type: 'test'
+  ...
+# Subtest: projection envelope records deterministic freshness inputs
+ok 127 - projection envelope records deterministic freshness inputs
+  ---
+  duration_ms: 4.4872
+  type: 'test'
+  ...
+# Subtest: Phase 8 projection envelope writes are deterministic and stale-aware
+ok 128 - Phase 8 projection envelope writes are deterministic and stale-aware
+  ---
+  duration_ms: 2143.2973
+  type: 'test'
+  ...
+# Subtest: legacy task risk profiles map to Phase 8 coding risk signals
+ok 129 - legacy task risk profiles map to Phase 8 coding risk signals
+  ---
+  duration_ms: 5.0589
+  type: 'test'
+  ...
+# Subtest: legacy lifecycle decisions map to Phase 8 comparison decisions
+ok 130 - legacy lifecycle decisions map to Phase 8 comparison decisions
+  ---
+  duration_ms: 4.5623
+  type: 'test'
+  ...
+# Subtest: lifecycle risk kernel allows direct for low-risk known work
+ok 131 - lifecycle risk kernel allows direct for low-risk known work
+  ---
+  duration_ms: 22.9321
+  type: 'test'
+  ...
+# Subtest: lifecycle risk kernel selects compact for bounded context and evidence signals
+ok 132 - lifecycle risk kernel selects compact for bounded context and evidence signals
+  ---
+  duration_ms: 4.8417
+  type: 'test'
+  ...
+# Subtest: lifecycle risk kernel selects full for source runtime and security risks
+ok 133 - lifecycle risk kernel selects full for source runtime and security risks
+  ---
+  duration_ms: 3.3535
+  type: 'test'
+  ...
+# Subtest: lifecycle risk kernel selects research for low-confidence external impact
+ok 134 - lifecycle risk kernel selects research for low-confidence external impact
+  ---
+  duration_ms: 0.9623
+  type: 'test'
+  ...
+# Subtest: lifecycle risk kernel blocks unknown intent or blocked signals first
+ok 135 - lifecycle risk kernel blocks unknown intent or blocked signals first
+  ---
+  duration_ms: 0.9838
+  type: 'test'
+  ...
+# Subtest: lifecycle risk decision projection can be written and read
+ok 136 - lifecycle risk decision projection can be written and read
+  ---
+  duration_ms: 2022.7714
+  type: 'test'
+  ...
+# Subtest: lifecycle risk consumer diagnostic reports missing projections
+ok 137 - lifecycle risk consumer diagnostic reports missing projections
+  ---
+  duration_ms: 183.865
+  type: 'test'
+  ...
+# Subtest: lifecycle risk consumer diagnostic reports stale projections
+ok 138 - lifecycle risk consumer diagnostic reports stale projections
+  ---
+  duration_ms: 225.1637
+  type: 'test'
+  ...
+# Subtest: lifecycle risk consumer diagnostic reports blocked fresh projections
+ok 139 - lifecycle risk consumer diagnostic reports blocked fresh projections
+  ---
+  duration_ms: 200.5781
+  type: 'test'
+  ...
+# Subtest: lifecycle risk consumer diagnostic reports incompatible producer versions
+ok 140 - lifecycle risk consumer diagnostic reports incompatible producer versions
+  ---
+  duration_ms: 211.3618
+  type: 'test'
+  ...
+# Subtest: task graph planner builds dependency and file overlap graph
+ok 141 - task graph planner builds dependency and file overlap graph
+  ---
+  duration_ms: 1631.2122
+  type: 'test'
+  ...
+# Subtest: task graph parses Phase 5.3 harness metadata fields
+ok 142 - task graph parses Phase 5.3 harness metadata fields
+  ---
+  duration_ms: 1144.0283
+  type: 'test'
+  ...
+# Subtest: task graph planner blocks missing dependency and cycle diagnostics
+ok 143 - task graph planner blocks missing dependency and cycle diagnostics
+  ---
+  duration_ms: 802.4791
+  type: 'test'
+  ...
+# Subtest: doctor reports task graph planner contract visibility
+ok 144 - doctor reports task graph planner contract visibility
+  ---
+  duration_ms: 3999.4105
+  type: 'test'
+  ...
+# Subtest: wave planner builds dependency waves and separates file overlaps
+ok 145 - wave planner builds dependency waves and separates file overlaps
+  ---
+  duration_ms: 1239.5398
+  type: 'test'
+  ...
+# Subtest: wave planner routes manual gates and downstream blocked tasks
+ok 146 - wave planner routes manual gates and downstream blocked tasks
+  ---
+  duration_ms: 837.3985
+  type: 'test'
+  ...
+# Subtest: wave planner blocks graph diagnostics
+ok 147 - wave planner blocks graph diagnostics
+  ---
+  duration_ms: 715.5783
+  type: 'test'
+  ...
+# Subtest: doctor reports wave planner contract visibility
+ok 148 - doctor reports wave planner contract visibility
+  ---
+  duration_ms: 3907.2808
+  type: 'test'
+  ...
+# Subtest: Phase 5.2 workflow gates and agent registry expose inspectable contracts
+ok 149 - Phase 5.2 workflow gates and agent registry expose inspectable contracts
+  ---
+  duration_ms: 1008.6182
+  type: 'test'
+  ...
+# Subtest: Phase 5.4 query status contract exposes output boundaries
+ok 150 - Phase 5.4 query status contract exposes output boundaries
+  ---
+  duration_ms: 911.0811
+  type: 'test'
+  ...
+# Subtest: doctor reports Phase 5.4 query status contract visibility
+ok 151 - doctor reports Phase 5.4 query status contract visibility
+  ---
+  duration_ms: 3808.1962
+  type: 'test'
+  ...
+# Subtest: Phase 5.5 eval, learning, and context pack contracts validate against ERP trial evidence
+ok 152 - Phase 5.5 eval, learning, and context pack contracts validate against ERP trial evidence
+  ---
+  duration_ms: 15.1346
+  type: 'test'
+  ...
+# Subtest: Phase 5.5 validations do not require platform-only assets in user projects
+ok 153 - Phase 5.5 validations do not require platform-only assets in user projects
+  ---
+  duration_ms: 105.7213
+  type: 'test'
+  ...
+# Subtest: doctor reports Phase 5.5 contract visibility
+ok 154 - doctor reports Phase 5.5 contract visibility
+  ---
+  duration_ms: 4694.0811
+  type: 'test'
+  ...
+# Subtest: Phase 7.6 agent capability catalog routes domains and material packs without prompt bloat
+ok 155 - Phase 7.6 agent capability catalog routes domains and material packs without prompt bloat
+  ---
+  duration_ms: 109.1607
+  type: 'test'
+  ...
+# Subtest: doctor reports Phase 7.6 agent capability catalog visibility
+ok 156 - doctor reports Phase 7.6 agent capability catalog visibility
+  ---
+  duration_ms: 2953.5559
+  type: 'test'
+  ...
+# Subtest: Phase 7.7 command team runtime maps commands to bounded roles and telemetry
+ok 157 - Phase 7.7 command team runtime maps commands to bounded roles and telemetry
+  ---
+  duration_ms: 313.0945
+  type: 'test'
+  ...
+# Subtest: Phase 7.9 command team runtime trims optional roles under token pressure unless forced
+ok 158 - Phase 7.9 command team runtime trims optional roles under token pressure unless forced
+  ---
+  duration_ms: 339.9911
+  type: 'test'
+  ...
+# Subtest: doctor reports Phase 7.7 command team runtime visibility
+ok 159 - doctor reports Phase 7.7 command team runtime visibility
+  ---
+  duration_ms: 2411.1151
+  type: 'test'
+  ...
+# Subtest: tool capability registry lists sorted baseline capabilities and supports inspect
+ok 160 - tool capability registry lists sorted baseline capabilities and supports inspect
+  ---
+  duration_ms: 99.8336
+  type: 'test'
+  ...
+# Subtest: doctor reports capability registry visibility
+ok 161 - doctor reports capability registry visibility
+  ---
+  duration_ms: 2151.9589
+  type: 'test'
+  ...
+# Subtest: tool plugin contracts list sorted baseline mappings and support inspect
+ok 162 - tool plugin contracts list sorted baseline mappings and support inspect
+  ---
+  duration_ms: 81.4343
+  type: 'test'
+  ...
+# Subtest: doctor reports plugin loading contract visibility
+ok 163 - doctor reports plugin loading contract visibility
+  ---
+  duration_ms: 2199.7111
+  type: 'test'
+  ...
+# Subtest: worker adapter contracts list sorted baseline manifests and support inspect
+ok 164 - worker adapter contracts list sorted baseline manifests and support inspect
+  ---
+  duration_ms: 78.766
+  type: 'test'
+  ...
+# Subtest: doctor reports worker adapter contract compatibility
+ok 165 - doctor reports worker adapter contract compatibility
+  ---
+  duration_ms: 2180.0185
+  type: 'test'
+  ...
+# Subtest: Phase 6 agent skill team runtime exposes reusable contracts and router decisions
+ok 166 - Phase 6 agent skill team runtime exposes reusable contracts and router decisions
+  ---
+  duration_ms: 1588.1549
+  type: 'test'
+  ...
+# Subtest: Phase 6 adaptive team-mode routes choose cost-bounded agent teams automatically
+ok 167 - Phase 6 adaptive team-mode routes choose cost-bounded agent teams automatically
+  ---
+  duration_ms: 593.7932
+  type: 'test'
+  ...
+# Subtest: routeSddTask uses derived route cache and opt-in profiling only
+ok 168 - routeSddTask uses derived route cache and opt-in profiling only
+  ---
+  duration_ms: 422.1531
+  type: 'test'
+  ...
+# Subtest: Phase 6.3 project agent runtime merges project config and routes by alias and rule
+ok 169 - Phase 6.3 project agent runtime merges project config and routes by alias and rule
+  ---
+  duration_ms: 299.0009
+  type: 'test'
+  ...
+# Subtest: Phase 6.3 invalid agent runtime declarations fail closed
+ok 170 - Phase 6.3 invalid agent runtime declarations fail closed
+  ---
+  duration_ms: 130.3256
+  type: 'test'
+  ...
+# Subtest: local run index rebuilds and queries derived run evidence
+ok 171 - local run index rebuilds and queries derived run evidence
+  ---
+  duration_ms: 1721.7481
+  type: 'test'
+  ...
+# Subtest: createRun writes state and append-only events
+ok 172 - createRun writes state and append-only events
+  ---
+  duration_ms: 978.7907
+  type: 'test'
+  ...
+# Subtest: createRun binds scoped branch task metadata
+ok 173 - createRun binds scoped branch task metadata
+  ---
+  duration_ms: 486.6632
+  type: 'test'
+  ...
+# Subtest: listRuns sorts run summaries by updated time descending
+ok 174 - listRuns sorts run summaries by updated time descending
+  ---
+  duration_ms: 477.4631
+  type: 'test'
+  ...
+# Subtest: runtime analysis report composes workflow runtime evidence and non-authoritative projections
+ok 175 - runtime analysis report composes workflow runtime evidence and non-authoritative projections
+  ---
+  duration_ms: 7654.7863
+  type: 'test'
+  ...
+# Subtest: parseSddTasksMarkdown extracts task metadata and companion sections
+ok 176 - parseSddTasksMarkdown extracts task metadata and companion sections
+  ---
+  duration_ms: 40.0903
+  type: 'test'
+  ...
+# Subtest: parseSddTasksMarkdown does not leak companion sections across indented task headings
+ok 177 - parseSddTasksMarkdown does not leak companion sections across indented task headings
+  ---
+  duration_ms: 4.7968
+  type: 'test'
+  ...
+# Subtest: parseSddTasksMarkdown reports task metadata and dependency gaps
+ok 178 - parseSddTasksMarkdown reports task metadata and dependency gaps
+  ---
+  duration_ms: 6.2726
+  type: 'test'
+  ...
+# Subtest: parseSddBranch reads branch docs and inspectSddTask filters gaps
+ok 179 - parseSddBranch reads branch docs and inspectSddTask filters gaps
+  ---
+  duration_ms: 214.3503
+  type: 'test'
+  ...
+# Subtest: retained phase fallback detects aggregate duplicate task ids and inspect ambiguity
+ok 180 - retained phase fallback detects aggregate duplicate task ids and inspect ambiguity
+  ---
+  duration_ms: 317.3966
+  type: 'test'
+  ...
+# Subtest: retained phase fallback validates cross-file dependencies over aggregate tasks
+ok 181 - retained phase fallback validates cross-file dependencies over aggregate tasks
+  ---
+  duration_ms: 195.8864
+  type: 'test'
+  ...
+# Subtest: retained phase fallback still reports unknown dependencies
+ok 182 - retained phase fallback still reports unknown dependencies
+  ---
+  duration_ms: 201.2644
+  type: 'test'
+  ...
+# Subtest: stage run state machine allows legal transitions and rejects terminal reopen
+ok 183 - stage run state machine allows legal transitions and rejects terminal reopen
+  ---
+  duration_ms: 5.2227
+  type: 'test'
+  ...
+# Subtest: stage validation rejects subagent lifecycle owners
+ok 184 - stage validation rejects subagent lifecycle owners
+  ---
+  duration_ms: 0.5876
+  type: 'test'
+  ...
+# Subtest: workflow handoff validation considers source stage risk refs evidence and blockers
+ok 185 - workflow handoff validation considers source stage risk refs evidence and blockers
+  ---
+  duration_ms: 2.9378
+  type: 'test'
+  ...
+# Subtest: workflow handoff state machine accepts proposed handoff and rejects terminal mutation
+ok 186 - workflow handoff state machine accepts proposed handoff and rejects terminal mutation
+  ---
+  duration_ms: 0.513
+  type: 'test'
+  ...
+# Subtest: stage run and workflow handoff projections can be written read and inspected
+ok 187 - stage run and workflow handoff projections can be written read and inspected
+  ---
+  duration_ms: 1002.2259
+  type: 'test'
+  ...
+# Subtest: workflow handoff diagnostics report blocked rejected and stale projections
+ok 188 - workflow handoff diagnostics report blocked rejected and stale projections
+  ---
+  duration_ms: 741.6576
+  type: 'test'
+  ...
+# Subtest: getProjectStatus resolves configured default SDD branch without silent master fallback
+ok 189 - getProjectStatus resolves configured default SDD branch without silent master fallback
+  ---
+  duration_ms: 2705.1543
+  type: 'test'
+  ...
+# Subtest: getProjectStatus resolves concrete project config branch when no default branch is set
+ok 190 - getProjectStatus resolves concrete project config branch when no default branch is set
+  ---
+  duration_ms: 1173.1716
+  type: 'test'
+  ...
+# Subtest: Phase 6.4 getProjectStatus resolves current Git branch before project config default
+ok 191 - Phase 6.4 getProjectStatus resolves current Git branch before project config default
+  ---
+  duration_ms: 1235.0687
+  type: 'test'
+  ...
+# Subtest: Phase 6.4 maps slash Git branch names to stable safe partitions
+ok 192 - Phase 6.4 maps slash Git branch names to stable safe partitions
+  ---
+  duration_ms: 1049.7941
+  type: 'test'
+  ...
+# Subtest: Phase 6.4 marks plan and tasks stale after spec revision hash changes
+ok 193 - Phase 6.4 marks plan and tasks stale after spec revision hash changes
+  ---
+  duration_ms: 982.2869
+  type: 'test'
+  ...
+# Subtest: getProjectStatus rejects unresolved branch instead of silently using specs master
+ok 194 - getProjectStatus rejects unresolved branch instead of silently using specs master
+  ---
+  duration_ms: 200.5498
+  type: 'test'
+  ...
+# Subtest: statusline token health uses context and team runtime projections
+ok 195 - statusline token health uses context and team runtime projections
+  ---
+  duration_ms: 1379.8214
+  type: 'test'
+  ...
+# Subtest: getProjectStatus exposes observable workflow handoff projections
+ok 196 - getProjectStatus exposes observable workflow handoff projections
+  ---
+  duration_ms: 537.2477
+  type: 'test'
+  ...
+# Subtest: statusline exposes context offload and subagent dispatch projections
+ok 197 - statusline exposes context offload and subagent dispatch projections
+  ---
+  duration_ms: 558.0854
+  type: 'test'
+  ...
+# (node:17180) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: runtime store mirrors run state events artifacts and doctor visibility
+ok 198 - runtime store mirrors run state events artifacts and doctor visibility
+  ---
+  duration_ms: 4119.3658
+  type: 'test'
+  ...
+# Subtest: runtime store imports changed legacy run state and events
+ok 199 - runtime store imports changed legacy run state and events
+  ---
+  duration_ms: 634.1744
+  type: 'test'
+  ...
+# Subtest: subagent definition policy rejects lifecycle ownership and production edit authority
+ok 200 - subagent definition policy rejects lifecycle ownership and production edit authority
+  ---
+  duration_ms: 4.7271
+  type: 'test'
+  ...
+# Subtest: subagent write policy allows test paths and rejects production paths
+ok 201 - subagent write policy allows test paths and rejects production paths
+  ---
+  duration_ms: 3.0714
+  type: 'test'
+  ...
+# Subtest: subagent dispatch gate semantics respect blocking and completed results
+ok 202 - subagent dispatch gate semantics respect blocking and completed results
+  ---
+  duration_ms: 1.1037
+  type: 'test'
+  ...
+# Subtest: subagent result consumption is non-authoritative
+ok 203 - subagent result consumption is non-authoritative
+  ---
+  duration_ms: 47.7341
+  type: 'test'
+  ...
+# Subtest: subagent projections can be written read and inspected
+ok 204 - subagent projections can be written read and inspected
+  ---
+  duration_ms: 1744.2132
+  type: 'test'
+  ...
+# Subtest: subagent inspection ignores dispatches from archived runs
+ok 205 - subagent inspection ignores dispatches from archived runs
+  ---
+  duration_ms: 560.7238
+  type: 'test'
+  ...
+# Subtest: subagent inspection lets a newer successful rerun supersede an older failed dispatch
+ok 206 - subagent inspection lets a newer successful rerun supersede an older failed dispatch
+  ---
+  duration_ms: 425.7342
+  type: 'test'
+  ...
+# Subtest: sync-back inspect blocks modified proposal digest
+ok 207 - sync-back inspect blocks modified proposal digest
+  ---
+  duration_ms: 2585.0537
+  type: 'test'
+  ...
+# Subtest: sync-back apply requires approval for risky complex tasks
+ok 208 - sync-back apply requires approval for risky complex tasks
+  ---
+  duration_ms: 3573.6249
+  type: 'test'
+  ...
+# Subtest: sync-back gates direct-safe task by task scope instead of branch lifecycle risk
+ok 209 - sync-back gates direct-safe task by task scope instead of branch lifecycle risk
+  ---
+  duration_ms: 1003.0937
+  type: 'test'
+  ...
+# Subtest: sync-back apply rejects blocked runs and reports inspect reasons
+ok 210 - sync-back apply rejects blocked runs and reports inspect reasons
+  ---
+  duration_ms: 4385.1423
+  type: 'test'
+  ...
+# Subtest: Phase 6.5 resolves latest eligible run by partition and task without run id
+ok 211 - Phase 6.5 resolves latest eligible run by partition and task without run id
+  ---
+  duration_ms: 1831.7207
+  type: 'test'
+  ...
+# Subtest: Phase 6.5 marks changed documents as stale and blocks sync-back apply
+ok 212 - Phase 6.5 marks changed documents as stale and blocks sync-back apply
+  ---
+  duration_ms: 1132.1254
+  type: 'test'
+  ...
+# Subtest: sync-back apply blocks stale verify contract and reports exact refresh command
+ok 213 - sync-back apply blocks stale verify contract and reports exact refresh command
+  ---
+  duration_ms: 1114.5945
+  type: 'test'
+  ...
+# Subtest: sync-back inspect blocks missing verify contract
+ok 214 - sync-back inspect blocks missing verify contract
+  ---
+  duration_ms: 1008.5403
+  type: 'test'
+  ...
+# Subtest: sync-back apply refreshes stale verify contract when explicitly requested
+ok 215 - sync-back apply refreshes stale verify contract when explicitly requested
+  ---
+  duration_ms: 1435.1114
+  type: 'test'
+  ...
+# Subtest: sync-back apply refreshes verify contract after tasks writeback
+ok 216 - sync-back apply refreshes verify contract after tasks writeback
+  ---
+  duration_ms: 1301.58
+  type: 'test'
+  ...
+# Subtest: Phase 6.5 requires approval before sync-back apply on the wrong Git branch
+ok 217 - Phase 6.5 requires approval before sync-back apply on the wrong Git branch
+  ---
+  duration_ms: 1538.2112
+  type: 'test'
+  ...
+# Subtest: Phase 6.5 reports active affected file conflicts
+ok 218 - Phase 6.5 reports active affected file conflicts
+  ---
+  duration_ms: 1054.8846
+  type: 'test'
+  ...
+# (node:7624) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: runGoalVerify blocks when acceptance evidence is missing
+ok 219 - runGoalVerify blocks when acceptance evidence is missing
+  ---
+  duration_ms: 2657.5508
+  type: 'test'
+  ...
+# Subtest: runGoalVerify blocks when validator artifact only includes generated acceptance mapping
+ok 220 - runGoalVerify blocks when validator artifact only includes generated acceptance mapping
+  ---
+  duration_ms: 1888.3502
+  type: 'test'
+  ...
+# Subtest: runGoalVerify blocks source evidence without invocation ledger corroboration
+ok 221 - runGoalVerify blocks source evidence without invocation ledger corroboration
+  ---
+  duration_ms: 1708.582
+  type: 'test'
+  ...
+# Subtest: runGoalVerify selects strongest policy-backed PASS evidence
+ok 222 - runGoalVerify selects strongest policy-backed PASS evidence
+  ---
+  duration_ms: 1598.6094
+  type: 'test'
+  ...
+# Subtest: runGoalVerify fails closed for cross-partition admitted evidence
+ok 223 - runGoalVerify fails closed for cross-partition admitted evidence
+  ---
+  duration_ms: 4398.9807
+  type: 'test'
+  ...
+# Subtest: runGoalVerify maps validation evidence to acceptance and writes sync-back proposal
+ok 224 - runGoalVerify maps validation evidence to acceptance and writes sync-back proposal
+  ---
+  duration_ms: 8036.7863
+  type: 'test'
+  ...
+# Subtest: runSingleTaskLoop completes from supplied review and validation artifacts without modifying tasks markdown
+ok 225 - runSingleTaskLoop completes from supplied review and validation artifacts without modifying tasks markdown
+  ---
+  duration_ms: 7781.0028
+  type: 'test'
+  ...
+# Subtest: runSingleTaskLoop blocks on missing reviewer artifact and creates gap proposal
+ok 226 - runSingleTaskLoop blocks on missing reviewer artifact and creates gap proposal
+  ---
+  duration_ms: 1370.6864
+  type: 'test'
+  ...
+# Subtest: runSingleTaskLoop blocks PASS_WITH_GAPS validation with gap report and blocked sync-back proposal
+ok 227 - runSingleTaskLoop blocks PASS_WITH_GAPS validation with gap report and blocked sync-back proposal
+  ---
+  duration_ms: 3851.3492
+  type: 'test'
+  ...
+# Subtest: runSingleTaskLoop persists agent and team evidence records
+ok 228 - runSingleTaskLoop persists agent and team evidence records
+  ---
+  duration_ms: 4140.3586
+  type: 'test'
+  ...
+# Subtest: runSddTest captures command output and indexes test evidence
+ok 229 - runSddTest captures command output and indexes test evidence
+  ---
+  duration_ms: 5617.4539
+  type: 'test'
+  ...
+# Subtest: runSddTest executes argv commands without shell and records argv evidence
+ok 230 - runSddTest executes argv commands without shell and records argv evidence
+  ---
+  duration_ms: 2179.795
+  type: 'test'
+  ...
+# Subtest: runSddTest creates missing verify contract before executing commands
+ok 231 - runSddTest creates missing verify contract before executing commands
+  ---
+  duration_ms: 2208.9693
+  type: 'test'
+  ...
+# Subtest: runSddTest refreshes stale verify contract before executing commands
+ok 232 - runSddTest refreshes stale verify contract before executing commands
+  ---
+  duration_ms: 2112.6842
+  type: 'test'
+  ...
+# Subtest: runSddTest produces validator evidence accepted by goal verify
+ok 233 - runSddTest produces validator evidence accepted by goal verify
+  ---
+  duration_ms: 3510.2048
+  type: 'test'
+  ...
+# Subtest: runSddTest records failing commands without promoting verification pass
+ok 234 - runSddTest records failing commands without promoting verification pass
+  ---
+  duration_ms: 1768.4892
+  type: 'test'
+  ...
+# Subtest: runSddTest blocks source-boundary validation before command execution
+ok 235 - runSddTest blocks source-boundary validation before command execution
+  ---
+  duration_ms: 1148.9902
+  type: 'test'
+  ...
+# Subtest: inspectVerifyContract warns when verify document is missing
+ok 236 - inspectVerifyContract warns when verify document is missing
+  ---
+  duration_ms: 377.7768
+  type: 'test'
+  ...
+# Subtest: writeVerifyContract creates task-derived verify contract
+ok 237 - writeVerifyContract creates task-derived verify contract
+  ---
+  duration_ms: 365.6984
+  type: 'test'
+  ...
+# Subtest: inspectVerifyContract warns when verify document is stale
+ok 238 - inspectVerifyContract warns when verify document is stale
+  ---
+  duration_ms: 371.5791
+  type: 'test'
+  ...
+# Subtest: work unit state machine accepts legal transitions and rejects terminal mutation
+ok 239 - work unit state machine accepts legal transitions and rejects terminal mutation
+  ---
+  duration_ms: 5.3327
+  type: 'test'
+  ...
+# Subtest: work unit validation enforces lifecycle authority and blocking gates
+ok 240 - work unit validation enforces lifecycle authority and blocking gates
+  ---
+  duration_ms: 0.9761
+  type: 'test'
+  ...
+# Subtest: work unit blocking gate semantics distinguish blocking and non-blocking work
+ok 241 - work unit blocking gate semantics distinguish blocking and non-blocking work
+  ---
+  duration_ms: 1.1288
+  type: 'test'
+  ...
+# Subtest: work unit projections can be written and read
+ok 242 - work unit projections can be written and read
+  ---
+  duration_ms: 868.8992
+  type: 'test'
+  ...
+# Subtest: workflow state resolver projects branch docs latest run and next action
+ok 243 - workflow state resolver projects branch docs latest run and next action
+  ---
+  duration_ms: 1426.9638
+  type: 'test'
+  ...
+# Subtest: workflow state resolver reports affected-file conflicts without run-index rebuild
+ok 244 - workflow state resolver reports affected-file conflicts without run-index rebuild
+  ---
+  duration_ms: 1174.1575
+  type: 'test'
+  ...
+# Subtest: worktree isolation blocks writable overlapping tasks and allows read-only
+ok 245 - worktree isolation blocks writable overlapping tasks and allows read-only
+  ---
+  duration_ms: 648.7234
+  type: 'test'
+  ...
+# Subtest: worktree isolation marks high-risk writable task as manual or required
+ok 246 - worktree isolation marks high-risk writable task as manual or required
+  ---
+  duration_ms: 292.6336
+  type: 'test'
+  ...
+# Subtest: doctor reports worktree isolation contract visibility
+ok 247 - doctor reports worktree isolation contract visibility
+  ---
+  duration_ms: 2377.8211
+  type: 'test'
+  ...
+# Subtest: worktree lifecycle creates and removes clean tracked worktree
+ok 248 - worktree lifecycle creates and removes clean tracked worktree
+  ---
+  duration_ms: 3220.8889
+  type: 'test'
+  ...
+# Subtest: worktree lifecycle refuses dirty remove and can keep for inspection
+ok 249 - worktree lifecycle refuses dirty remove and can keep for inspection
+  ---
+  duration_ms: 2852.6892
+  type: 'test'
+  ...
+# Subtest: doctor reports worktree lifecycle contract visibility
+ok 250 - doctor reports worktree lifecycle contract visibility
+  ---
+  duration_ms: 2172.5029
+  type: 'test'
+  ...
+1..250
+# tests 250
+# suites 0
+# pass 250
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 170005.2555

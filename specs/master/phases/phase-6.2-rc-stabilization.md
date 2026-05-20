@@ -2,7 +2,7 @@
 
 ## 1. 定位
 
-Phase 6.2 是插入在 Phase 6.1 Resident Agent Worker Runtime 和 Phase 7.0 Code Knowledge Graph Baseline 之间的 release-candidate 稳定化阶段。
+Phase 6.2 是插入在 Phase 6.1 Resident Agent Worker Runtime 和后续 core modularization / code graph 阶段之间的 release-candidate 稳定化阶段。
 
 本阶段不扩展新的 agent 能力，也不启动代码知识图谱。它的目标是把 Phase 1.0~6.1 已经形成的 SDD workflow、AI 工具入口投影、doctor/verify/sync-back、background/wave executor、agent/team-mode、resident worker runtime 收口成更适合 1.0 RC 的工程形态。
 
@@ -11,8 +11,8 @@ Phase 6.2 是插入在 Phase 6.1 Resident Agent Worker Runtime 和 Phase 7.0 Cod
 ## 2. 依赖
 
 - depends_on: Phase 6.1 Resident Agent Worker Runtime
-- blocks: Phase 7.0 Code Knowledge Graph Baseline
-- required_by: Phase 7.0 Code Knowledge Graph Baseline
+- blocks: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
+- required_by: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
 
 ## 3. 范围
 
@@ -26,7 +26,7 @@ Phase 6.2 是插入在 Phase 6.1 Resident Agent Worker Runtime 和 Phase 7.0 Cod
 
 ## 4. 非目标
 
-- 不实现 Phase 7.0 code graph、embedding store、graph database 或 impact analysis。
+- 不实现 Phase 8.0 code graph、embedding store、graph database 或 impact analysis。
 - 不扩展 resident worker 到 daemon、tmux UI、远程 worker fleet 或进程 supervisor。
 - 不改变 artifact ingestion、review、validation、verify、sync-back 的完成语义。
 - 不新增大规模 command framework。
@@ -58,5 +58,5 @@ Phase 6.2 是插入在 Phase 6.1 Resident Agent Worker Runtime 和 Phase 7.0 Cod
 
 ## 7. 可被下游引用的产物
 
-- Phase 7.0 在启动 code graph 前，可引用 Phase 6.2 的 RC validation evidence 作为 graph baseline 的稳定输入条件。
+- Phase 8.0 在启动 code graph 前，可引用 Phase 6.2 的 RC validation evidence 和 Phase 7.0 core module boundary evidence 作为 graph baseline 的稳定输入条件。
 - 后续 release / publish 阶段可复用 Phase 6.2 validation checklist。

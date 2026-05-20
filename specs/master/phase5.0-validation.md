@@ -16,7 +16,7 @@
 | No OS scope creep | Phase 5 explicitly does not build OS, scheduler, plugin runtime, OpenCode clone, model router, or permission replacement | pass | out-of-scope / guardrail sections |
 | Contract freeze complete | Ten harness contracts are named and mapped to follow-up phases | pass | phase artifact; spec; plan; tasks |
 | Phase split complete | Runtime work is split into 5.1~5.6 | pass | phases README; PHASE_STATUS; validation index |
-| Phase 7 graph ownership preserved | Code Knowledge Graph is shifted to Phase 7.0 after the new Phase 6 runtime harness | pass | `specs/master/phases/phase-7.0-code-knowledge-graph-baseline.md`; `specs/master/phases/phase-6.0-agent-skill-runtime-harness.md` |
+| Phase 8 graph ownership preserved | Code Knowledge Graph is shifted to Phase 8.0 after the inserted Phase 7 core runtime modularization stage | pass | `specs/master/phases/phase-8.0-code-knowledge-graph-baseline.md`; `specs/master/phases/phase-7.0-core-runtime-modularization.md`; `specs/master/phases/phase-6.0-agent-skill-runtime-harness.md` |
 | Status consistency | Phase 5.0 is completed as documentation/route reframe; runtime implementation starts at 5.1 | pass | `phase5.0-tasks.md`; `PHASE_STATUS.md` |
 
 ## Manual Validation Commands
@@ -34,7 +34,7 @@ sdd status --branch master
 - [x] Phase 5.0 depends on Claude Code and similar AI tool harnesses instead of building an OS.
 - [x] All ten harness contracts are frozen.
 - [x] Runtime implementation work is removed from Phase 5.0 and split into 5.1~5.6.
-- [x] Phase 6.0 owns Agent / Skill Runtime Harness; Phase 7.0 owns code knowledge graph.
+- [x] Phase 6.0 owns Agent / Skill Runtime Harness; Phase 7.0 owns Core Runtime Modularization; Phase 8.0 owns Code Knowledge Graph.
 
 ## Result
 

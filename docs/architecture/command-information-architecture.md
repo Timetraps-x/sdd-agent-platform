@@ -9,7 +9,7 @@
 本文评估两类入口：
 
 1. Shell CLI：例如 `sdd init`、`sdd status`、`sdd do task`。
-2. AI 工具入口 / slash command：当前 Claude Code 投影为 `.claude/commands/sdd.md` 根入口和 `.claude/commands/sdd/*.md` 子入口；常用形态是 `/sdd`、`/sdd:spec`、`/sdd:plan`、`/sdd:tasks`、`/sdd:do`、`/sdd:verify`。
+2. AI 工具入口 / slash command：当前 Claude Code 投影为 `.claude/skills/sdd/SKILL.md` 根 skill 和 `.claude/commands/sdd/*.md` 子 command；主生命周期形态是 `/sdd`、`/sdd:spec`、`/sdd:plan`、`/sdd:tasks`、`/sdd:do`、`/sdd:test`、`/sdd:sync-back`、`/sdd:ship`，诊断入口是 `/sdd:doctor`。低层 `sdd verify task`、`sdd verifies`、`sdd update`、`sdd instructions` 保留为 CLI/core 能力，不再投影成默认 slash 入口。
 
 ## 结论
 
@@ -61,7 +61,7 @@ sdd artifact template
 sdd artifact validate
 
 sdd do task
-sdd verify task
+sdd test task
 sdd sync-back inspect
 sdd sync-back apply
 ```
@@ -80,8 +80,8 @@ sdd sync-back apply
 | `sdd run *` | 管理执行证据 | 创建、查看、归档 run |
 | `sdd artifact template/validate` | 标准化 evidence | 生成和校验 agent result artifact |
 | `sdd do task` | 执行单个任务 | ingestion-aware task workflow |
-| `sdd verify task` | goal-level 验证 | 验收覆盖验证 |
-| `sdd sync-back *` | 写回任务状态 | inspect 后按 policy apply |
+| `sdd test task` | 测试 + 证据判断 | 执行验证命令、收集 evidence、评估 acceptance coverage，作为主运行时门禁 |
+| `sdd sync-back *` | 写回任务状态 | `/sdd:test` PASS 后 inspect，再按 policy apply |
 
 ### 高级执行 command
 
@@ -247,15 +247,18 @@ workflow = what should I do next for this project/task
 
 ### 名称说明
 
-`sdd init` 是 shell CLI 的项目级接入命令；`/sdd` 是 Claude Code 的 SDD 根入口投影；`/sdd:spec` 是 workflow/spec partition 入口。
+`sdd init` 是 shell CLI 的项目级接入命令；`/sdd` 是 Claude Code 的 SDD 根 skill 投影；`/sdd:spec` 是 workflow/spec partition 入口。
 
 当前代码里对应的是：
 
 ```text
-root artifact id: sdd-root
-root projected path: .claude/commands/sdd.md
-workflow projected paths: .claude/commands/sdd/spec.md, plan.md, tasks.md, do.md, verify.md
+root skill artifact id: sdd
+root projected path: .claude/skills/sdd/SKILL.md
+workflow command projected paths: .claude/commands/sdd/spec.md, plan.md, tasks.md, do.md, test.md, sync-back.md, ship.md
+diagnostic command projected path: .claude/commands/sdd/doctor.md
 ```
+low-level verify contract CLI: sdd verifies inspect|write|format, consumed by /sdd:test rather than projected as /sdd:verifies
+maintenance/helper CLI only: sdd update, sdd instructions <action>
 
 在 Claude Code 中，常用入口是：
 
@@ -265,7 +268,9 @@ workflow projected paths: .claude/commands/sdd/spec.md, plan.md, tasks.md, do.md
 /sdd:plan
 /sdd:tasks
 /sdd:do
-/sdd:verify
+/sdd:test
+/sdd:sync-back
+/sdd:ship
 ```
 
 ### `sdd init`
@@ -275,7 +280,7 @@ workflow projected paths: .claude/commands/sdd/spec.md, plan.md, tasks.md, do.md
 入口行为：
 
 ```text
-sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
+sdd init [--force] [--ai auto|claude-code|none] [--scaffold-docs] [--no-scaffold-docs]
 ```
 
 实际 side effects：
@@ -291,7 +296,7 @@ sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
 
 - `sdd init` 默认是项目级接入；不同 Git branch 不需要重复 init。
 - starter semantic docs 是 scaffold 行为，不是 workflow branch 入口；常规分区文档由 `/sdd:spec` 创建/细化。
-- 传 `--no-scaffold-docs` 时跳过 starter docs。
+- 传 `--scaffold-docs` 时创建 starter docs；传 `--no-scaffold-docs` 时显式跳过 starter docs。
 - 已存在的 semantic docs 默认保留。
 - 只有显式 `--force` 才覆盖已有 semantic docs。
 - `--ai claude-code` 会显式投影 Claude Code entries。
@@ -300,17 +305,17 @@ sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
 源码边界：
 
 - CLI 解析 `sdd init` 后调用 `initProject(...)`。
-- `initProject(...)` 负责 `.sdd`、runs、project config、可选 starter docs、AI entries；分支/分区 workflow 由 spec/plan/tasks/do/verify/status 命令链处理。
+- `initProject(...)` 负责 `.sdd`、runs、project config、可选 starter docs、AI entries；分支/分区 workflow 由 spec/plan/tasks/do/test/sync-back/status 命令链处理，`verify` 只保留为兼容诊断。
 
 ### `/sdd` 与 `/sdd:spec`
 
-`/sdd` 是 AI 操作者根入口，是一个薄 command contract。它本身不承载 workflow 状态逻辑，而是要求 Claude Code 先运行 `sdd status` 和 `sdd instructions overview --json`，再按 CLI/core 的 recommended command 继续。
+`/sdd` 是 AI 操作者根入口，是一个薄 skill / intent router。它本身不承载 workflow 状态逻辑，而是要求 Claude Code 先运行 `sdd status`，必要时运行 `sdd instructions overview --json`，再按 CLI/core 的 recommended command 继续。
 
 `/sdd:spec` 是 workflow partition 入口：
 
 - 不传 `--branch` 时，CLI/core 从当前 Git branch 解析 partition。
 - 传 `--branch <branch>` 时，只解析/创建指定 partition，不要求重复 init。
-- 后续 `/sdd:plan`、`/sdd:tasks`、`/sdd:do`、`/sdd:verify` 继续使用已解析的 partition/task 语义。
+- 后续 `/sdd:plan`、`/sdd:tasks`、`/sdd:do`、`/sdd:test`、`/sdd:sync-back` 继续使用已解析的 partition/task 语义；`sdd verify task` 仅作为低层 CLI 兼容诊断或旧 run replay；`/sdd:ship` 使用目标 branch/partition 做上线前检查，但不执行 publish/push/tag。
 
 这些 AI 入口不应该：
 
@@ -322,20 +327,24 @@ sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
 ### 两者关系
 
 ```text
-/sdd       = AI 操作说明 / 根入口投影 / thin wrapper
-/sdd:spec  = workflow partition 入口投影
-sdd init   = source of truth / 项目级初始化执行器 / state writer
+/sdd            = AI 操作说明 / 根 skill 投影 / thin intent router
+/sdd:spec       = workflow partition 入口投影
+/sdd:test       = 验证命令执行 + acceptance evidence judgment 主门禁
+/sdd:sync-back  = verified task completion 写回入口投影
+/sdd:ship       = 上线前 release-readiness / dry-run 入口投影
+sdd init        = source of truth / 项目级初始化执行器 / state writer
 ```
 
 也就是说：
 
 ```text
 用户在 Claude Code 里触发 /sdd
-  -> AI 读取 generated command contract
+  -> AI 读取 generated skill contract
   -> AI 运行 sdd status 和 sdd instructions overview --json
   -> CLI/core 返回当前 partition、workflow_status、recommended command
   -> 若需要进入新 workflow，AI 运行 /sdd:spec 对应的 spec 指令
-  -> 后续 plan/tasks/do/verify/sync-back 继续由 CLI/core 状态驱动
+  -> 后续 plan/tasks/do/test/sync-back 继续由 CLI/core 状态驱动
+  -> 若用户要求上线，AI 运行 /sdd:ship，先执行 sdd ship --branch <branch> --dry-run 做本地 readiness 检查
 ```
 
 ### 为什么需要两类入口
@@ -344,15 +353,15 @@ sdd init   = source of truth / 项目级初始化执行器 / state writer
 
 ```text
 CLI/core 是事实源。
-AI slash command 是入口投影。
+AI skill / slash command 是入口投影。
 ```
 
 原因：
 
 1. Shell CLI 可被人类、CI、其他 agent、其他 IDE 统一调用。
-2. Slash command 给 Claude Code 用户一个自然入口。
+2. Skill 和 slash command 给 Claude Code 用户一个自然入口。
 3. 动态状态由 CLI/core 判断，不由生成的 markdown 猜测。
-4. `sdd update` 可以检查/修复 managed AI entry drift。
+4. `sdd update` 可以检查/修复 managed AI entry drift，但不需要作为默认 slash 入口投影。
 5. 未来可以投影到其他 AI 工具，而不用复制平台逻辑。
 
 ### 什么时候用哪个
@@ -362,8 +371,10 @@ AI slash command 是入口投影。
 | 人类在终端接入项目 | `sdd init --ai claude-code` |
 | Claude Code 里让 AI 判断下一步 | `/sdd` |
 | 进入或细化某个 workflow partition | `/sdd:spec` |
+| `/sdd:test` PASS 后写回任务完成态 | `/sdd:sync-back` |
+| 上线前 readiness 检查 | `/sdd:ship` / `sdd ship --branch <branch> --dry-run` |
 | CI 或脚本初始化 | `sdd init --ai none` 或指定 AI mode |
-| 修复 generated entry drift | `sdd update` |
+| 修复 generated entry drift | CLI `sdd update` |
 | 重新覆盖 starter docs | `sdd init --force`，且必须显式确认风险 |
 | 初始化后判断下一步 | `sdd status` |
 
@@ -427,15 +438,15 @@ sdd worktree *           -> sdd debug worktree *
 1. 它是用户主路径、advanced execution，还是 debug/platform？
 2. 它是否能通过现有 command 的 `--json` 或 drill-down 满足？
 3. 它的输出是否和 `status`、`doctor`、`run inspect` 重叠？
-4. 它是否会让用户绕过 `do task` / `verify task` / `sync-back inspect` 主路径？
+4. 它是否会让用户绕过 `do task` / `test task` / `sync-back inspect` 主路径？
 5. 它是否应该默认出现在 `sdd --help`？
 
 ## 推荐默认 help 形态
 
 ```text
-sdd Phase platform CLI
+sdd workflow platform CLI
 
-Default workflow commands:
+Default workflow and maintenance commands:
   sdd init [options]
   sdd update [options]
   sdd instructions [action] [--json]
@@ -446,8 +457,9 @@ Default workflow commands:
   sdd run create|status|list|inspect|archive [options]
   sdd artifact template|validate [options]
   sdd do task <task_id> [options]
-  sdd verify task <task_id> [--run <run_id>] [options]
+  sdd test task <task_id> [--run <run_id>] [options]
   sdd sync-back inspect|apply [<run_id>] [options]
+  sdd verify task <task_id> [--run <run_id>] [options]  # compatibility / diagnostics
 
 Advanced execution commands:
   sdd graph inspect [options]

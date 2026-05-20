@@ -20,17 +20,16 @@ sdd doctor
 
 你不需要先记完整生命周期。`/sdd` 会读取当前状态，并告诉你下一步是补 spec、写 plan、拆 tasks、执行 task、验证，还是处理 sync-back。
 
-成功接入后，项目里通常会有：
+成功接入后，项目里会稳定出现：
 
 ```text
 .sdd/project.yml
 .sdd/runs/
-specs/<branch>/spec.md
-specs/<branch>/plan.md
-specs/<branch>/tasks.md
 .claude/commands/...      # managed generated entries
 .claude/skills/sdd/...    # managed generated skill
 ```
+
+`specs/<partition>/spec.md`、`plan.md`、`tasks.md` 是 workflow 文档，通常在 `/sdd:spec`、`/sdd:plan`、`/sdd:tasks` 阶段逐步建立；只有显式 `--scaffold-docs` 或旧式 `--branch` starter-docs 路径才会在 init 时生成。
 
 ## 2. 安装、更新与卸载
 
@@ -48,7 +47,7 @@ sdd --help
 
 ```bash
 npm run build
-node ./dist/packages/cli/src/main.js status
+node ./packages/cli/dist/main.js status
 ```
 
 ### 2.2 更新
@@ -76,9 +75,15 @@ sdd status
 sdd doctor
 ```
 
-`sdd init` 是项目级接入。它负责 `.sdd/project.yml`、可选 starter docs、Claude Code managed entries。它不是每个 branch 都要重复执行的 workflow 入口。
+`sdd init` 是项目级接入。它负责 `.sdd/project.yml`、`.sdd/runs/`、Claude Code managed entries。它不是每个 branch 都要重复执行的 workflow 入口，也不默认替每个 partition 写完整 `spec.md / plan.md / tasks.md`。
 
-如果不希望生成 starter docs：
+如果需要初始化时生成 starter docs：
+
+```bash
+sdd init --ai claude-code --scaffold-docs
+```
+
+如果要显式跳过 starter docs，可以写明：
 
 ```bash
 sdd init --ai claude-code --no-scaffold-docs
@@ -115,7 +120,7 @@ sdd tasks inspect <task_id> --branch master
 
 ## 5. 在 Claude Code 里怎么用
 
-### 5.1 只先记住这 7 个入口
+### 5.1 先记住主路径和诊断入口
 
 | 你想做什么 | 在 Claude Code 中输入 | 结果 |
 |---|---|---|
@@ -124,10 +129,11 @@ sdd tasks inspect <task_id> --branch master
 | 需求清楚但方案未定 | `/sdd:plan` | 从 spec 推导方案、风险控制、验证矩阵 |
 | 要拆任务 | `/sdd:tasks` | 生成或检查 graph-ready task blocks |
 | 要执行一个任务 | `/sdd:do` | 围绕一个 task 生成证据并执行主路径 |
-| 要验证任务完成情况 | `/sdd:verify` | 做 goal-level acceptance coverage verify |
-| 只检查健康状态 | `/sdd:doctor` | 检查 run evidence、artifact、状态漂移 |
+| 要验证任务完成情况 | `/sdd:test` | 执行 validation commands，生成 test evidence，并判断 acceptance coverage |
+| 要做旧 run 诊断 | CLI `sdd verify task` | 低层兼容命令；不再投影成 `/sdd:*` 用户入口 |
+| 只检查健康状态 | `/sdd:doctor` | 诊断入口；检查 run evidence、artifact、状态漂移 |
 
-最常用的是 `/sdd`。不确定下一步时，不要猜命令，先让它读状态。
+最常用的是 `/sdd`。不确定下一步时，不要猜命令，先让它读状态；`sdd update` 和 `sdd instructions <action>` 是 CLI/core 维护与动态指令能力，不作为默认 slash 入口平铺。
 
 ### 5.2 你需要关注的确认点
 
@@ -284,7 +290,7 @@ SDD runtime 不会替你判断业务代码正确性；你需要执行 task 的 v
 
 ### 7.4 生成 result artifacts
 
-推荐使用 `--run <run_id> --write`，让 CLI 直接把合法模板写到 run artifact 目录：
+推荐使用 `--run <run_id> --write`，让 CLI 直接把合法模板写到 branch-scoped evidence artifact 目录：
 
 ```bash
 sdd artifact template artifacts/implement-T001.md --task T001 --agent implementer --branch master --run <run_id> --write
@@ -299,6 +305,7 @@ sdd artifact template artifacts/validation-T001.md --task T001 --agent validator
 - `sdd-result.artifacts` 只放 run-relative artifact 路径，例如 `artifacts/validation-T001.md`。
 - 源码、测试文件、命令输出写进 `## Evidence`。
 - validator artifact 必须包含 exact Acceptance text。模板会自动复制，不要改写成同义句。
+- 物理文件存放在 `.sdd/runs/<branchSlug>/evidence/artifacts/`，不要把这个物理路径写进 `sdd-result.artifacts`。
 
 ### 7.5 校验 artifacts
 
@@ -323,18 +330,21 @@ sdd do task T001 --branch master --run <run_id> \
 
 ## 8. 验证并写回
 
-### 8.1 goal-level verify
+### 8.1 `/sdd:test` unified test evidence
 
 ```bash
-sdd verify task T001 --branch master --run <run_id>
+sdd test task T001 --branch master --run <run_id>
 ```
 
-成功后会生成：
+PASS 时会生成并记录：
 
 ```text
-.sdd/runs/<run_id>/artifacts/acceptance-coverage-T001.md
-.sdd/runs/<run_id>/artifacts/sync-back-proposal.md
+.sdd/runs/<branchSlug>/evidence/artifacts/test-index-T001.json
+.sdd/runs/<branchSlug>/evidence/artifacts/test-T001-001.log
+.sdd/runs/<branchSlug>/evidence/artifacts/validation-T001.md
 ```
+
+其中 `commandStatus`、`evidenceCoverage`、`policyJudgment` 会分开呈现；命令成功但 acceptance 映射缺失时返回 BLOCKED，而不是误判 PASS。低层 `sdd verify task` 仍保留用于兼容/诊断。
 
 ### 8.2 sync-back inspect
 
@@ -370,16 +380,32 @@ sdd sync-back apply <run_id> --branch master --task T001 --approved
 
 - `tasks.md` 中对应 task 的 `status` 变成 `completed`。
 - `#### Implementation Notes` 追加 run/proposal/artifact 链接。
-- run state 中 `syncBack.status` 变成 `applied`。
-- event log 追加 `sync_back_applied`。
+- `runtime.sqlite` 中 `syncBack.status` 变成 `applied`。
+- runtime event ledger 追加 `sync_back_applied`。
 
-## 9. 健康检查和审计
+## 9. 前台 subagent 观察和摘要
+
+需要旁路观察、调研或代码分析时，可以让前台 subagent 并行执行，但它只提供 non-authoritative guidance：
+
+```bash
+sdd subagents run T001 --branch master --run <run_id> --agent observer --json
+```
+
+主 agent 优先消费 JSON 里的短摘要：
+
+- `agents[].digest`：可直接阅读的 compact summary、key findings、recommendation。
+- `summaryRefs`：digest projection refs，用于审计摘要来源。
+- `doNotReadUnlessNeededRefs`：完整 subagent artifact refs；只有需要深读时再打开。
+
+这些 digest / refs 不能替代 `/sdd:test`、sync-back、ship，也不能作为最终风险判断或 task completion authority。完整 artifact 仍然保存在 `.sdd/runs/<branchSlug>/evidence/artifacts/`。
+
+## 10. 健康检查和审计
 
 常用检查：
 
 ```bash
 sdd status --branch master
-sdd doctor --latest-only
+sdd doctor fast --branch master
 sdd run index rebuild --json
 sdd update --check
 ```
@@ -398,23 +424,23 @@ sdd run index query --task T001 --json
 sdd run archive <run_id> --reason "exploratory run superseded"
 ```
 
-archive 会保留 state/events/artifacts，只让默认 doctor 跳过该 run；需要历史审计时使用 `sdd doctor --all-runs`。
+archive 会保留 runtime evidence、events 和 artifacts，只让默认 doctor 跳过该 run；需要历史审计时使用 `sdd doctor --all-runs`。
 
-## 10. 常见问题
+## 11. 常见问题
 
-### 10.1 `sdd status` 显示 generated entry drift
+### 11.1 `sdd status` 显示 generated entry drift
 
 处理：
 
 ```bash
 sdd update
 sdd update --check
-sdd doctor
+sdd doctor fast --branch master
 ```
 
 不要手改 `.claude/commands` 或 `.claude/skills` 作为长期维护方式。
 
-### 10.2 `tasks gaps` 报缺 Boundary 或 Acceptance
+### 11.2 `tasks gaps` 报缺 Boundary 或 Acceptance
 
 通常是 companion sections 被写进了 `sdd-task` fenced block 内。把它们移到 fenced block 外：
 
@@ -433,7 +459,7 @@ id: T001
 - ...
 ````
 
-### 10.3 `artifact validate` invalid
+### 11.3 `artifact validate` invalid
 
 常见原因：
 
@@ -445,7 +471,7 @@ id: T001
 
 处理：重新生成模板并补充 Evidence。
 
-### 10.4 latest run PASS 但 tasks.md 仍 pending
+### 11.4 latest run PASS 但 tasks.md 仍 pending
 
 这是正常状态，说明还没 sync-back：
 
@@ -456,7 +482,7 @@ sdd sync-back apply <run_id> --branch master --task T001
 
 如果 inspect 输出 `approval_required=true`，需要人工确认后追加 `--approved`。
 
-### 10.5 当前 Git branch 不是目标 SDD partition
+### 11.5 当前 Git branch 不是目标 SDD partition
 
 显式传 `--branch`：
 
@@ -468,7 +494,7 @@ sdd do task T001 --branch master --run <run_id> ...
 
 不要因为存在未提交改动就重置或清理工作树。
 
-## 11. 高级能力边界
+## 12. 高级能力边界
 
 普通用户主路径不需要这些命令：
 
@@ -481,7 +507,7 @@ sdd do task T001 --branch master --run <run_id> ...
 
 只有在明确验证平台能力、wave/background/worktree 或治理策略时才使用。
 
-## 12. 平台维护者：npm 发包速查
+## 13. 平台维护者：npm 发包速查
 
 普通用户只需要 `npm install -g sdd-agent-platform@latest`。只有平台维护者发布新版本时才使用本节。
 
@@ -511,7 +537,7 @@ security-key/browser authentication 的快速处理方式：
 
 注意：recovery code 不能转换成 Google Authenticator 的 6 位 OTP；长期 npm token、`.npmrc`、recovery code 都不要写入仓库、文档或对话。已发布过的版本不能覆盖，后续发包必须先 bump version。
 
-## 13. 安全边界
+## 14. 安全边界
 
 默认不做：
 
@@ -529,18 +555,18 @@ security-key/browser authentication 的快速处理方式：
 - 对外可见操作。
 - destructive 操作。
 
-## 14. 命令速查
+## 15. 命令速查
 
 ```bash
 # install / update
 sdd --version
 sdd --help
-sdd init [--force] [--ai auto|claude-code|none] [--no-scaffold-docs]
+sdd init [--force] [--ai auto|claude-code|none] [--scaffold-docs] [--no-scaffold-docs]
 sdd update [--check] [--ai auto|claude-code]
 
 # status / doctor
 sdd status [--branch <branch>] [--json|--compact-json]
-sdd doctor [--latest-only] [--all-runs]
+sdd doctor fast|deep|recover [--branch <branch>]
 
 # tasks
 sdd tasks format
@@ -567,8 +593,10 @@ sdd do task <task_id> [--branch <branch>] [--run <run_id>] \
   --review-artifact <path> \
   --validation-artifact <path>
 
-sdd verify task <task_id> [--branch <branch>] [--run <run_id>]
+sdd test task <task_id> [--branch <branch>] [--run <run_id>] [--command <command>] [--json]
+sdd subagents run <task_id> [--branch <branch>] [--run <run_id>] --agent <agent> [--json]
 
+sdd verify task <task_id> [--branch <branch>] [--run <run_id>] # compatibility / diagnostics
 sdd sync-back inspect [<run_id>] [--branch <branch>] --task <task_id> [--json]
 sdd sync-back apply [<run_id>] [--branch <branch>] --task <task_id> [--approved] [--json]
 ```

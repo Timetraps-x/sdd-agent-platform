@@ -11,7 +11,7 @@ contract: sdd-tasks-doc-v1
 - plan_id: `phase6.10-context-budget-runtime-log-workers`
 - branch: `master`
 - lifecycle_profile: `standard`
-- status: `approved`
+- status: `completed`
 - retained_tasks:
   - `phase6.10-tasks.md`
 
@@ -52,11 +52,11 @@ acceptance_refs:
 plan_refs:
   - "§3 Context Budget Contracts"
 affected_files:
-  - packages/core/src/index.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/build-package.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
-  - npm run typecheck
-  - npm test -- --test-name-pattern "context budget"
+  - npm run typecheck => AC-1
+  - npm test -- --test-name-pattern "context budget" => AC-1
 risk:
   - context_contract_drift
 agent_fit:
@@ -72,8 +72,8 @@ required_artifacts:
   - artifacts/review-PHASE6.10-1.md
   - artifacts/validation-PHASE6.10-1.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
-  - inspect:packages/core/src/index.test.ts
+  - inspect:packages/core/src/context/build-package.ts
+  - inspect:packages/core/src/context/context-build.test.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -96,6 +96,7 @@ Forbidden scope:
 #### Implementation Notes
 
 - Sync-back applied from run `20260512-008` (2026-05-12T12:55:16.255Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-1.md`, `artifacts/validation-PHASE6.10-1.md`, `artifacts/acceptance-coverage-PHASE6.10-1.md`.
+- Sync-back applied from run `20260518-004` (2026-05-18T07:35:29.850Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/validation-PHASE6.10-1.md`, `artifacts/test-index-PHASE6.10-1.json`, `artifacts/test-PHASE6.10-1-001.log`, `artifacts/test-PHASE6.10-1-002.log`.
 
 ### PHASE6.10-2: Add context-profiled CLI output projection
 
@@ -111,12 +112,12 @@ acceptance_refs:
 plan_refs:
   - "§4 Output Projection Profiles"
 affected_files:
-  - packages/core/src/index.ts
+  - packages/core/src/context/command-summary.ts
   - packages/cli/src/main.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
-  - npm run typecheck
-  - npm test -- --test-name-pattern "context profile|brief|forensic"
+  - npm run typecheck => AC-2, AC-3
+  - npm test -- --test-name-pattern "context profile|brief|forensic" => AC-2, AC-3
 risk:
   - hidden_blocker
   - output_contract_drift
@@ -134,7 +135,7 @@ required_artifacts:
   - artifacts/validation-PHASE6.10-2.md
 verification_availability:
   - inspect:packages/cli/src/main.ts
-  - inspect:packages/core/src/index.ts
+  - inspect:packages/core/src/context/command-summary.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -172,12 +173,12 @@ acceptance_refs:
 plan_refs:
   - "§5 Evidence Summary Projection"
 affected_files:
-  - packages/core/src/index.ts
+  - packages/core/src/context/evidence-summary.ts
   - packages/cli/src/main.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
-  - npm run typecheck
-  - npm test -- --test-name-pattern "evidence summary|derived summary"
+  - npm run typecheck => AC-4, AC-8
+  - npm test -- --test-name-pattern "evidence summary|derived summary" => AC-4, AC-8
 risk:
   - summary_false_authority
   - stale_projection
@@ -194,8 +195,8 @@ required_artifacts:
   - artifacts/review-PHASE6.10-3.md
   - artifacts/validation-PHASE6.10-3.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
-  - inspect:packages/core/src/index.test.ts
+  - inspect:packages/core/src/context/evidence-summary.ts
+  - inspect:packages/core/src/context/context-build.test.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -232,13 +233,13 @@ acceptance_refs:
 plan_refs:
   - "§6 Context Build Packages"
 affected_files:
-  - packages/core/src/index.ts
+  - packages/core/src/context/build-package.ts
   - packages/cli/src/main.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
-  - npm run typecheck
-  - npm test -- --test-name-pattern "context build"
-  - node ./dist/packages/cli/src/main.js context build --task PHASE6.10-4 --branch master --mode verify --json
+  - npm run typecheck => AC-5
+  - npm test -- --test-name-pattern "context build" => AC-5
+  - node ./dist/packages/cli/src/main.js context build --task PHASE6.10-4 --branch master --mode verify --json => AC-5
 risk:
   - context_underfetch
 agent_fit:
@@ -254,7 +255,7 @@ required_artifacts:
   - artifacts/review-PHASE6.10-4.md
   - artifacts/validation-PHASE6.10-4.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
+  - inspect:packages/core/src/context/build-package.ts
   - inspect:packages/cli/src/main.ts
 autonomy: direct_execution_allowed
 ```
@@ -291,13 +292,13 @@ acceptance_refs:
 plan_refs:
   - "§6 Context Build Packages"
 affected_files:
-  - packages/core/src/index.ts
+  - packages/core/src/context/build-package.ts
   - packages/cli/src/main.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
-  - npm run typecheck
-  - npm test -- --test-name-pattern "agent context package"
-  - node ./dist/packages/cli/src/main.js context build --task PHASE6.10-5 --branch master --mode verify --agent validator --json
+  - npm run typecheck => AC-6
+  - npm test -- --test-name-pattern "agent context package" => AC-6
+  - node ./dist/packages/cli/src/main.js context build --task PHASE6.10-5 --branch master --mode verify --agent validator --json => AC-6
 risk:
   - agent_context_overfetch
   - agent_context_underfetch
@@ -314,7 +315,7 @@ required_artifacts:
   - artifacts/review-PHASE6.10-5.md
   - artifacts/validation-PHASE6.10-5.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
+  - inspect:packages/core/src/context/build-package.ts
   - inspect:packages/cli/src/main.ts
 autonomy: direct_execution_allowed
 ```
@@ -352,11 +353,11 @@ acceptance_refs:
 plan_refs:
   - "§7 Log Worker Boundary and Trust Guard"
 affected_files:
-  - packages/core/src/index.ts
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/log-worker.ts
+  - packages/core/src/context/context-build.test.ts
 validation:
-  - npm run typecheck
-  - npm test -- --test-name-pattern "log worker|non-authoritative"
+  - npm run typecheck => AC-7, AC-8
+  - npm test -- --test-name-pattern "log worker|non-authoritative" => AC-7, AC-8
 risk:
   - subagent_authority_leak
 agent_fit:
@@ -372,8 +373,8 @@ required_artifacts:
   - artifacts/review-PHASE6.10-6.md
   - artifacts/validation-PHASE6.10-6.md
 verification_availability:
-  - inspect:packages/core/src/index.ts
-  - inspect:packages/core/src/index.test.ts
+  - inspect:packages/core/src/context/log-worker.ts
+  - inspect:packages/core/src/context/context-build.test.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -410,11 +411,11 @@ acceptance_refs:
 plan_refs:
   - "§8 Validation and Installed CLI Proof"
 affected_files:
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
   - packages/cli/src/main.ts
 validation:
-  - npm run typecheck
-  - npm test -- --test-name-pattern "budget"
+  - npm run typecheck => AC-9
+  - npm test -- --test-name-pattern "budget" => AC-9
 risk:
   - output_budget_regression
 agent_fit:
@@ -430,7 +431,7 @@ required_artifacts:
   - artifacts/review-PHASE6.10-7.md
   - artifacts/validation-PHASE6.10-7.md
 verification_availability:
-  - inspect:packages/core/src/index.test.ts
+  - inspect:packages/core/src/context/context-build.test.ts
 autonomy: direct_execution_allowed
 ```
 
@@ -467,21 +468,21 @@ plan_refs:
   - "§8 Validation and Installed CLI Proof"
 affected_files:
   - specs/master/phase6.10-validation.md
-  - packages/core/src/index.test.ts
+  - packages/core/src/context/context-build.test.ts
   - packages/cli/src/main.ts
 validation:
-  - npm run typecheck
-  - npm test
-  - npm run build
-  - npm pack --dry-run --json
-  - npm pack
-  - npm install -g .\sdd-agent-platform-0.2.0.tgz
-  - sdd --version
-  - sdd status --branch master --compact-json
-  - sdd context build --task PHASE6.10-8 --branch master --mode verify --json
-  - sdd tasks inspect PHASE6.10-8 --branch master --json
-  - sdd tasks route PHASE6.10-8 --branch master --json
-  - sdd doctor --latest-only --branch master
+  - npm run typecheck => AC-10
+  - npm test => AC-10
+  - npm run build => AC-10
+  - npm pack --dry-run --json => AC-10
+  - npm pack => AC-10
+  - npm install -g .\sdd-agent-platform-0.2.0.tgz => AC-10
+  - sdd --version => AC-10
+  - sdd status --branch master --compact-json => AC-10
+  - sdd context build --task PHASE6.10-8 --branch master --mode verify --json => AC-10
+  - sdd tasks inspect PHASE6.10-8 --branch master --json => AC-10
+  - sdd tasks route PHASE6.10-8 --branch master --json => AC-10
+  - sdd doctor --latest-only --branch master => AC-10
 risk:
   - package_install_regression
   - installed_cli_drift
@@ -522,3 +523,4 @@ Forbidden scope:
 #### Implementation Notes
 
 - Sync-back applied from run `20260512-016` (2026-05-12T13:12:29.610Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-8.md`, `artifacts/validation-PHASE6.10-8.md`, `artifacts/acceptance-coverage-PHASE6.10-8.md`.
+- Sync-back applied from run `20260513-001` (2026-05-13T05:59:58.505Z); proposal: `artifacts/sync-back-proposal.md`; artifacts: `artifacts/review-PHASE6.10-8.md`, `artifacts/validation-PHASE6.10-8.md`, `artifacts/acceptance-coverage-PHASE6.10-8.md`.

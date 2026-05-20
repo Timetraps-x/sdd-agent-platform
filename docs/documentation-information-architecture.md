@@ -1,8 +1,19 @@
-# 文档信息架构提案
+# 文档信息架构基线
 
 ## 目标
 
-在真正移动文件前，先建立 reference-aware 的文档信息架构。这个架构要把用户文档、AI/tool 入口说明、架构文档、研究历史、runtime contract assets、SDD execution archive、generated AI entries 分开，避免把可执行合同、生成文件或历史证据当成普通 Markdown 迁移。
+本文件是 Phase 6.6 后的 reference-aware 文档信息架构基线。它把用户文档、AI/tool 入口说明、架构文档、研究历史、runtime contract assets、SDD execution archive、generated AI entries 分开，避免把可执行合同、生成文件或历史证据当成普通 Markdown 迁移。
+
+## 当前入口地图
+
+| 入口 | 面向对象 | 当前职责 |
+|---|---|---|
+| `README.md` | 新用户 / 维护者 | 项目定位、快速开始、文档地图、当前主线状态。 |
+| `docs/user-guide.md` | 人类用户 | 安装、初始化、branch/partition、任务执行、verify、sync-back、常见问题。 |
+| `docs/ai-readme.md` | Claude Code / AI 操作者 | status-first 执行规则、task boundary、artifact、sync-back 策略。 |
+| `docs/architecture/sdd-agent-platform-architecture.md` | 平台维护者 | 当前架构、contract 分层、Phase 8 coding runtime convergence 与 Phase 9 code graph handoff。 |
+| `docs/architecture/command-information-architecture.md` | 平台维护者 | CLI 命令分层、用户入口和 advanced/runtime 命令边界。 |
+| `specs/master/phases/PHASE_STATUS.md` | 平台维护者 | 阶段完成状态事实源；当前主线到 Phase 8 coding runtime convergence completed，Phase 9 code graph signals planned。 |
 
 ## 目标分类
 
@@ -27,18 +38,18 @@
 
 ## 推荐落地策略
 
-1. 先冻结本提案作为 Phase 6.6 的 documentation IA baseline。
+1. 本基线已作为 Phase 6.6 documentation IA 的后续维护入口。
 2. 在迁移前生成 reference inventory：路径、引用方、package 可见性、是否 generated、是否 runtime contract asset。
 3. 第一批只移动低风险导航文档，并同步 README / docs index。
 4. 高风险资产默认保持原位；确需迁移时，必须把代码、测试、workflow、generated projection、package contents 更新放入同一个任务。
 5. 对研究材料只做 archive 标记和索引，不把历史结论当成当前实现事实。
-6. Phase 7 code graph 消费本 IA 的分类和边界，把 runtime/generated/archive 的语义保留下来。
+6. Phase 8 先消费本 IA 的分类和边界来收敛 coding runtime，保留 runtime/generated/archive 的语义；Phase 9 code graph 再消费这些结构化边界，不反向改变 Phase 8 lifecycle authority。
 
 ## 验证门禁
 
 | 场景 | 必跑检查 |
 |---|---|
-| 任意文档移动 | reference grep、README/docs index 检查、`sdd status --branch master`、`sdd doctor --latest-only` |
+| 任意文档移动 | reference grep、README/docs index 检查、`sdd status --branch master`；`sdd doctor fast --branch master` 只在当前任务声明健康检查为验收范围时作为门禁 |
 | generated AI entry 相关变更 | `sdd update --check`、generated manifest/drift 检查 |
 | runtime contract asset 迁移 | `npm run typecheck`、`npm test`、`npm run build`、CLI focused smoke、package contents 检查 |
 | package 可见文档变更 | `npm pack --dry-run --json` |

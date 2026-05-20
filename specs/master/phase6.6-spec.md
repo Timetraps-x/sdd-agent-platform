@@ -23,7 +23,7 @@ The repository contains human-facing docs, research notes, architecture contract
 - No npm publish.
 - No Git commit or push.
 - No prompt-pack import or third-party agent execution.
-- No Phase 7 code graph implementation.
+- No Phase 8 code graph implementation.
 
 ## Acceptance criteria
 

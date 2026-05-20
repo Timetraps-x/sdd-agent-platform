@@ -2,17 +2,17 @@
 
 ## 1. 定位
 
-Phase 6.9 插入在 Phase 6.8 Project Document Language Runtime 与 Phase 7.0 Code Knowledge Graph Baseline 之间。它把真实 EMP 项目和当前仓库自测暴露的弱证据问题收束为 policy-proven Runtime Trust Layer：acceptance PASS 必须由 CER（Claim / Evidence / Reasoning）声明、PROV-style provenance facts、in-toto/SLSA-style evidence attestation 和 deterministic policy decision 共同证明。
+Phase 6.9 插入在 Phase 6.8 Project Document Language Runtime 与后续 core modularization / code graph 阶段之间。它把真实 EMP 项目和当前仓库自测暴露的弱证据问题收束为 policy-proven Runtime Trust Layer：acceptance PASS 必须由 CER（Claim / Evidence / Reasoning）声明、PROV-style provenance facts、in-toto/SLSA-style evidence attestation 和 deterministic policy decision 共同证明。
 
-本阶段不是最小化修补，也不是把命令合并成黑盒。它把 PASS 可信度、coverage 证据、delegation routing、agent execution provenance、material usage、sync-back state、doctor diagnostics、profiling、cache、team-mode cost routing 统一到可审计 contract 和 policy rules 中，避免 Phase 7.0 把不可信 run history 当作 code knowledge graph 输入。
+本阶段不是最小化修补，也不是把命令合并成黑盒。它把 PASS 可信度、coverage 证据、delegation routing、agent execution provenance、material usage、sync-back state、doctor diagnostics、profiling、cache、team-mode cost routing 统一到可审计 contract 和 policy rules 中，避免 Phase 8.0 把不可信 run history 当作 code knowledge graph 输入。
 
 AC id、复制的 acceptance 文本、artifact 自声明、模板 TODO 或 `Mentioned in artifacts/...` 只能成为 `REFERENCED_ONLY` 或 `MISSING`，不能成为 PASS。
 
 ## 2. 依赖
 
 - depends_on: Phase 6.8 Project Document Language Runtime
-- blocks: Phase 7.0 Code Knowledge Graph Baseline
-- required_by: Phase 7.0
+- blocks: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
+- required_by: Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
 
 ## 3. 核心问题
 
@@ -46,7 +46,7 @@ AC id、复制的 acceptance 文本、artifact 自声明、模板 TODO 或 `Ment
 
 ## 5. 非目标
 
-- 不实现 Phase 7 code knowledge graph。
+- 不实现 Phase 8 code knowledge graph。
 - 不引入 graph database、embedding store、daemon、remote worker fleet 或外部 telemetry 作为硬依赖。
 - 不把命令隐藏、合并或改造成不可解释黑盒；命令保持清晰，优化每次命令内部重复工作。
 - 不跳过 evidence gate、doctor trust checks、sync-back approval 或 artifact validation。

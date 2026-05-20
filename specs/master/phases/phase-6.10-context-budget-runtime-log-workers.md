@@ -9,9 +9,9 @@ Phase 6.10 在 Phase 6.7 输出去重、Phase 6.9 可信证据层之后，补上
 ## 2. 依赖
 
 - depends_on: `phase-6.9-runtime-trust-fast-path-hardening.md`
-- blocks / required_by: `phase-7.0-code-knowledge-graph-baseline.md`
+- blocks / required_by: `phase-7.0-core-runtime-modularization.md`
 
-Phase 7 消费运行历史前，需要先有稳定的 context package / evidence summary / log summary 投影，否则图谱阶段会继续放大大输出和弱摘要带来的 context 压力。
+Phase 7 收敛 core runtime 模块边界时，需要先有稳定的 context package / evidence summary / log summary 投影；Phase 8 消费运行历史前也依赖这些非权威摘要边界，否则图谱阶段会继续放大大输出和弱摘要带来的 context 压力。
 
 ## 3. 范围
 
@@ -37,9 +37,13 @@ Phase 7 消费运行历史前，需要先有稳定的 context package / evidence
 - `specs/master/phase6.10-plan.md`
 - `specs/master/phase6.10-tasks.md`
 - `specs/master/phase6.10-validation.md`
-- `packages/core/src/index.ts`
-- `packages/core/src/index.test.ts`
-- `packages/cli/src/main.ts`
+- `packages/core/src/context/budget.ts`
+- `packages/core/src/context/command-summary.ts`
+- `packages/core/src/context/evidence-summary.ts`
+- `packages/core/src/context/build-package.ts`
+- `packages/core/src/context/log-worker.ts`
+- `packages/core/src/context/context-build.test.ts`
+- `packages/cli/src/commands/context.ts`
 
 ## 6. 验收标准
 
@@ -58,3 +62,9 @@ Phase 7 消费运行历史前，需要先有稳定的 context package / evidence
 - Command output summary contract。
 - Non-authoritative log worker boundary。
 - Budget regression thresholds。
+
+## 8. 状态
+
+- status: `completed`
+- completion evidence: `../phase6.10-validation.md`、`../phase6.10-tasks.md`、runs `20260512-008` through `20260512-016`、`phases/PHASE_STATUS.md`。
+- downstream gate: Phase 7.0 已可基于 Phase 6.10 的 context budget / evidence summary / log worker 非权威边界继续推进。

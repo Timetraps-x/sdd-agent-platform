@@ -11,8 +11,8 @@ Phase 6.0 将 `agent_fit`、`allowed_agents`、`required_artifacts`、`autonomy`
 ## 2. 依赖
 
 - depends_on: Phase 5.10 Document Chain Verify / Doctor
-- blocks: Phase 6.1 Resident Agent Worker Runtime; Phase 7.0 Code Knowledge Graph Baseline
-- required_by: Phase 6.1 Resident Agent Worker Runtime; Phase 7.0 Code Knowledge Graph Baseline
+- blocks: Phase 6.1 Resident Agent Worker Runtime; Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
+- required_by: Phase 6.1 Resident Agent Worker Runtime; Phase 7.0 Core Runtime Modularization; Phase 8.0 Code Knowledge Graph Baseline
 
 ## 3. 调研结论转译
 
@@ -65,7 +65,7 @@ Phase 6.0 将 `agent_fit`、`allowed_agents`、`required_artifacts`、`autonomy`
 - 不把外部素材库批量拼成大 prompt。
 - 不让 team-mode、delegate_task、tmux/background execution 绕过 SDD lifecycle risk gate、verify、doctor 或 sync-back policy。
 - 不让 security-research 或 PoC 任务越过授权、防御、非破坏边界。
-- 不在本阶段实现 Phase 7 code graph、embedding store、AST/LSP graph database。
+- 不在本阶段实现 Phase 8 code graph、embedding store、AST/LSP graph database。
 
 ## 7. 推荐架构
 
@@ -81,7 +81,7 @@ spec / plan / tasks
   -> EvidenceIngestionContract
   -> sdd-result artifacts / review artifacts / validation artifacts / security findings
   -> verify / doctor / sync-back
-  -> Phase 7 graph inputs
+  -> Phase 8 graph inputs
   -> Phase 6.1 resident worker runtime claim / lease / heartbeat / inspect
 ```
 
@@ -119,14 +119,14 @@ Oh My OpenCode 的 team-mode 是 Phase 6 的重要参考，但必须转译成可
 
 ## 10. 验收标准
 
-- Phase 6 的 artifact/spec/plan/tasks/validation 文档存在，并明确原代码图谱 Phase 6 顺延为 Phase 7。
+- Phase 6 的 artifact/spec/plan/tasks/validation 文档存在，并明确原代码图谱 Phase 6 顺延为 Phase 8，且 Phase 7 先收敛 core module boundary。
 - Phase 6 明确外部 agent/skill 仓库是素材库、机制库和 capability source，不是 SDD profile 替代品。
 - AgentProfileContract、SkillCapabilityContract、CapabilitySourceCatalog、ExternalAgentPackImportPolicy、ToolPermissionSpec、HostAdapterContract、AgentRouterContract、TeamModePolicy、DelegationWavePolicy、AgentExecutionRecord、TeamSessionRecord、EvidenceIngestionContract 和 SkillReusePolicy 均有明确字段、事实源和边界。
 - 文档明确“复用已有轮子优先”，禁止重造 OpenCode/Claude Code/plugin/MCP runtime、agent framework、MCP hub、scheduler 或多 agent OS。
 - 文档明确 anti-big-prompt 规则：外部素材必须结构化映射，不批量复制 prompt，不用 prompt 表达 state/risk/evidence。
 - `tasks.md` 中的 `agent_fit`、`allowed_agents`、`required_artifacts`、`autonomy`、`risk` 被定义为 router 输入，而不是展示字段。
 - Team-mode 默认自适应判断而不是全局强制；启用后仍受 SDD risk gate、required artifacts、tool permission、evidence ingestion 和 verify/doctor 约束。
-- Phase 7 code graph artifact 消费 Phase 6 agent/skill/team runtime metadata。
+- Phase 8 code graph artifact 消费 Phase 6 agent/skill/team runtime metadata 和 Phase 7 core module boundary metadata。
 - Phase 6.1 consumes Phase 6.0 router/team metadata to provide resident worker claim、lease、heartbeat、status 和 inspect；Phase 6.0 不直接实现常驻 worker。
 - `sdd status --branch master` 无 route gaps。
 
